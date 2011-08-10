@@ -19,6 +19,8 @@
 #ifndef  SR_REFERENCE_H
 #define  SR_REFERENCE_H
 
+#define __USE_LARGEFILE
+
 #include <stdio.h>
 #include <stdint.h>
 #include <sys/types.h>

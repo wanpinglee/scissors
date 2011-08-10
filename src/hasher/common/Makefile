@@ -9,10 +9,6 @@ SOURCES = md5.c \
 
 OBJECTS = $(SOURCES:.c=.o)
 
-CC = gcc
-CFLAGS = -Wall -O3 -std=gnu99
-
-
 all: $(OBJECTS)
 
 $(OBJECTS): $(SOURCES) $(HEADERS)
