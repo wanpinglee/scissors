@@ -8,12 +8,13 @@ SOURCES = md5.c \
 		SR_Reference.c
 
 OBJECTS = $(SOURCES:.c=.o)
+BUILT_OBJECTS = $(patsubst %, $(OBJ_DIR)/%, $(OBJECTS) )
 
-all: $(OBJECTS)
 
-$(OBJECTS): $(SOURCES) $(HEADERS)
-	@test -d $(OBJ_DIR) || mkdir $(OBJ_DIR)
+all: $(BUILT_OBJECTS)
+
+$(BUILT_OBJECTS): $(SOURCES) $(HEADERS)
 	@echo "  * compliing" $(*F).c
-	@$(CC) -c -o $(OBJ_DIR)/$@ $(*F).c $(CFLAGS)
+	@$(CC) -c $(CFLAGS) $(*F).c -o $@
 
 .PHONY: all

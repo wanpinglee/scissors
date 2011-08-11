@@ -2,13 +2,13 @@ OBJ_DIR = ../../obj
 
 SOURCES = ParameterParser.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
+BUILT_OBJECTS = $(patsubst %, $(OBJ_DIR)/%, $(OBJECTS) )
 
-all: $(OBJECTS)
+all: $(BUILT_OBJECTS)
 
-$(OBJECTS): $(SOURCES)
-	@test -d $(OBJ_DIR) || mkdir $(OBJ_DIR)
+$(BUILT_OBJECTS): $(SOURCES)
 	@echo "  * compliing" $(*F).cpp
-	@$(CXX) -c -o $(OBJ_DIR)/$@ $(*F).cpp $(CXXFLAGS)
+	@$(CXX) -c $(CXXFLAGS) $(*F).cpp -o $@
 
 .PHONY: all
 

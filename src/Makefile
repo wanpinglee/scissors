@@ -4,43 +4,44 @@ BIN_DIR = ../bin
 
 export CXX = g++
 export CC = gcc
+export MAKE = make
 export CFLAGS = -Wall -O3 -std=c99
 export CXXFLAGS = -Wall -O3
-export MAKE = make
 
 # define our sources
 SOURCES = main.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
-BUILT_OBJECTS = $(OBJECTS:%=$(OBJ_DIR)/%)
+BUILT_OBJECTS = $(patsubst %, $(OBJ_DIR)/%, $(OBJECTS) )
 
 # define our source subdirectories
-SUB_DIRS = hasher utilities
-ext_objects = ParameterParser.o
-EXT_OBJECTS = $(ext_objects:%=$(OBJ_DIR)/%)
+SUB_DIRS = hasher \
+		utilities \
+		smithwaterman
 
-PROGRAM = aligner
+EXECUTABLE = aligner
 
-all: $(PROGRAM)
+all: $(EXECUTABLE)
 
 .PHONY: all
 
-$(PROGRAM): $(EXT_OBJECTS) $(BUILT_OBJECTS)
-	@test -d $(BIN_DIR) || mkdir $(BIN_DIR)
-	@echo "  * linking $(PROGRAM)"
-	@$(CXX) $(CXXFLAGS) -o $(BIN_DIR)/$@ $^ 
-
-$(BUILT_OBJECTS): $(SOURCES)
-	@test -d $(OBJ_DIR) || mkdir $(OBJ_DIR)
-	@echo "  * compiling" $(*F).cpp
-	@$(CXX) -c -o $@ $(*F).cpp $(CXXFLAGS)
-
-$(EXT_OBJECTS):
-	@echo "Building......"
+$(EXECUTABLE): $(BUILT_OBJECTS) | $(BIN_DIR)
 	@for dir in $(SUB_DIRS); do \
-		$(MAKE) --no-print-directory --directory=$$dir; \
+	$(MAKE) --no-print-directory --directory=$$dir; \
 	done
+	@echo "  * linking $(EXECUTABLE)"
+	@$(CXX) $(CXXFLAGS) -o $(BIN_DIR)/$@ $(OBJ_DIR)/*.o
+
+$(BUILT_OBJECTS): $(SOURCES) | $(OBJ_DIR)
+	@echo "  * compiling" $(*F).cpp
+	@$(CXX) -c $(CXXFLAGS) $(*F).cpp -o $@
+
+
+$(OBJ_DIR):
+	@mkdir $(OBJ_DIR)
+$(BIN_DIR):
+	@mkdir $(BIN_DIR)
 
 clean:
 	@echo "Cleaning......"
-	@rm -f $(OBJ_DIR)/* $(BIN_DIR)/*
+	@rm -rf $(OBJ_DIR) $(BIN_DIR)
 .PHONY: clean
