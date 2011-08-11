@@ -19,33 +19,11 @@
 #ifndef  SR_REFERENCE_H
 #define  SR_REFERENCE_H
 
-#define __USE_LARGEFILE
-
 #include <stdio.h>
 #include <stdint.h>
 #include <sys/types.h>
 
-#include "SR_Types.h"
-
-// maximum number of character will be load in a line from the fasta file
-#define MAX_REF_LINE 1024
-
-// number of characters can be held in a reference object
-// this value assure that the largest chromosome in the human reference, chromsome 1, can be
-// load into the object without any reallocation.
-#define DEFAULT_REF_CAPACITY 300000000
-
-// the default start chromosome ID
-#define DEFAULT_START_CHR 1
-
-// reset the reference object for next reading
-#define SR_ReferenceReset(reference, nextChr) \
-    do                                     \
-    {                                      \
-        (reference)->chr = (nextChr);      \
-        (reference)->length = 0;           \
-    }while(0) 
-
+#include "../common/SR_Types.h"
 
 // an object hold the reference sequence of a chromosome
 typedef struct SR_Reference

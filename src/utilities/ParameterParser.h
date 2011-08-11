@@ -17,7 +17,7 @@ class ParameterParser {
 	// operation parameters
 	
 	// command line
-	const string commandLine;
+	string commandLine;
 	
 
 	// functions

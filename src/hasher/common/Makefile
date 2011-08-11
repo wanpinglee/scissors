@@ -4,8 +4,7 @@ HEADERS = SR_Types.h \
 		SR_Utilities.h
 
 SOURCES = md5.c \
-		SR_Error.c \
-		SR_Reference.c
+		SR_Error.c 
 
 OBJECTS = $(SOURCES:.c=.o)
 BUILT_OBJECTS = $(patsubst %, $(OBJ_DIR)/%, $(OBJECTS) )

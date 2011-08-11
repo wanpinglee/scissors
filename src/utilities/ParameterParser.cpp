@@ -15,7 +15,9 @@ ParameterParser::ParameterParser
 		exit( 1 );
 	}
 
-	
+	for ( int i = 0; i <= argc; i++ )
+		commandLine += *argv[i];
+
 	const char *short_option = "hi:r:o:";
 
 	const struct option long_option[] = {
