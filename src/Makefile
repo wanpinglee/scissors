@@ -21,7 +21,6 @@ SUB_DIRS = hasher \
 EXECUTABLE = aligner
 
 all: $(EXECUTABLE)
-
 .PHONY: all
 
 $(EXECUTABLE): $(BUILT_OBJECTS) | $(BIN_DIR)

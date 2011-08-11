@@ -1,11 +1,9 @@
-#ifndef _SmithWatermanGotoh_H_
-#define _SmithWatermanGotoh_H_
+#ifndef _SMITHWATERMANGOTOH_H_
+#define _SMITHWATERMANGOTOH_H_
 
 #include <iostream>
 #include <algorithm>
 #include <memory>
-//#include "Alignment.h"
-//#include "Mosaik.h"
 #include <stdio.h>
 #include <string.h>
 #include <sstream>
@@ -14,7 +12,6 @@
 using namespace std;
 
 #define MOSAIK_NUM_NUCLEOTIDES 26
-//#define GAP '-'
 
 class CSmithWatermanGotoh {
 public:

@@ -1,5 +1,5 @@
-#ifndef _BandedSmithWaterman_H_
-#define _BandedSmithWaterman_H_
+#ifndef _BANDEDSMITHWATERMAN_H_
+#define _BANDEDSMITHWATERMAN_H_
 
 #include <algorithm>
 #include <iostream>
