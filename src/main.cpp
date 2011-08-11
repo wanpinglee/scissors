@@ -38,6 +38,10 @@ int main ( int argc, char** argv ) {
 
 	unsigned short hashSize = SR_ReadHashSize( hashTableInput );
 
+	// create a hash region table object
+	// the parameter given here is the edge tolerance percentage which is not useful here
+	HashRegionTable* pRegionTable = HashRegionTableAlloc(0.25);
+	
 	
 	// close files
 	fclose( hashTableInput );
