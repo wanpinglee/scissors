@@ -12,6 +12,6 @@ all: $(BUILT_OBJECTS)
 
 $(BUILT_OBJECTS): $(SOURCES) $(HEADERS)
 	@echo "  * compliing" $(*F).c
-	@$(CC) -c $(CFLAGS) $(*F).c -o $@
+	@$(CXX) -c $(CXXFLAGS) $(*F).c -o $@
 
 .PHONY: all

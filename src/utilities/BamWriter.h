@@ -168,7 +168,7 @@ private:
 	// encodes the supplied query sequence into 4-bit notation
 	//static void EncodeQuerySequence(const CMosaikString& query, string& encodedQuery);
 	// MD tager
-	CMdTager mdTager;
+	//CMdTager mdTager;
 	// our BGZF output object
 	BGZF mBGZF;
 };

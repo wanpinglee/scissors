@@ -4,11 +4,11 @@
 #include <iostream>
 #include <string>
 
-extern "C" {
+//extern "C" {
 #include "hasher/reader/SR_InHashTable.h"
 #include "hasher/reader/SR_Reference.h"
 #include "hasher/reader/SR_HashRegionTable.h"
-}
+//}
 
 #include "utilities/ParameterParser.h"
 
