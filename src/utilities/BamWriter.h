@@ -8,8 +8,10 @@
 // a commercial license with the Marth Lab.
 // ***************************************************************************
 
-#pragma once
+#ifndef _BAMWRITER_H_
+#define _BAMWRITER_H_
 
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -17,12 +19,15 @@
 #include <cstdlib>
 #include <cstring>
 #include <zlib.h>
-#include "Alignment.h"
-#include "BamHeader.h"
-#include "MdTager.h"
-#include "ReadGroup.h"
-#include "ReferenceSequence.h"
-#include "SequencingTechnologies.h"
+#include <stdint.h>
+
+#include "../dataStructures/bamAlignment.h"
+//#include "Alignment.h"
+//#include "BamHeader.h"
+//#include "MdTager.h"
+//#include "ReadGroup.h"
+//#include "ReferenceSequence.h"
+//#include "SequencingTechnologies.h"
 
 using namespace std;
 
@@ -31,6 +36,8 @@ typedef unsigned char SortOrderType;
 const SortOrderType SORTORDER_UNSORTED = 0;
 const SortOrderType SORTORDER_READNAME = 10;
 const SortOrderType SORTORDER_POSITION = 20;
+
+const uint32_t MAX_BGZF_BLOCK_SIZE = 65536;
 
 // program group in header
 struct ProgramGroup {
@@ -43,16 +50,16 @@ struct ProgramGroup {
 struct BamHeader {
 	SortOrderType SortOrder;
 	string Version;
-	vector<MosaikReadFormat::ReadGroup>* pReadGroups;
-	vector<ReferenceSequence>* pReferenceSequences;
+	//vector<> ReadGroup;
+	//vector<> pReferenceSequences;
 	ProgramGroup pg;
 
 	// constructor
 	BamHeader(void)
 		: SortOrder(SORTORDER_UNSORTED)
 		, Version("1.0")
-		, pReadGroups(NULL)
-		, pReferenceSequences(NULL)
+		//, pReadGroups(NULL)
+		//, pReferenceSequences(NULL)
 	{}
 };
 
@@ -62,20 +69,18 @@ struct BGZF {
 	unsigned int CompressedBlockSize;
 	unsigned int BlockLength;
 	unsigned int BlockOffset;
-	uint64_t BlockAddress;
-	bool IsOpen;
-	FILE* Stream;
-	char* UncompressedBlock;
-	char* CompressedBlock;
+	uint64_t     BlockAddress;
+	ofstream     Stream;
+	char*        UncompressedBlock;
+	char*        CompressedBlock;
 
 	// constructor
 	BGZF(void)
-		: UncompressedBlockSize(DEFAULT_BLOCK_SIZE)
-		, CompressedBlockSize(MAX_BLOCK_SIZE)
+		: UncompressedBlockSize(MAX_BGZF_BLOCK_SIZE)
+		, CompressedBlockSize(MAX_BGZF_BLOCK_SIZE)
 		, BlockLength(0)
 		, BlockOffset(0)
 		, BlockAddress(0)
-		, IsOpen(false)
 		, Stream(NULL)
 		, UncompressedBlock(NULL)
 		, CompressedBlock(NULL)
@@ -99,8 +104,8 @@ struct BGZF {
 	BGZF ( const BGZF & copy ) {
 		CompressedBlockSize   = copy.CompressedBlockSize;
 		UncompressedBlockSize = copy.UncompressedBlockSize;
-		CompressedBlock   = new char[ CompressedBlockSize ];
-		UncompressedBlock = new char[ UncompressedBlockSize ];
+		CompressedBlock       = new char[ CompressedBlockSize ];
+		UncompressedBlock     = new char[ UncompressedBlockSize ];
 		memcpy( CompressedBlock, copy.CompressedBlock, CompressedBlockSize );
 		memcpy( UncompressedBlock, copy.UncompressedBlock, UncompressedBlockSize );
 
@@ -108,8 +113,8 @@ struct BGZF {
 
 	// assign operator
 	BGZF& operator=( const BGZF & copy ) {
-		CompressedBlockSize    = copy.CompressedBlockSize;
-		UncompressedBlockSize  = copy.UncompressedBlockSize;
+		CompressedBlockSize          = copy.CompressedBlockSize;
+		UncompressedBlockSize        = copy.UncompressedBlockSize;
 		char* temp_CompressedBlock   = new char[ CompressedBlockSize ];
 		char* temp_UncompressedBlock = new char[ UncompressedBlockSize ];
 		memcpy( temp_CompressedBlock, copy.CompressedBlock, CompressedBlockSize );
@@ -119,7 +124,6 @@ struct BGZF {
 		CompressedBlock   = temp_CompressedBlock;
 		UncompressedBlock = temp_UncompressedBlock;
 
-		// unsafe
 		Stream = copy.Stream;
 
 		return *this;
@@ -139,13 +143,7 @@ public:
 	// opens the alignment archive
 	void Open(const string& filename, const BamHeader& header);
 	// saves the alignment to the alignment archive
-	void SaveAlignment(const Alignment al, const char* zaString, const bool& noCigarMdNm, const bool& notShowRnamePos, const bool& isSolid, const bool processedBamData = false );
-	// saves the reference and position of an alignment to the alignment archive
-	void SaveReferencePosition( const unsigned int refIndex, const unsigned int refBegin, const unsigned int refEnd );
-	// creates a packed cigar string from the supplied alignment
-	void CreatePackedCigar(const Alignment& al, string& packedCigar, unsigned short& numCigarOperations, const bool isSolid );
-	// encodes the supplied query sequence into 4-bit notation
-	void EncodeQuerySequence(const CMosaikString& query, string& encodedQuery);
+	void SaveAlignment( const bamAlignment& al );
 private:
 	// closes the BAM file
 	void BgzfClose(void);
@@ -163,15 +161,11 @@ private:
 	unsigned int BgzfWrite(const char* data, const unsigned int dataLen);
 	// calculates the minimum bin that contains a region [begin, end)
 	static inline unsigned int CalculateMinimumBin(unsigned int begin, unsigned int end);
-	// creates a packed cigar string from the supplied alignment
-	//static void CreatePackedCigar(const Alignment& al, string& packedCigar, unsigned int& numCigarOperations, const bool& isSolid );
-	// encodes the supplied query sequence into 4-bit notation
-	//static void EncodeQuerySequence(const CMosaikString& query, string& encodedQuery);
-	// MD tager
-	//CMdTager mdTager;
 	// our BGZF output object
 	BGZF mBGZF;
 };
+
+#endif
 
 // packs an unsigned integer into the specified buffer
 inline void CBamWriter::BgzfPackUnsignedInt(char* buffer, unsigned int value) {

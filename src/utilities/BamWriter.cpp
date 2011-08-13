@@ -14,15 +14,31 @@
 //CBamWriter::CBamWriter(void)
 //{}
 
+// zlib constants
+const uint32_t GZIP_ID1            = 31;
+const uint32_t GZIP_ID2            = 139;
+const uint32_t CM_DEFLATE          = 8;
+const uint32_t FLG_FEXTRA          = 4;
+const uint32_t OS_UNKNOWN          = 255;
+const uint32_t BGZF_XLEN           = 6;
+const uint32_t BGZF_ID1            = 66;
+const uint32_t BGZF_ID2            = 67;
+const uint32_t BGZF_LEN            = 2;
+const uint32_t Z_DEFAULT_MEM_LEVEL = 8;
+const int32_t  GZIP_WINDOW_BITS    = -15;
+
+
+// BGZF block info
+const uint32_t BLOCK_HEADER_LENGTH = 18;
+const uint32_t BLOCK_FOOTER_LENGTH = 8;
+
 // destructor
 CBamWriter::~CBamWriter(void) {
-	if(mBGZF.IsOpen) BgzfClose();
+	if( mBGZF.Stream.is_open ) BgzfClose();
 }
 
 // closes the BAM file
 void CBamWriter::BgzfClose(void) {
-
-	mBGZF.IsOpen = false;
 
 	// flush the BGZF block
 	BgzfFlushBlock();
@@ -33,8 +49,8 @@ void CBamWriter::BgzfClose(void) {
 	fwrite(mBGZF.CompressedBlock, 1, blockLength, mBGZF.Stream);
 
 	// flush and close
-	fflush(mBGZF.Stream);
-	fclose(mBGZF.Stream);
+	fflush( mBGZF.Stream );
+	mBGZF.close();
 }
 
 // compresses the current block
@@ -103,7 +119,7 @@ int CBamWriter::BgzfDeflateBlock(void) {
 		compressedLength = zs.total_out;
 		compressedLength += BLOCK_HEADER_LENGTH + BLOCK_FOOTER_LENGTH;
 
-		if(compressedLength > MAX_BLOCK_SIZE) {
+		if(compressedLength > MAX_BGZF_BLOCK_SIZE) {
 			printf("ERROR: deflate overflow.\n");
 			exit(1);
 		}
@@ -157,16 +173,14 @@ void CBamWriter::BgzfFlushBlock(void) {
 }
 
 // opens the BAM file for writing
-void CBamWriter::BgzfOpen(const string& filename) {
+void CBamWriter::BgzfOpen( const string& filename ) {
 
-	mBGZF.Stream = fopen(filename.c_str(), "wb");
+	mBGZF.Stream.open( filename.c_str(), ofstream::binary );
 
-	if(!mBGZF.Stream) {
-		printf("ERROR: Unable to open the BAM file (%s) for writing.\n", filename.c_str());
-		exit(1);
+	if( !mBGZF.Stream.good() ) {
+		cout << "ERROR: Unable to open the BAM file " << filename << " for writing." << endl;
+		exit( 1 );
 	}
-
-	mBGZF.IsOpen = true;
 }
 
 // writes the supplied data into the BGZF buffer
@@ -195,159 +209,15 @@ unsigned int CBamWriter::BgzfWrite(const char* data, const unsigned int dataLen)
 
 // closes the alignment archive
 void CBamWriter::Close(void) {
-	if(mBGZF.IsOpen) BgzfClose();
+	if( mBGZF.Stream.is_open ) BgzfClose();
 }
 
-/*
-void CBamWriter::TranslateCigarToPackCigar ( const string cigar, string packCigar ) {
-
-	packCigar.resize( cigar.size() * SIZEOF_INT );
-	for ( unsigned int i = 0; i < cigar.size(); ++i ) {
-		switch( cigar[i] ) {
-		}
-	}
-}
-*/
-
-
-// creates a cigar string from the supplied alignment
-void CBamWriter::CreatePackedCigar( const Alignment& al, string& packedCigar, unsigned short& numCigarOperations, const bool isSolid ) {
-
-	// initialize
-	const char* pReference = al.Reference.CData();
-	const char* pQuery     = al.Query.CData();
-
-	const unsigned int numBases = al.Reference.Length();
-	unsigned int currentPos = 0;
-
-	packedCigar.resize(numBases * SIZEOF_INT);
-	unsigned int* pPackedCigar = (unsigned int*)packedCigar.data();
-	numCigarOperations = 0;
-
-	// create the cigar string by parsing the reference and query strings 
-	while(currentPos < numBases) {
-
-		unsigned int testPos         = currentPos;
-		unsigned int operationLength = 0;
-
-		if((pReference[currentPos] != '-') && (pQuery[currentPos] != '-') && (pReference[currentPos] != 'Z')) {
-
-			// find the matches or mismatches
-			while((pReference[testPos] != '-') && (pQuery[testPos] != '-') && (testPos < numBases) && (pReference[testPos] != 'Z') && (testPos < numBases)) {
-				++testPos;					
-				++operationLength;
-			}
-
-			*pPackedCigar = operationLength << BAM_CIGAR_SHIFT | BAM_CMATCH;
-
-		} else if ( pReference[currentPos] == 'Z' ) {
-			while( ( pReference[testPos] == 'Z' ) && ( testPos < numBases ) ){
-				++testPos;
-				++operationLength;
-			}
-
-			*pPackedCigar = operationLength << BAM_CIGAR_SHIFT | BAM_CSOFT_CLIP;
-
-		} else if(pReference[currentPos] == '-') {
-
-			// find the insertions
-			while((pReference[testPos] == '-') && (testPos < numBases)) {
-				++testPos;					
-				++operationLength;
-			}
-
-			*pPackedCigar = operationLength << BAM_CIGAR_SHIFT | BAM_CINS;
-
-		} else if(pQuery[currentPos] == '-') {
-
-			// find the deletions
-			while((pQuery[testPos] == '-') && (testPos < numBases)) {
-				++testPos;					
-				++operationLength;
-			}
-
-			*pPackedCigar = operationLength << BAM_CIGAR_SHIFT | BAM_CDEL;
-
-		} else {
-			printf("ERROR: CIGAR string generation failed.\n");
-			exit(1);
-		}
-
-		// increment our position
-		++pPackedCigar;
-		++numCigarOperations;
-		currentPos += operationLength;
-
-		// make sure aren't creating a buffer overflow
-		if(numCigarOperations == numBases) {
-			printf("ERROR: buffer overflow detected when creating the packed cigar string.\n");
-			exit(1);
-		}
-	}
-
-	// resize the packed cigar string
-	packedCigar.resize(numCigarOperations * SIZEOF_INT);
-}
-
-// encodes the supplied query sequence into 4-bit notation
-void CBamWriter::EncodeQuerySequence(const CMosaikString& query, string& encodedQuery) {
-
-	// prepare the encoded query string
-	const unsigned int queryLen = query.Length();
-	const unsigned int encodedQueryLen = (unsigned int)((queryLen / 2.0) + 0.5);
-	encodedQuery.resize(encodedQueryLen);
-	char* pEncodedQuery = (char*)encodedQuery.data();
-	const char* pQuery = (const char*)query.CData();
-
-	unsigned char nucleotideCode;
-	bool useHighWord = true;
-
-	while(*pQuery) {
-
-		switch(*pQuery) {
-			case '=':
-				nucleotideCode = 0;
-				break;
-			case 'A':
-				nucleotideCode = 1;
-				break;
-			case 'C':
-				nucleotideCode = 2;
-				break;
-			case 'G':
-				nucleotideCode = 4;
-				break;
-			case 'T':
-				nucleotideCode = 8;
-				break;
-			case 'N':
-				nucleotideCode = 15;
-				break;
-			default:
-				printf("ERROR: Only the following bases are supported in the BAM format: {=, A, C, G, T, N}. Found [%c]\n", *pQuery);
-				exit(1);
-		}
-
-		// pack the nucleotide code
-		if(useHighWord) {
-			*pEncodedQuery = nucleotideCode << 4;
-			useHighWord = false;
-		} else {
-			*pEncodedQuery |= nucleotideCode;
-			++pEncodedQuery;
-			useHighWord = true;
-		}
-
-		// increment the query position
-		++pQuery;
-	}
-}
 
 // opens the alignment archive
 void CBamWriter::Open(const string& filename, const BamHeader& header) {
 
 	// open the BGZF file for writing
-	BgzfOpen(filename);
+	BgzfOpen( filename );
 
 	// ====================
 	// write the SAM header
@@ -468,290 +338,50 @@ void CBamWriter::Open(const string& filename, const BamHeader& header) {
 		BgzfWrite((char*)&rsIter->NumBases, SIZEOF_INT);
 	}
 }
-// saves the reference and position of an alignment to the alignment archive
-void CBamWriter::SaveReferencePosition( const unsigned int refIndex, const unsigned int refBegin, const unsigned int refEnd ) {
-	// =================
-	// set the BAM flags
-	// =================
-	
-	unsigned int flag                = 0;
-
-	// retrieve our bin
-	unsigned int bin = CalculateMinimumBin(refBegin, refEnd);
-	const unsigned int quality = 0;
-	const unsigned int nameLen = 0;
-	const unsigned int numCigarOperations = 0;
-	const unsigned int packedCigarLen = 0;
-	const unsigned int queryLen = 0;
-	const unsigned int encodedQueryLen = 0;
-
-	// assign the BAM core data
-	unsigned int buffer[8];
-	buffer[0] = refIndex;
-	buffer[1] = refBegin;
-	buffer[2] = (bin << 16) | (quality << 8) | nameLen;
-	buffer[3] = (flag << 16) | numCigarOperations;
-	buffer[4] = queryLen;    // read_len
-	buffer[5] = 0xffffffff;  // mate_rID
-	buffer[6] = 0xffffffff;  // mate_pos
-	buffer[7] = 0;           // ins_size
-
-	const char* startChar = '\0';
-	
-	// write the block size
-	const unsigned int dataBlockSize = nameLen + packedCigarLen + encodedQueryLen + queryLen;
-	//const unsigned int dataBlockSize = nameLen;
-	const unsigned int blockSize = BAM_CORE_SIZE + dataBlockSize;
-	BgzfWrite((char*)&blockSize, SIZEOF_INT);
-
-	// write the BAM core
-	BgzfWrite((char*)&buffer, BAM_CORE_SIZE);
-
-	// write the query name
-	BgzfWrite(startChar, nameLen);
-
-	// write the packed cigar
-	BgzfWrite(startChar, packedCigarLen);
-
-	// write the encoded query sequence
-	BgzfWrite(startChar, encodedQueryLen);
-
-	// write the base qualities
-	BgzfWrite(startChar, queryLen);
-
-}
-
 
 // saves the alignment to the alignment archive
-void CBamWriter::SaveAlignment(const Alignment al, const char* zaString, const bool& noCigarMdNm, const bool& notShowRnamePos, const bool& isSolid, const bool processedBamData ) {
-
-	// =================
-	// set the BAM flags
-	// =================
-
-	// define our flags
-	unsigned int flag                = 0;
-	//unsigned int queryPosition5Prime = 0;
-	//unsigned int matePosition5Prime  = 0;
-	int insertSize                   = 0;
-
-	if(al.IsPairedEnd) {
-
-		flag |= BAM_SEQUENCED_AS_PAIRS;
-
-		// first or second mate?
-		flag |= (al.IsFirstMate ? BAM_QUERY_FIRST_MATE : BAM_QUERY_SECOND_MATE);
-
-		if(al.IsResolvedAsPair) {
-
-			if ( al.IsResolvedAsProperPair ) 
-				flag |= BAM_PROPER_PAIR;
-				
-			if(al.IsMateReverseStrand) flag |= BAM_MATE_REVERSE_COMPLEMENT;
-
-			// sanity check
-			//if(alIter->ReferenceIndex != alIter->MateReferenceIndex) {
-			//	printf("ERROR: The resolved paired-end reads occur on different reference sequences.\n");
-			//	exit(1);
-			//}
-
-			// set the 5' coordinates
-			//queryPosition5Prime = (alIter->IsReverseStrand     ? alIter->ReferenceEnd     : alIter->ReferenceBegin);
-			//matePosition5Prime  = (alIter->IsMateReverseStrand ? alIter->MateReferenceEnd : alIter->MateReferenceBegin);
-
-			// calculate the insert size
-			//insertSize = matePosition5Prime - queryPosition5Prime;
-			insertSize = al.FragmentLength;
-
-		}
-
-		if ( !al.IsMapped )
-			flag |= BAM_QUERY_UNMAPPED;
-		if ( !al.IsMateMapped )
-			flag |= BAM_MATE_UNMAPPED;
-			
-	}
-
-	if(al.IsReverseStrand) flag |= BAM_QUERY_REVERSE_COMPLEMENT;
-
-	// ==========================
-	// construct the cigar string
-	// ==========================
-
-	string packedCigar;
-	unsigned short numCigarOperations = 0;
-	if ( !noCigarMdNm ) {
-		if ( !processedBamData )
-			CreatePackedCigar( al, packedCigar, numCigarOperations, isSolid );
-		else {
-			packedCigar = al.PackedCigar;
-			numCigarOperations = al.NumCigarOperation;
-		}
-	}
-	else
-		packedCigar = "\0";
-	const unsigned int packedCigarLen = !noCigarMdNm ? packedCigar.size() : 0;
-
-	// ===================
-	// write the alignment
-	// ===================
-
-	// remove the gaps from the read
-	CMosaikString query;
-	if ( !processedBamData ) {
-		query = al.Query.CData();
-		query.Remove('-');
-	}
-
-	// initialize
-	const unsigned int nameLen  = al.Name.Length() + 1;
-	const unsigned int queryLen = processedBamData ? al.QueryLength : query.Length();
-
-	// sanity check
-	//al.BaseQualities.CheckQuality();
-	//if ( queryLen != alIter->BaseQualities.Length() ) {
-	//        printf("ERROR: The lengths of bases(%u) and qualities(%u) of Read (%s) didn't match.\n", queryLen, alIter->BaseQualities.Length(), readName.CData());
-        //        exit(1);
-        //}
-	
-	// encode the query
-	string encodedQuery;
-	if ( !processedBamData )
-		EncodeQuerySequence(query, encodedQuery);
-	else
-		encodedQuery = al.EncodedQuery;
-	const unsigned int encodedQueryLen = encodedQuery.size();
-
-	// create our read group tag
-	string readGroupTag;
-	const unsigned int readGroupTagLen = 3 + al.ReadGroup.size() + 1;
-	readGroupTag.resize(readGroupTagLen);
-	char* pReadGroupTag = (char*)readGroupTag.data();
-	sprintf(pReadGroupTag, "RGZ%s", al.ReadGroup.c_str());
-
-	// create our mismatch tag
-	string mismatchTag;
-	unsigned int numMismatches = 0;
-	unsigned int nmTagLen = 0;
-	if ( !noCigarMdNm ) {
-		mismatchTag = "NMi";
-		mismatchTag.resize(MISMATCH_TAG_LEN);
-		nmTagLen = MISMATCH_TAG_LEN;
-		numMismatches = al.NumMismatches;
-		memcpy((char*)mismatchTag.data() + 3, (char*)&numMismatches, SIZEOF_INT);
-	}
-
-	// create our MD tag
-	string mdTag;
-	char* pMd = 0;
-	unsigned int mdTagLen = 0;
-	char* pMdTag;
-	if ( !noCigarMdNm ) {
-		if ( !processedBamData ) 
-			pMd = (char*) mdTager.GetMdTag( al.Reference.CData(), al.Query.CData(), al.Reference.Length() );
-		else
-			pMd = (char*) al.MdString.c_str();
-
-		mdTagLen = 3 + strlen( pMd ) + 1;
-		mdTag.resize( mdTagLen );
-		pMdTag = (char*)mdTag.data();
-		sprintf(pMdTag, "MDZ%s", pMd);
-	}
-
-	// create our za tag
-	unsigned int zaTagLen = 0;
-	string zaTag;
-	char* pZaTag;
-	if ( zaString != 0 ) {
-		zaTagLen = 3 + strlen( zaString ) + 1;
-		zaTag.resize( zaTagLen );
-		pZaTag = (char*)zaTag.data();
-		sprintf(pZaTag, "ZAZ%s",zaString);
-	}
-
-	// create our cs tag
-	unsigned int csTagLen = 0;
-	string csTag;
-	char* pCsTag;
-	if ( isSolid ) {
-		csTagLen = 3 + strlen ( al.CsQuery.c_str() ) + 1;
-		csTag.resize( csTagLen );
-		pCsTag = (char*)csTag.data();
-		sprintf( pCsTag, "CSZ%s", al.CsQuery.c_str() );
-	}
-
-	// create our cq tag
-	unsigned int cqTagLen = 0;
-	string cqTag;
-	char* pCqTag;
-	if ( isSolid ) {
-		cqTagLen = 3 + strlen ( al.CsBaseQualities.c_str() ) + 1;
-		cqTag.resize( cqTagLen );
-		pCqTag = (char*)cqTag.data();
-		sprintf( pCqTag, "CQZ%s", al.CsBaseQualities.c_str() );
-	}
+void CBamWriter::SaveAlignment( const bamAlignment& al ) {
 
 	// retrieve our bin
-	unsigned int bin = CalculateMinimumBin(al.ReferenceBegin, al.ReferenceEnd);
+	unsigned int bin = CalculateMinimumBin( al.referenceBegin, al.referenceEnd );
 
 	// assign the BAM core data
 	unsigned int buffer[8] = {0};
-	buffer[0] = notShowRnamePos ? 0xffffffff : al.ReferenceIndex;
-	buffer[1] = notShowRnamePos ? 0xffffffff : al.ReferenceBegin;
-	buffer[2] = (bin << 16) | (al.RecalibratedQuality << 8) | nameLen;
-	buffer[3] = (flag << 16) | numCigarOperations;
-	buffer[4] = queryLen;
+	buffer[0] = al.referenceIndex;
+	buffer[1] = al.referenceBegin;
+	buffer[2] = ( bin << 16 ) | ( al.mappingQuality << 8 ) | al.queryName.size();
+	buffer[3] = ( al.flag << 16) | al.bamPackedCigar.size();
+	buffer[4] = al.sequence.size();
 
-	if(al.IsResolvedAsPair) {
-		buffer[5] = al.IsMateMapped ? al.MateReferenceIndex : 0xffffffff;
-		buffer[6] = al.IsMateMapped ? al.MateReferenceBegin : 0xffffffff;
-		buffer[7] = insertSize;
-	} else {
-		buffer[5] = 0xffffffff;
-		buffer[6] = 0xffffffff;
+	// mate info
+	bool hasPosition     = ( al.referenceBegin != -1 ); 
+	bool hasMatePosition = ( al.matePosition != -1 );
+	buffer[5] = al.mateReferenceIndex;
+	buffer[6] = al.matePosition;
+	if ( hasPosition && hasMatePosition 
+	&& ( al.referenceIndex == al.mateReferenceIndex ) )
+		buffer[7] = al.referenceBegin - al.matePosition;
+	else
 		buffer[7] = 0;
-	}
+
 
 	// write the block size
-	const unsigned int dataBlockSize = nameLen + packedCigarLen + encodedQueryLen + queryLen + readGroupTagLen + nmTagLen + mdTagLen + zaTagLen + csTagLen + cqTagLen;
+	const unsigned int dataBlockSize = al.queryName.size() + al.bamPackedCigar.size() + encodedQueryLen + al.sequence.size();
 	const unsigned int blockSize = BAM_CORE_SIZE + dataBlockSize;
-	BgzfWrite((char*)&blockSize, SIZEOF_INT);
+	BgzfWrite( (char*) &blockSize, sizeof( int32_t ) );
 
 	// write the BAM core
-	BgzfWrite((char*)&buffer, BAM_CORE_SIZE);
+	BgzfWrite( (char*) &buffer, BAM_CORE_SIZE );
 
 	// write the query name
-	BgzfWrite(al.Name.CData(), nameLen);
+	BgzfWrite( al.queryName.c_str(), al.queryName.size() );
 
 	// write the packed cigar
-	BgzfWrite(packedCigar.data(), packedCigarLen);
+	BgzfWrite( al.bamPackedCigar.c_str(), al.bamPackedCigar.size() );
 
 	// write the encoded query sequence
 	BgzfWrite(encodedQuery.data(), encodedQueryLen);
 
 	// write the base qualities
-	BgzfWrite(al.BaseQualities.CData(), queryLen);
-
-	// write the read group tag
-	BgzfWrite(readGroupTag.data(), readGroupTagLen);
-
-	// write the mismatch tag
-	if ( !noCigarMdNm )
-		BgzfWrite(mismatchTag.data(), MISMATCH_TAG_LEN);
-
-	// write the MD tag
-	if ( !noCigarMdNm )
-	BgzfWrite(mdTag.data(), mdTagLen);
-
-	// write the ZA tag
-	if ( zaString != 0 )
-		BgzfWrite(zaTag.data(), zaTagLen);
-
-	// write the cs tag
-	if ( isSolid )
-		BgzfWrite(csTag.data(), csTagLen);
-
-	// write the cq tag
-	if ( isSolid )
-		BgzfWrite(cqTag.data(), cqTagLen);
+	BgzfWrite( al.qual.c_str(), al.qual.size() );
 }

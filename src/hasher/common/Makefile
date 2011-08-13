@@ -19,7 +19,7 @@ all: $(BUILT_OBJECTS) $(BUILT_COBJECTS)
 
 $(BUILT_OBJECTS): $(SOURCES) $(HEADERS)
 	@echo "  * compliing" $(*F).c
-	@$(CXX) -c $(CXXFLAGS) $(*F).c -o $@
+	@$(CC) -c $(CFLAGS) $(*F).c -o $@
 
 $(BUILT_COBJECTS): $(CSOURCES)
 	@echo "  * compliing" $(*F).c
