@@ -70,7 +70,7 @@ struct BGZF {
 	unsigned int BlockLength;
 	unsigned int BlockOffset;
 	uint64_t     BlockAddress;
-	ofstream     Stream;
+	//ofstream     Stream;
 	char*        UncompressedBlock;
 	char*        CompressedBlock;
 
@@ -81,7 +81,7 @@ struct BGZF {
 		, BlockLength(0)
 		, BlockOffset(0)
 		, BlockAddress(0)
-		, Stream(NULL)
+	//	, Stream(NULL)
 		, UncompressedBlock(NULL)
 		, CompressedBlock(NULL)
 	{
@@ -124,7 +124,7 @@ struct BGZF {
 		CompressedBlock   = temp_CompressedBlock;
 		UncompressedBlock = temp_UncompressedBlock;
 
-		Stream = copy.Stream;
+	//	Stream = copy.Stream;
 
 		return *this;
 
@@ -145,14 +145,10 @@ public:
 	// saves the alignment to the alignment archive
 	void SaveAlignment( const bamAlignment& al );
 private:
-	// closes the BAM file
-	void BgzfClose(void);
 	// compresses the current block
 	int BgzfDeflateBlock(void);
 	// flushes the data in the BGZF block
 	void BgzfFlushBlock(void);
-	// opens the BAM file for writing
-	void BgzfOpen(const string& filename);
 	// packs an unsigned integer into the specified buffer
 	static inline void BgzfPackUnsignedInt(char* buffer, unsigned int value);
 	// packs an unsigned short into the specified buffer
@@ -163,6 +159,7 @@ private:
 	static inline unsigned int CalculateMinimumBin(unsigned int begin, unsigned int end);
 	// our BGZF output object
 	BGZF mBGZF;
+	ofstream outputStream;
 };
 
 #endif

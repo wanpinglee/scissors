@@ -107,9 +107,9 @@ int main ( int argc, char** argv ) {
 	bamWriter.close();
 
 	
-	// ===
-	// END
-	// ===
+	// ================
+	// END of prototype
+	// ================
 
 
 

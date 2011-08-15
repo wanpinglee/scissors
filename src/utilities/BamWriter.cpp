@@ -34,23 +34,9 @@ const uint32_t BLOCK_FOOTER_LENGTH = 8;
 
 // destructor
 CBamWriter::~CBamWriter(void) {
-	if( mBGZF.Stream.is_open ) BgzfClose();
-}
 
-// closes the BAM file
-void CBamWriter::BgzfClose(void) {
-
-	// flush the BGZF block
-	BgzfFlushBlock();
-
-	// add an empty block
-	mBGZF.BlockOffset = 0;
-	int blockLength = BgzfDeflateBlock();
-	fwrite(mBGZF.CompressedBlock, 1, blockLength, mBGZF.Stream);
-
-	// flush and close
-	fflush( mBGZF.Stream );
-	mBGZF.close();
+	if ( outputStrea.is_open() )
+		Close();
 }
 
 // compresses the current block
@@ -172,17 +158,6 @@ void CBamWriter::BgzfFlushBlock(void) {
 	}
 }
 
-// opens the BAM file for writing
-void CBamWriter::BgzfOpen( const string& filename ) {
-
-	mBGZF.Stream.open( filename.c_str(), ofstream::binary );
-
-	if( !mBGZF.Stream.good() ) {
-		cout << "ERROR: Unable to open the BAM file " << filename << " for writing." << endl;
-		exit( 1 );
-	}
-}
-
 // writes the supplied data into the BGZF buffer
 unsigned int CBamWriter::BgzfWrite(const char* data, const unsigned int dataLen) {
 
@@ -209,7 +184,18 @@ unsigned int CBamWriter::BgzfWrite(const char* data, const unsigned int dataLen)
 
 // closes the alignment archive
 void CBamWriter::Close(void) {
-	if( mBGZF.Stream.is_open ) BgzfClose();
+
+	// flush the BGZF block
+	BgzfFlushBlock();
+
+	// add an empty block
+	mBGZF.BlockOffset = 0;
+	int blockLength = BgzfDeflateBlock();
+	fwrite(mBGZF.CompressedBlock, 1, blockLength, mBGZF.Stream );
+
+	// flush and close
+	fflush( outputStream );
+	outputStream.closr();
 }
 
 
@@ -217,114 +203,37 @@ void CBamWriter::Close(void) {
 void CBamWriter::Open(const string& filename, const BamHeader& header) {
 
 	// open the BGZF file for writing
-	BgzfOpen( filename );
-
-	// ====================
-	// write the SAM header
-	// ====================
-
-	// build header tag
-	ostringstream sb;
-	sb << "@HD\tVN:" << header.Version << "\tSO:";
-
-	switch(header.SortOrder) {
-		case SORTORDER_POSITION:
-			sb << "coordinate" << endl;
-			break;
-		case SORTORDER_READNAME:
-			sb << "queryname" << endl;
-			break;
-		default:
-			sb << "unsorted" << endl;
+	outputStream.open( filename.c_str(), ofstream::binary );
+	if ( !outputStream..good() ) {
+		cout << "ERROR: Unable to open the BAM file " << filename << " for writing." << endl;
+		exit( 1 );
 	}
-
-	// build the sequence dictionary
-	const unsigned int numReferenceSequences = header.pReferenceSequences->size();
-	vector<ReferenceSequence>::const_iterator rsIter;
-	for(rsIter = header.pReferenceSequences->begin(); rsIter != header.pReferenceSequences->end(); ++rsIter) {
-		sb << "@SQ\tSN:" << rsIter->Name << "\tLN:" << rsIter->NumBases;
-		if(!rsIter->GenomeAssemblyID.empty()) sb << "\tAS:" << rsIter->GenomeAssemblyID;
-		if(!rsIter->MD5.empty())              sb << "\tM5:" << rsIter->MD5;
-		if(!rsIter->URI.empty())              sb << "\tUR:" << rsIter->URI;
-		if(!rsIter->Species.empty())          sb << "\tSP:" << rsIter->Species;
-		sb << endl;
-	}
-
-	// build the read groups
-	vector<MosaikReadFormat::ReadGroup>::const_iterator rgIter;
-	for(rgIter = header.pReadGroups->begin(); rgIter != header.pReadGroups->end(); ++rgIter) {
-		sb << "@RG\tID:" << rgIter->ReadGroupID << "\tSM:" << rgIter->SampleName;
-		if(!rgIter->LibraryName.empty())      sb << "\tLB:" << rgIter->LibraryName;
-		if(!rgIter->Description.empty())      sb << "\tDS:" << rgIter->Description;
-		if(!rgIter->PlatformUnit.empty())     sb << "\tPU:" << rgIter->PlatformUnit;
-		if(rgIter->MedianFragmentLength != 0) sb << "\tPI:" << rgIter->MedianFragmentLength;
-		if(!rgIter->CenterName.empty())       sb << "\tCN:" << rgIter->CenterName;
-
-		switch(rgIter->SequencingTechnology) {
-			case ST_454:
-				sb << "\tPL:454" << endl;
-				break;
-			case ST_HELICOS:
-				sb << "\tPL:helicos" << endl;
-				break;
-			case ST_ILLUMINA:
-				sb << "\tPL:illumina" << endl;
-				break;
-			case ST_ILLUMINA_LONG:
-				sb << "\tPL:illumina long" << endl;
-				break;
-			case ST_PACIFIC_BIOSCIENCES:
-				sb << "\tPL:pacific biosciences" << endl;
-				break;
-			case ST_SOLID:
-				sb << "\tPL:solid" << endl;
-				break;
-			case ST_SANGER:
-				sb << "\tPL:sanger" << endl;
-				break;
-			default:
-				sb << "\tPL:unknown" << endl;
-		}
-	}
-
-	if ( !header.pg.ID.empty() ) {
-		sb << "@PG\tID:" << header.pg.ID;
-		if ( !header.pg.VN.empty() )
-			sb << "\tVN:" << header.pg.VN;
-		if ( !header.pg.CL.empty() )
-			sb << "\tCL:" << header.pg.CL;
-		sb << endl;
-	}
-
-	// distill the header text
-	string samHeader = sb.str();
-	sb.str("");
 
 	// ================
 	// write the header
 	// ================
 
 	// write the BAM signature
-	const unsigned char SIGNATURE_LENGTH = 4;
-	const char* BAM_SIGNATURE = "BAM\1";
-	BgzfWrite(BAM_SIGNATURE, SIGNATURE_LENGTH);
+	//const unsigned int signatureLength = 4;
+	//const char* BAM_SIGNATURE = "BAM\1";
+	BgzfWrite( "BAM\1", 4 );
 
 	// write the SAM header text length
-	const unsigned int samHeaderLen = samHeader.size();
-	BgzfWrite((char*)&samHeaderLen, SIZEOF_INT);
+	const unsigned int samHeaderLen = 0;
+	BgzfWrite( (char*)&samHeaderLen, sizef( int32_t ) );
 
-	//printf("samHeaderLen: %u\n%s\n", samHeaderLen, samHeader.c_str());
 
 	// write the SAM header text
 	if(samHeaderLen > 0) BgzfWrite(samHeader.data(), samHeaderLen);
 
 	// write the number of reference sequences
-	BgzfWrite((char*)&numReferenceSequences, SIZEOF_INT);
+	//BgzfWrite((char*)&numReferenceSequences, SIZEOF_INT);
 
 	// =============================
 	// write the sequence dictionary
 	// =============================
 
+/*
 	for(rsIter = header.pReferenceSequences->begin(); rsIter != header.pReferenceSequences->end(); ++rsIter) {
 
 		// write the reference sequence name length
@@ -337,6 +246,8 @@ void CBamWriter::Open(const string& filename, const BamHeader& header) {
 		// write the reference sequence length
 		BgzfWrite((char*)&rsIter->NumBases, SIZEOF_INT);
 	}
+*/
+
 }
 
 // saves the alignment to the alignment archive
