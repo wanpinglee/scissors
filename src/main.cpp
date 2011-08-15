@@ -76,7 +76,7 @@ int main ( int argc, char** argv ) {
 		// By Jiantao
 		HashRegion* hashRegions;
 		// get hash regions for targetAlignment
-		getHashRegion( reference, hashTable, anchorAlignment, targetAlignment, hashRegions );
+		getHashRegion( reference, hashTable, anchorAlignment.referenceBegin, targetAlignment.bases, hashRegions );
 
 		// By Wan-Ping
 		vector< Alignment > alignments;
@@ -100,6 +100,8 @@ int main ( int argc, char** argv ) {
 	// By Jiantao
 	free_BamAlignment( anchorAlignment );
 	free_BamAlignment( targetAlignment );
+	free_Reference( reference );
+	free_HashTable( hashTable );
 	bamReader.close();
 	// By Wan-Ping
 	bamWriter.close();
