@@ -1,15 +1,9 @@
 // ***************************************************************************
 // CBamWriter - exports alignment data into the BAM file format.
-// ---------------------------------------------------------------------------
-// (c) 2006 - 2009 Michael Strömberg
-// Marth Lab, Department of Biology, Boston College
-// ---------------------------------------------------------------------------
-// Dual licenced under the GNU General Public License 2.0+ license or as
-// a commercial license with the Marth Lab.
 // ***************************************************************************
 
-#ifndef _BAMWRITER_H_
-#define _BAMWRITER_H_
+#ifndef SRC_UTILITIES_BAMWRITER_H_
+#define SRC_UTILITIES_BAMWRITER_H_
 
 #include <fstream>
 #include <sstream>
@@ -21,7 +15,7 @@
 #include <zlib.h>
 #include <stdint.h>
 
-#include "../dataStructures/bamAlignment.h"
+#include "../dataStructures/bam_alignment.h"
 //#include "Alignment.h"
 //#include "BamHeader.h"
 //#include "MdTager.h"
@@ -67,7 +61,7 @@ struct BamHeader {
 struct BGZF {
 	unsigned int UncompressedBlockSize;
 	unsigned int CompressedBlockSize;
-	unsigned int BlockLength;
+	//unsigned int BlockLength;
 	unsigned int BlockOffset;
 	uint64_t     BlockAddress;
 	//ofstream     Stream;
@@ -78,7 +72,7 @@ struct BGZF {
 	BGZF(void)
 		: UncompressedBlockSize(MAX_BGZF_BLOCK_SIZE)
 		, CompressedBlockSize(MAX_BGZF_BLOCK_SIZE)
-		, BlockLength(0)
+	//	, BlockLength(0)
 		, BlockOffset(0)
 		, BlockAddress(0)
 	//	, Stream(NULL)
@@ -143,7 +137,7 @@ public:
 	// opens the alignment archive
 	void Open(const string& filename, const BamHeader& header);
 	// saves the alignment to the alignment archive
-	void SaveAlignment( const bamAlignment& al );
+	void SaveAlignment( const BamAlignment& al );
 private:
 	// compresses the current block
 	int BgzfDeflateBlock(void);

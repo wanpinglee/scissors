@@ -1,18 +1,9 @@
 // ***************************************************************************
 // CBamWriter - exports alignment data into the BAM file format.
-// ---------------------------------------------------------------------------
-// (c) 2006 - 2009 Michael Strömberg
-// Marth Lab, Department of Biology, Boston College
-// ---------------------------------------------------------------------------
-// Dual licenced under the GNU General Public License 2.0+ license or as
-// a commercial license with the Marth Lab.
 // ***************************************************************************
 
-#include "BamWriter.h"
-
-// constructor
-//CBamWriter::CBamWriter(void)
-//{}
+#include "iostream"
+#include "bam_writer.h"
 
 // zlib constants
 const uint32_t GZIP_ID1            = 31;
@@ -35,7 +26,7 @@ const uint32_t BLOCK_FOOTER_LENGTH = 8;
 // destructor
 CBamWriter::~CBamWriter(void) {
 
-	if ( outputStrea.is_open() )
+	if ( outputStream.is_open() )
 		Close();
 }
 
@@ -142,19 +133,11 @@ void CBamWriter::BgzfFlushBlock(void) {
 
 	// flush all of the remaining blocks
 	while(mBGZF.BlockOffset > 0) {
-
 		// compress the data block
 		int blockLength = BgzfDeflateBlock();
 
-		// flush the data to our output stream
-		int numBytesWritten = fwrite(mBGZF.CompressedBlock, 1, blockLength, mBGZF.Stream);
-
-		if(numBytesWritten != blockLength) {
-			printf("ERROR: Expected to write %u bytes during flushing, but wrote %u bytes.\n", blockLength, numBytesWritten);
-			exit(1);
-		}
-
-		mBGZF.BlockAddress += blockLength;
+		// write the data to our output stream
+		outputStream.write( mBGZF.CompressedBlock, blockLength );
 	}
 }
 
@@ -191,11 +174,12 @@ void CBamWriter::Close(void) {
 	// add an empty block
 	mBGZF.BlockOffset = 0;
 	int blockLength = BgzfDeflateBlock();
-	fwrite(mBGZF.CompressedBlock, 1, blockLength, mBGZF.Stream );
+	outputStream.write( mBGZF.CompressedBlock, blockLength );
+	//fwrite(mBGZF.CompressedBlock, 1, blockLength, mBGZF.Stream );
 
 	// flush and close
-	fflush( outputStream );
-	outputStream.closr();
+	outputStream.flush();
+	outputStream.close();
 }
 
 
@@ -204,7 +188,7 @@ void CBamWriter::Open(const string& filename, const BamHeader& header) {
 
 	// open the BGZF file for writing
 	outputStream.open( filename.c_str(), ofstream::binary );
-	if ( !outputStream..good() ) {
+	if ( !outputStream.good() ) {
 		cout << "ERROR: Unable to open the BAM file " << filename << " for writing." << endl;
 		exit( 1 );
 	}
@@ -214,17 +198,15 @@ void CBamWriter::Open(const string& filename, const BamHeader& header) {
 	// ================
 
 	// write the BAM signature
-	//const unsigned int signatureLength = 4;
-	//const char* BAM_SIGNATURE = "BAM\1";
 	BgzfWrite( "BAM\1", 4 );
 
 	// write the SAM header text length
 	const unsigned int samHeaderLen = 0;
-	BgzfWrite( (char*)&samHeaderLen, sizef( int32_t ) );
+	BgzfWrite( (char*)&samHeaderLen, sizeof( int32_t ) );
 
 
 	// write the SAM header text
-	if(samHeaderLen > 0) BgzfWrite(samHeader.data(), samHeaderLen);
+	//if( samHeaderLen > 0 ) BgzfWrite( samHeader.data(), samHeaderLen );
 
 	// write the number of reference sequences
 	//BgzfWrite((char*)&numReferenceSequences, SIZEOF_INT);
@@ -251,47 +233,46 @@ void CBamWriter::Open(const string& filename, const BamHeader& header) {
 }
 
 // saves the alignment to the alignment archive
-void CBamWriter::SaveAlignment( const bamAlignment& al ) {
+void CBamWriter::SaveAlignment( const BamAlignment& al ) {
 
 	// retrieve our bin
-	unsigned int bin = CalculateMinimumBin( al.referenceBegin, al.referenceEnd );
+	unsigned int bin = CalculateMinimumBin( al.reference_begin, al.reference_end );
 
 	// assign the BAM core data
 	unsigned int buffer[8] = {0};
-	buffer[0] = al.referenceIndex;
-	buffer[1] = al.referenceBegin;
-	buffer[2] = ( bin << 16 ) | ( al.mappingQuality << 8 ) | al.queryName.size();
-	buffer[3] = ( al.flag << 16) | al.bamPackedCigar.size();
+	buffer[0] = al.reference_index;
+	buffer[1] = al.reference_begin;
+	buffer[2] = ( bin << 16 ) | ( al.mapping_quality << 8 ) | al.query_name.size();
+	buffer[3] = ( al.flag << 16) | al.bam_packed_cigar.size();
 	buffer[4] = al.sequence.size();
 
 	// mate info
-	bool hasPosition     = ( al.referenceBegin != -1 ); 
-	bool hasMatePosition = ( al.matePosition != -1 );
-	buffer[5] = al.mateReferenceIndex;
-	buffer[6] = al.matePosition;
-	if ( hasPosition && hasMatePosition 
-	&& ( al.referenceIndex == al.mateReferenceIndex ) )
-		buffer[7] = al.referenceBegin - al.matePosition;
+	bool has_position      = ( al.reference_begin != -1 ); 
+	bool has_mate_position = ( al.mate_position != -1 );
+	buffer[5] = al.mate_reference_index;
+	buffer[6] = al.mate_position;
+	if ( has_position && has_mate_position 
+	&& ( al.reference_index == al.mate_reference_index ) )
+		buffer[7] = al.reference_begin - al.mate_position;
 	else
 		buffer[7] = 0;
 
-
 	// write the block size
-	const unsigned int dataBlockSize = al.queryName.size() + al.bamPackedCigar.size() + encodedQueryLen + al.sequence.size();
-	const unsigned int blockSize = BAM_CORE_SIZE + dataBlockSize;
+	const unsigned int dataBlockSize = al.query_name.size() + al.bam_packed_cigar.size() + al.encoded_sequence.size() + al.sequence.size();
+	const unsigned int blockSize = kBamCoreSize + dataBlockSize;
 	BgzfWrite( (char*) &blockSize, sizeof( int32_t ) );
 
 	// write the BAM core
-	BgzfWrite( (char*) &buffer, BAM_CORE_SIZE );
+	BgzfWrite( (char*) &buffer, kBamCoreSize );
 
 	// write the query name
-	BgzfWrite( al.queryName.c_str(), al.queryName.size() );
+	BgzfWrite( al.query_name.c_str(), al.query_name.size() );
 
 	// write the packed cigar
-	BgzfWrite( al.bamPackedCigar.c_str(), al.bamPackedCigar.size() );
+	BgzfWrite( al.bam_packed_cigar.c_str(), al.bam_packed_cigar.size() );
 
 	// write the encoded query sequence
-	BgzfWrite(encodedQuery.data(), encodedQueryLen);
+	BgzfWrite( al.encoded_sequence.c_str(), al.encoded_sequence.size() );
 
 	// write the base qualities
 	BgzfWrite( al.qual.c_str(), al.qual.size() );
