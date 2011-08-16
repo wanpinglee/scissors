@@ -1,5 +1,5 @@
 // ***************************************************************************
-// CBamWriter - exports alignment data into the BAM file format.
+// BamWriter - exports alignment data into the BAM file format.
 // ***************************************************************************
 
 #include "iostream"
@@ -23,15 +23,23 @@ const int32_t  GZIP_WINDOW_BITS    = -15;
 const uint32_t BLOCK_HEADER_LENGTH = 18;
 const uint32_t BLOCK_FOOTER_LENGTH = 8;
 
+// constructor
+BamWriter::BamWriter(void) {
+}
+
+BamWriter::BamWriter(const string& filename)
+	: filename_(filename)
+{}
+
 // destructor
-CBamWriter::~CBamWriter(void) {
+BamWriter::~BamWriter(void) {
 
 	if ( outputStream.is_open() )
 		Close();
 }
 
 // compresses the current block
-int CBamWriter::BgzfDeflateBlock(void) {
+int BamWriter::BgzfDeflateBlock(void) {
 
 	// initialize the gzip header
 	char* buffer = mBGZF.CompressedBlock;
@@ -50,7 +58,7 @@ int CBamWriter::BgzfDeflateBlock(void) {
 
 	// loop to retry for blocks that do not compress enough
 	int inputLength = mBGZF.BlockOffset;
-	int compressedLength = 0;
+	unsigned int compressedLength = 0;
 
 	while(true) {
 
@@ -129,7 +137,7 @@ int CBamWriter::BgzfDeflateBlock(void) {
 }
 
 // flushes the data in the BGZF block
-void CBamWriter::BgzfFlushBlock(void) {
+void BamWriter::BgzfFlushBlock(void) {
 
 	// flush all of the remaining blocks
 	while(mBGZF.BlockOffset > 0) {
@@ -142,7 +150,7 @@ void CBamWriter::BgzfFlushBlock(void) {
 }
 
 // writes the supplied data into the BGZF buffer
-unsigned int CBamWriter::BgzfWrite(const char* data, const unsigned int dataLen) {
+unsigned int BamWriter::BgzfWrite(const char* data, const unsigned int dataLen) {
 
 	// initialize
 	unsigned int numBytesWritten = 0;
@@ -166,7 +174,7 @@ unsigned int CBamWriter::BgzfWrite(const char* data, const unsigned int dataLen)
 }
 
 // closes the alignment archive
-void CBamWriter::Close(void) {
+void BamWriter::Close(void) {
 
 	// flush the BGZF block
 	BgzfFlushBlock();
@@ -184,12 +192,12 @@ void CBamWriter::Close(void) {
 
 
 // opens the alignment archive
-void CBamWriter::Open(const string& filename, const BamHeader& header) {
+void BamWriter::Open(void) {
 
 	// open the BGZF file for writing
-	outputStream.open( filename.c_str(), ofstream::binary );
+	outputStream.open( filename_.c_str(), ofstream::binary );
 	if ( !outputStream.good() ) {
-		cout << "ERROR: Unable to open the BAM file " << filename << " for writing." << endl;
+		cout << "ERROR: Unable to open the BAM file " << filename_ << " for writing." << endl;
 		exit( 1 );
 	}
 
@@ -233,7 +241,7 @@ void CBamWriter::Open(const string& filename, const BamHeader& header) {
 }
 
 // saves the alignment to the alignment archive
-void CBamWriter::SaveAlignment( const BamAlignment& al ) {
+void BamWriter::SaveAlignment( const BamAlignment& al ) {
 
 	// retrieve our bin
 	unsigned int bin = CalculateMinimumBin( al.reference_begin, al.reference_end );

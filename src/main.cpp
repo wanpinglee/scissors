@@ -10,7 +10,8 @@ extern "C" {
 #include "hasher/reader/SR_HashRegionTable.h"
 }
 
-#include "utilities/ParameterParser.h"
+#include "utilities/bam_writer.h"
+#include "utilities/parameter_parser.h"
 
 using namespace std;
 
@@ -27,11 +28,17 @@ inline FILE* openFile( const string filename, const string type ) {
 
 int main ( int argc, char** argv ) {
 
-	// parse the parameters and store them
-	// the program will exit(1) if any errors are found
-	// By Wan-Ping
-	const ParameterParser parameterparser( argc, argv );
+	// Parse the arguments and store them
+	// The program will exit(1) if any errors or
+	//     missing required parameters are found
+	const ParameterParser parameter_parser( argc, argv );
+	
+	// bam file writer
+	BamWriter bam_writer( parameter_parser.output_bam );
+	bam_writer.Open();
 
+
+/*
 	// check all the I/O
 	// By Wan-Ping
 	if ( !checkFiles( parameterparser ) ) {
@@ -110,7 +117,7 @@ int main ( int argc, char** argv ) {
 	// ================
 	// END of prototype
 	// ================
-
+*/
 
 
 /*

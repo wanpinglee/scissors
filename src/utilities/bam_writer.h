@@ -1,5 +1,5 @@
 // ***************************************************************************
-// CBamWriter - exports alignment data into the BAM file format.
+// BamWriter - exports alignment data into the BAM file format.
 // ***************************************************************************
 
 #ifndef SRC_UTILITIES_BAMWRITER_H_
@@ -16,12 +16,6 @@
 #include <stdint.h>
 
 #include "../dataStructures/bam_alignment.h"
-//#include "Alignment.h"
-//#include "BamHeader.h"
-//#include "MdTager.h"
-//#include "ReadGroup.h"
-//#include "ReferenceSequence.h"
-//#include "SequencingTechnologies.h"
 
 using namespace std;
 
@@ -72,10 +66,8 @@ struct BGZF {
 	BGZF(void)
 		: UncompressedBlockSize(MAX_BGZF_BLOCK_SIZE)
 		, CompressedBlockSize(MAX_BGZF_BLOCK_SIZE)
-	//	, BlockLength(0)
 		, BlockOffset(0)
 		, BlockAddress(0)
-	//	, Stream(NULL)
 		, UncompressedBlock(NULL)
 		, CompressedBlock(NULL)
 	{
@@ -118,24 +110,23 @@ struct BGZF {
 		CompressedBlock   = temp_CompressedBlock;
 		UncompressedBlock = temp_UncompressedBlock;
 
-	//	Stream = copy.Stream;
-
 		return *this;
 
 	}
 
 };
 
-class CBamWriter {
+class BamWriter {
 public:
 	// constructor
-	//CBamWriter(void);
+	BamWriter(void);
+	BamWriter(const string& filename);
 	// destructor
-	~CBamWriter(void);
+	~BamWriter(void);
 	// closes the alignment archive
 	void Close(void);
 	// opens the alignment archive
-	void Open(const string& filename, const BamHeader& header);
+	void Open(void);
 	// saves the alignment to the alignment archive
 	void SaveAlignment( const BamAlignment& al );
 private:
@@ -154,12 +145,13 @@ private:
 	// our BGZF output object
 	BGZF mBGZF;
 	ofstream outputStream;
+	string filename_;
 };
 
 #endif
 
 // packs an unsigned integer into the specified buffer
-inline void CBamWriter::BgzfPackUnsignedInt(char* buffer, unsigned int value) {
+inline void BamWriter::BgzfPackUnsignedInt(char* buffer, unsigned int value) {
 	buffer[0] = (char)value;
 	buffer[1] = (char)(value >> 8);
 	buffer[2] = (char)(value >> 16);
@@ -167,13 +159,13 @@ inline void CBamWriter::BgzfPackUnsignedInt(char* buffer, unsigned int value) {
 }
 
 // packs an unsigned short into the specified buffer
-inline void CBamWriter::BgzfPackUnsignedShort(char* buffer, unsigned short value) {
+inline void BamWriter::BgzfPackUnsignedShort(char* buffer, unsigned short value) {
 	buffer[0] = (char)value;
 	buffer[1] = (char)(value >> 8);
 }
 
 // calculates the minimum bin that contains a region [begin, end)
-inline unsigned int CBamWriter::CalculateMinimumBin(unsigned int begin, unsigned int end) {
+inline unsigned int BamWriter::CalculateMinimumBin(unsigned int begin, unsigned int end) {
 	--end;
 	if((begin >> 14) == (end >> 14)) return 4681 + (begin >> 14);
 	if((begin >> 17) == (end >> 17)) return  585 + (begin >> 17);
