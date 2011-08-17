@@ -10,26 +10,44 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "../dataStructures/alignment.h"
 
 using namespace std;
 
+
+
 #define MOSAIK_NUM_NUCLEOTIDES 26
+
+struct BandedSmithWatermanHashRegion {
+	uint32_t reference_begin;
+	uint32_t reference_end;   // is not used in current design 
+	uint32_t query_begin;
+	uint32_t query_end;       // is not used in current design
+
+	BandedSmithWatermanHashRegion()
+		: reference_begin(0)
+		, reference_end(0)
+		, query_begin(0)
+		, query_end(0)
+	{}
+
+};
 
 class CBandedSmithWaterman {
 public:
 	// constructor
-	CBandedSmithWaterman(float matchScore, float mismatchScore, float gapOpenPenalty, float gapExtendPenalty, unsigned int bandWidth);
+	CBandedSmithWaterman(float matchScore, float mismatchScore, 
+		float gapOpenPenalty, float gapExtendPenalty, unsigned int bandWidth);
 	// destructor
 	~CBandedSmithWaterman(void);
 	// aligns the query sequence to the anchor using the Smith Waterman Gotoh algorithm
 	void Align 
-		( unsigned int& referenceAl
-		, string& stringAl
+		( Alignment& al
 		, const char* s1
 		, const unsigned int s1Length
 		, const char* s2
 		, const unsigned int s2Length
-		, pair< pair<unsigned int, unsigned int>, pair<unsigned int, unsigned int> >& hr);
+		, const BandedSmithWatermanHashRegion& hash_region);
 	// enables homo-polymer scoring
 	void EnableHomoPolymerGapPenalty(float hpGapOpenPenalty);
 
@@ -84,11 +102,10 @@ private:
 		( const PositionType& positionType
 		, const unsigned int& s1Length
 		, const unsigned int& s2Length
-		, const pair< pair < unsigned int, unsigned int >, pair < unsigned int, unsigned int > > hr);
+		, const BandedSmithWatermanHashRegion& hr);
 	// performs the backtrace algorithm
 	void Traceback 
-		( unsigned int& referenceAl
-		, string& stringAl
+		( Alignment& alignment
 		, const char* s1
 		, const char* s2
 		, const unsigned int s2Length

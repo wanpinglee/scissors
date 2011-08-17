@@ -11,16 +11,22 @@ using namespace std;
 struct Alignment{
 	string reference;
 	string query;
-	int32_t reference_begin;
-	int32_t reference_end;
-	int32_t query_begin;
-	int32_t query_end;
+	uint32_t reference_begin;
+	uint32_t reference_end;
+	uint32_t query_begin;
+	uint32_t query_end;
+	uint32_t num_mismatches;
+
+	bool is_reverse_complement;
 
 	Alignment()
 		: reference_begin(0)
 		, reference_end(0)
 		, query_begin(0)
 		, query_end(0)
+		, num_mismatches(0)
+
+		, is_reverse_complement(false)
 	{}
 };
 

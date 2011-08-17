@@ -66,53 +66,44 @@ inline void CBandedSmithWaterman::UpdateBestScore(unsigned int& bestRow, unsigne
 }
 
 // aligns the query sequence to the anchor using the Smith Waterman Gotoh algorithm
-void CBandedSmithWaterman::Align(unsigned int& referenceAl, string& cigarAl, const char* s1, const unsigned int s1Length, const char* s2, const unsigned int s2Length, pair< pair<unsigned int, unsigned int>, pair<unsigned int, unsigned int> >& hr) {
-
+void CBandedSmithWaterman::Align(
+	  Alignment& alignment
+	, const char* s1
+	, const unsigned int s1Length
+	, const char* s2
+	, const unsigned int s2Length
+	, const BandedSmithWatermanHashRegion& hash_region ) {
 
 	
-	unsigned int rowStart = min(hr.first.first, (unsigned int)hr.second.first);
-	hr.first.first    -= rowStart;
-	hr.second.first   -= rowStart;
-	
-	//bool isLegalBandWidth = (s2Length - hr.QueryBegin) > (mBandwidth / 2);
-	//     isLegalBandWidth = isLegalBandWidth && ((s1Length - hr.Begin) > (mBandwidth / 2));
+	uint32_t rowStart = min( hash_region.reference_begin , hash_region.query_begin );
 
-
-
-	// check the lengths of the input sequences
-	//if( (s1Length <= 0) || (s2Length <= 0) || (s1Length < s2Length) ) {
-	//	printf("ERROR: An unexpected sequence length was encountered during pairwise alignment.\n");
-	//	printf("Sequence lengths are listed as following:\n");
-	//	printf("1. Reference length: %u\n2. Query length: %u\n", s1Length, s2Length);
-		//printf("3. Hash region in reference:%4u-%4u\n", hr.Begin + rowStart, hr.End);
-		//printf("4. Hash region in query:    %4u-%4u\n", hr.QueryBegin + rowStart, hr.QueryEnd);
-	//	exit(1);
-	//}
-
+	BandedSmithWatermanHashRegion hr;
+	hr.reference_begin = hash_region.reference_begin - rowStart;
+	hr.query_begin     = hash_region.query_begin - rowStart;
 	
 	// determine the hash region type
 	unsigned int rowOffset;
 	unsigned int columnOffset;
 	PositionType positionType;
 
-	if(hr.first.first == 0) {
-		if(hr.second.first == 0) {
+	if( hr.reference_begin == 0 ) {
+		if( hr.query_begin == 0 ) {
 			rowOffset    = 1;
-			columnOffset = (mBandwidth / 2) + 1;
+			columnOffset = ( mBandwidth / 2 ) + 1;
 			positionType = Position_REF_AND_QUERY_ZERO;
 		} else {
-			rowOffset    = 1 - hr.second.first;
-			columnOffset = (mBandwidth / 2) + 1 + hr.second.first;
+			rowOffset    = 1 - hr.query_begin;
+			columnOffset = ( mBandwidth / 2 ) + 1 + hr.query_begin;
 			positionType = Position_REF_ZERO;
 		}
 	} else {
-		if(hr.second.first == 0) {
+		if( hr.query_begin == 0 ) {
 			rowOffset    = 1;
-			columnOffset = (mBandwidth / 2) + 1 - hr.first.first;
+			columnOffset = ( mBandwidth / 2 ) + 1 - hr.reference_begin;
 			positionType = Position_QUERY_ZERO;
 		} else {
-			rowOffset    = 1 - hr.second.first;
-			columnOffset = (mBandwidth / 2) + 1 + hr.second.first - hr.first.first;
+			rowOffset    = 1 - hr.query_begin;
+			columnOffset = ( mBandwidth / 2 ) + 1 + hr.query_begin - hr.reference_begin;
 			positionType = Position_REF_AND_QUERO_NONZERO;
 		}
 	}
@@ -121,7 +112,7 @@ void CBandedSmithWaterman::Align(unsigned int& referenceAl, string& cigarAl, con
 	// Reinitialize the matrices
 	// =========================
 	
-	ReinitializeMatrices(positionType, s1Length, s2Length, hr);
+	ReinitializeMatrices( positionType, s1Length, s2Length, hr );
 
 	// =======================================
 	// Banded Smith-Waterman forward algorithm
@@ -133,8 +124,8 @@ void CBandedSmithWaterman::Align(unsigned int& referenceAl, string& cigarAl, con
 	float currentQueryGapScore;
 
 	// rowNum and column indicate the row and column numbers in the Smith-Waterman matrix respectively
-	unsigned int rowNum    = hr.second.first;
-	unsigned int columnNum = hr.first.first;
+	unsigned int rowNum    = hr.query_begin;
+	unsigned int columnNum = hr.reference_begin;
 
 	// indicates how many rows including blank elements in the Banded SmithWaterman
 	int numBlankElements = (mBandwidth / 2) - columnNum;
@@ -203,7 +194,7 @@ void CBandedSmithWaterman::Align(unsigned int& referenceAl, string& cigarAl, con
 	// Banded Smith-Waterman backtrace algorithm
 	// =========================================
 
-	Traceback(referenceAl, cigarAl, s1, s2, s2Length, bestRow, bestColumn, rowOffset, columnOffset);
+	Traceback(alignment, s1, s2, s2Length, bestRow, bestColumn, rowOffset, columnOffset);
 }
 
 // calculates the score during the forward algorithm
@@ -447,7 +438,11 @@ void CBandedSmithWaterman::EnableHomoPolymerGapPenalty(float hpGapOpenPenalty) {
 }
 
 // reinitializes the matrices
-void CBandedSmithWaterman::ReinitializeMatrices(const PositionType& positionType, const unsigned int& s1Length, const unsigned int& s2Length, const pair< pair<unsigned int, unsigned int>, pair<unsigned int, unsigned int> > hr) {
+void CBandedSmithWaterman::ReinitializeMatrices(
+	const PositionType& positionType, 
+	const unsigned int& s1Length, 
+	const unsigned int& s2Length, 
+	const BandedSmithWatermanHashRegion& hash_region ) {
 
 /*
 	try {
@@ -467,13 +462,14 @@ void CBandedSmithWaterman::ReinitializeMatrices(const PositionType& positionType
 			numRows = s2Length + 1;
 			break;
 		case Position_REF_ZERO:
-			numRows = s2Length - hr.second.first + 2;
+			numRows = s2Length - hash_region.query_begin + 2;
 			break;
 		case Position_QUERY_ZERO:
-			numRows = min(s2Length + 1, s1Length - hr.first.first + 2);
+			numRows = min(s2Length + 1, s1Length - hash_region.reference_begin + 2);
 			break;
 		case Position_REF_AND_QUERO_NONZERO:
-			numRows = min(s1Length - hr.first.first + 2, s2Length - hr.second.first + 2);
+			numRows = min( s1Length - hash_region.reference_begin + 2
+			             , s2Length - hash_region.query_begin + 2 );
 			break;
 	}
 
@@ -523,7 +519,15 @@ void CBandedSmithWaterman::ReinitializeMatrices(const PositionType& positionType
 }
 
 // performs the backtrace algorithm
-void CBandedSmithWaterman::Traceback(unsigned int& referenceAl, string& cigarAl, const char* s1, const char* s2, const unsigned int s2Length, unsigned int bestRow, unsigned int bestColumn, const unsigned int rowOffset, const unsigned int columnOffset){
+void CBandedSmithWaterman::Traceback(
+	Alignment& alignment, 
+	const char* s1, 
+	const char* s2, 
+	const unsigned int s2Length, 
+	unsigned int bestRow, 
+	unsigned int bestColumn, 
+	const unsigned int rowOffset, 
+	const unsigned int columnOffset){
 
 
 	unsigned int currentRow		 = bestRow;
@@ -604,76 +608,28 @@ void CBandedSmithWaterman::Traceback(unsigned int& referenceAl, string& cigarAl,
 	reverse(mReversedAnchor, mReversedAnchor + gappedAnchorLen);
 	reverse(mReversedQuery,  mReversedQuery  + gappedQueryLen);
 
-	//alignment.Reference = mReversedAnchor;
-	//alignment.Query     = mReversedQuery;
+	alignment.reference = mReversedAnchor;
+	alignment.query     = mReversedQuery;
 
 	// assign the alignment endpoints
-	//alignment.ReferenceBegin = previousColumn;
-	//alignment.ReferenceEnd   = bestColumn;
-	referenceAl  = previousColumn;
-	/*  
-	if(alignment.IsReverseComplement){
-		alignment.QueryBegin = s2Length - bestRow - 1; 
-		alignment.QueryEnd   = s2Length - previousRow - 1;
+	alignment.reference_begin = previousColumn;
+	alignment.reference_end   = bestColumn;
+	
+	// is_reverse_complement must be set before appling smith-waterman  
+	if( alignment.is_reverse_complement ){
+		alignment.query_begin = s2Length - bestRow - 1; 
+		alignment.query_end   = s2Length - previousRow - 1;
 	} else {
-		alignment.QueryBegin = previousRow; 
-		alignment.QueryEnd   = bestRow;
-	}
-	*/
-	
-	//alignment.QueryLength	= alignment.QueryEnd - alignment.QueryBegin + 1;
-	//alignment.NumMismatches = numMismatches;
-
-	const unsigned int alLength = strlen(mReversedAnchor);
-	unsigned int m = 0, d = 0, i = 0;
-	bool dashRegion = false;
-	ostringstream oCigar;
-
-	if ( previousRow != 0 )
-		oCigar << previousRow << 'S';
-
-	for ( unsigned int j = 0; j < alLength; j++ ) {
-		// m
-		if ( ( mReversedAnchor[j] != GAP ) && ( mReversedQuery[j] != GAP ) ) {
-			if ( dashRegion ) {
-				if ( d != 0 ) oCigar << d << 'D';
-				else          oCigar << i << 'I';
-			}
-			dashRegion = false;
-			m++;
-			d = 0;
-			i = 0;
-		}
-		// I or D
-		else {
-			if ( !dashRegion )
-				oCigar << m << 'M';
-			dashRegion = true;
-			m = 0;
-			if ( mReversedAnchor[j] == GAP ) {
-				if ( d != 0 ) oCigar << d << 'D';
-				i++;
-				d = 0;
-			}
-			else {
-				if ( i != 0 ) oCigar << i << 'I';
-				d++;
-				i = 0;
-			}
-		}
+		alignment.query_begin = previousRow; 
+		alignment.query_end   = bestRow;
 	}
 	
-	if      ( m != 0 ) oCigar << m << 'M';
-	else if ( d != 0 ) oCigar << d << 'D';
-	else if ( i != 0 ) oCigar << i << 'I';
-
-	if ( ( bestRow + 1 ) != s2Length )
-		oCigar << s2Length - bestRow - 1 << 'S';
-
-	cigarAl = oCigar.str();
 	
+	alignment.num_mismatches = numMismatches;
+
 
 	// correct the homopolymer gap order
-	CorrectHomopolymerGapOrder(alLength, numMismatches);
+	//uint32_t alignment_length = alignment.reference.size();
+	//CorrectHomopolymerGapOrder( alignment_length, numMismatches );
 
 }
