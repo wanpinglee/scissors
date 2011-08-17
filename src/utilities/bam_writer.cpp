@@ -252,21 +252,15 @@ void BamWriter::SaveAlignment( const BamAlignment& al ) {
 	buffer[1] = al.reference_begin;
 	buffer[2] = ( bin << 16 ) | ( al.mapping_quality << 8 ) | al.query_name.size();
 	buffer[3] = ( al.flag << 16) | al.bam_packed_cigar.size();
-	buffer[4] = al.sequence.size();
+	buffer[4] = al.read_length;
 
 	// mate info
-	bool has_position      = ( al.reference_begin != -1 ); 
-	bool has_mate_position = ( al.mate_position != -1 );
 	buffer[5] = al.mate_reference_index;
 	buffer[6] = al.mate_position;
-	if ( has_position && has_mate_position 
-	&& ( al.reference_index == al.mate_reference_index ) )
-		buffer[7] = al.reference_begin - al.mate_position;
-	else
-		buffer[7] = 0;
+	buffer[7] = al.isize;
 
 	// write the block size
-	const unsigned int dataBlockSize = al.query_name.size() + al.bam_packed_cigar.size() + al.encoded_sequence.size() + al.sequence.size();
+	const unsigned int dataBlockSize = al.query_name.size() + al.bam_packed_cigar.size() + al.encoded_sequence.size() + al.read_length;
 	const unsigned int blockSize = kBamCoreSize + dataBlockSize;
 	BgzfWrite( (char*) &blockSize, sizeof( int32_t ) );
 
