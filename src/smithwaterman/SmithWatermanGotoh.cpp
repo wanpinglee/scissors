@@ -41,7 +41,7 @@ CSmithWatermanGotoh::~CSmithWatermanGotoh(void) {
 }
 
 // aligns the query sequence to the reference using the Smith Waterman Gotoh algorithm
-void CSmithWatermanGotoh::Align(unsigned int& referenceAl, string& cigarAl, const char* s1, const unsigned int s1Length, const char* s2, const unsigned int s2Length) {
+void CSmithWatermanGotoh::Align(Alignment& alignment, const char* s1, const unsigned int s1Length, const char* s2, const unsigned int s2Length) {
 
 	if((s1Length == 0) || (s2Length == 0)) {
 		cout << "ERROR: Found a read with a zero length." << endl;
@@ -279,79 +279,29 @@ void CSmithWatermanGotoh::Align(unsigned int& referenceAl, string& cigarAl, cons
 	reverse(mReversedAnchor, mReversedAnchor + gappedAnchorLen);
 	reverse(mReversedQuery,  mReversedQuery  + gappedQueryLen);
 
-	//alignment.Reference = mReversedAnchor;
-	//alignment.Query     = mReversedQuery;
+	alignment.reference = mReversedAnchor;
+	alignment.query     = mReversedQuery;
 
 	// set the reference endpoints
-	//alignment.ReferenceBegin = ci;
-	//alignment.ReferenceEnd   = BestRow - 1;
-	referenceAl = ci;
+	alignment.reference_begin = ci;
+	alignment.reference_end   = BestRow - 1;
 
 	// set the query endpoints
-	/*  
-	if(alignment.IsReverseComplement) {
-		alignment.QueryBegin = s2Length - BestColumn;
-		alignment.QueryEnd   = s2Length - cj - 1;
-		// alignment.QueryLength= alignment.QueryBegin - alignment.QueryEnd + 1;
+	if( alignment.is_reverse_complement ) {
+		alignment.query_begin = s2Length - BestColumn;
+		alignment.query_end   = s2Length - cj - 1;
 	} else {
-		alignment.QueryBegin = cj;
-		alignment.QueryEnd   = BestColumn - 1;
-		// alignment.QueryLength= alignment.QueryEnd - alignment.QueryBegin + 1;
+		alignment.query_begin = cj;
+		alignment.query_end   = BestColumn - 1;
 	}
-	*/
+	
 
 	// set the query length and number of mismatches
 	//alignment.QueryLength = alignment.QueryEnd - alignment.QueryBegin + 1;
-	//alignment.NumMismatches  = numMismatches;
+	alignment.num_mismatches  = numMismatches;
 
-	unsigned int alLength = strlen(mReversedAnchor);
-	unsigned int m = 0, d = 0, i = 0;
-	bool dashRegion = false;
-	ostringstream oCigar (ostringstream::out);
-	
-	if ( cj != 0 )
-		oCigar << cj << 'S';
-	
-	for ( unsigned int j = 0; j < alLength; j++ ) {
-		// m
-		if ( ( mReversedAnchor[j] != GAP ) && ( mReversedQuery[j] != GAP ) ) {
-			if ( dashRegion ) {
-				if ( d != 0 ) oCigar << d << 'D';
-				else          oCigar << i << 'I';
-			}
-			dashRegion = false;
-			m++;
-			d = 0;
-			i = 0;
-		}
-		else {
-			if ( !dashRegion )
-				oCigar << m << 'M';
-			dashRegion = true;
-			m = 0;
-			if ( mReversedAnchor[j] == GAP ) {
-				if ( d != 0 ) oCigar << d << 'D';
-				i++;
-				d = 0;
-			}
-			else {
-				if ( i != 0 ) oCigar << i << 'I';
-				d++;
-				i = 0;
-			}
-		}
-	}
-	if      ( m != 0 ) oCigar << m << 'M';
-	else if ( d != 0 ) oCigar << d << 'D';
-	else if ( i != 0 ) oCigar << i << 'I';
-
-	if ( BestColumn != s2Length )
-		oCigar << s2Length - BestColumn << 'S';
-
-	cigarAl = oCigar.str();
-	
 	// fix the gap order
-	CorrectHomopolymerGapOrder(alLength, numMismatches);
+	//CorrectHomopolymerGapOrder(alLength, numMismatches);
 }
 
 // creates a simple scoring matrix to align the nucleotides and the ambiguity code N

@@ -11,6 +11,8 @@
 
 using namespace std;
 
+#include "../dataStructures/alignment.h"
+
 #define MOSAIK_NUM_NUCLEOTIDES 26
 
 class CSmithWatermanGotoh {
@@ -20,7 +22,7 @@ public:
 	// destructor
 	~CSmithWatermanGotoh(void);
 	// aligns the query sequence to the reference using the Smith Waterman Gotoh algorithm
-	void Align(unsigned int& referenceAl, string& cigarAl, const char* s1, const unsigned int s1Length, const char* s2, const unsigned int s2Length);
+	void Align(Alignment& alignment, const char* s1, const unsigned int s1Length, const char* s2, const unsigned int s2Length);
 	// enables homo-polymer scoring
 	void EnableHomoPolymerGapPenalty(float hpGapOpenPenalty);
 private:
