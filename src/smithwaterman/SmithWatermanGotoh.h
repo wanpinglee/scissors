@@ -67,9 +67,6 @@ private:
 	// our reversed alignment
 	char* mReversedAnchor;
 	char* mReversedQuery;
-	// define static constants
-	static const float FLOAT_NEGATIVE_INFINITY;
-	static const char GAP;
 	// toggles the use of the homo-polymer gap open penalty
 	bool mUseHomoPolymerGapOpenPenalty;
 	// specifies the homo-polymer gap open penalty

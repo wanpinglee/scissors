@@ -1,9 +1,5 @@
 #include "SmithWatermanGotoh.h"
 
-const float CSmithWatermanGotoh::FLOAT_NEGATIVE_INFINITY = (float)-1e+30;
-
-const char CSmithWatermanGotoh::GAP = '-';
-
 const char CSmithWatermanGotoh::Directions_STOP     = 0;
 const char CSmithWatermanGotoh::Directions_LEFT     = 1;
 const char CSmithWatermanGotoh::Directions_DIAGONAL = 2;
@@ -134,7 +130,7 @@ void CSmithWatermanGotoh::Align(Alignment& alignment, const char* s1, const unsi
 	}
 
 	// initialize the gap score and score vectors
-	uninitialized_fill(mQueryGapScores, mQueryGapScores + queryLen, FLOAT_NEGATIVE_INFINITY);
+	uninitialized_fill(mQueryGapScores, mQueryGapScores + queryLen, AlignmentConstant::FLOAT_NEGATIVE_INFINITY);
 	memset( ( char* ) mBestScores, 0, sizeof( float ) * queryLen);
 
 	float similarityScore, totalSimilarityScore, bestScoreDiagonal;
@@ -143,11 +139,11 @@ void CSmithWatermanGotoh::Align(Alignment& alignment, const char* s1, const unsi
 
 	unsigned int BestColumn = 0;
 	unsigned int BestRow    = 0;
-	float BestScore         = FLOAT_NEGATIVE_INFINITY;
+	float BestScore         = AlignmentConstant::FLOAT_NEGATIVE_INFINITY;
 
 	for(unsigned int i = 1, k = queryLen; i < referenceLen; i++, k += queryLen) {
 
-		currentAnchorGapScore = FLOAT_NEGATIVE_INFINITY;
+		currentAnchorGapScore = AlignmentConstant::FLOAT_NEGATIVE_INFINITY;
 		bestScoreDiagonal = mBestScores[0];
 
 		for(unsigned int j = 1, l = k + 1; j < queryLen; j++, l++) {
@@ -249,7 +245,7 @@ void CSmithWatermanGotoh::Align(Alignment& alignment, const char* s1, const unsi
 			case Directions_UP:
 				for(unsigned int l = 0, len = mSizesOfVerticalGaps[ck + cj]; l < len; l++) {
 					mReversedAnchor[gappedAnchorLen++] = s1[--ci];
-					mReversedQuery[gappedQueryLen++]   = GAP;
+					mReversedQuery[gappedQueryLen++]   = AlignmentConstant::GAP;
 					ck -= queryLen;
 					numMismatches++;
 				}
@@ -257,7 +253,7 @@ void CSmithWatermanGotoh::Align(Alignment& alignment, const char* s1, const unsi
 
 			case Directions_LEFT:
 				for(unsigned int l = 0, len = mSizesOfHorizontalGaps[ck + cj]; l < len; l++) {
-					mReversedAnchor[gappedAnchorLen++] = GAP;
+					mReversedAnchor[gappedAnchorLen++] = AlignmentConstant::GAP;
 					mReversedQuery[gappedQueryLen++]   = s2[--cj];
 					numMismatches++;
 				}
@@ -421,14 +417,14 @@ void CSmithWatermanGotoh::CorrectHomopolymerGapOrder(const unsigned int numBases
 		hasReferenceGap = false;
 		hasQueryGap     = false;
 
-		if(pReference[i] == GAP) {
+		if(pReference[i] == AlignmentConstant::GAP) {
 			hasReferenceGap = true;
 			pNonGapSeq      = pQuery;
 			pGapSeq         = pReference;
 			nonGapBase      = pQuery[i];
 		}
 
-		if(pQuery[i] == GAP) {
+		if(pQuery[i] == AlignmentConstant::GAP) {
 			hasQueryGap = true;
 			pNonGapSeq  = pReference;
 			pGapSeq     = pQuery;
@@ -454,10 +450,10 @@ void CSmithWatermanGotoh::CorrectHomopolymerGapOrder(const unsigned int numBases
 			const char ngs = pNonGapSeq[testPos];
 
 			bool isPartofHomopolymer = false;
-			if(((gs == nonGapBase) || (gs == GAP)) && (ngs == nonGapBase)) isPartofHomopolymer = true;
+			if(((gs == nonGapBase) || (gs == AlignmentConstant::GAP)) && (ngs == nonGapBase)) isPartofHomopolymer = true;
 			if(!isPartofHomopolymer) break;
 
-			if(gs == GAP) numGappedBases++;
+			if(gs == AlignmentConstant::GAP) numGappedBases++;
 			else nonGapLength++;
 			testPos++;
 		}
@@ -467,7 +463,7 @@ void CSmithWatermanGotoh::CorrectHomopolymerGapOrder(const unsigned int numBases
 			char* pCurrentSequence = pGapSeq + i;
 			memset(pCurrentSequence, nonGapBase, nonGapLength);
 			pCurrentSequence += nonGapLength;
-			memset(pCurrentSequence, GAP, numGappedBases);
+			memset(pCurrentSequence, AlignmentConstant::GAP, numGappedBases);
 		}
 
 		// increment

@@ -8,6 +8,16 @@
 
 using namespace std;
 
+#define MOSAIK_NUM_NUCLEOTIDES 26
+
+namespace AlignmentConstant {
+
+const char GAP = '-';
+const float FLOAT_NEGATIVE_INFINITY = (float)-1e+30;
+
+} // namespace Alignment
+
+
 struct Alignment{
 	string reference;
 	string query;

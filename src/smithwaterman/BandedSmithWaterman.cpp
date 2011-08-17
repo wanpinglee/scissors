@@ -1,8 +1,8 @@
 #include "BandedSmithWaterman.h"
 
 // define our static constants
-const float CBandedSmithWaterman::FLOAT_NEGATIVE_INFINITY = (float)-1e+30;
-const char  CBandedSmithWaterman::GAP = '-';
+//const float CBandedSmithWaterman::AlignmentConstant::FLOAT_NEGATIVE_INFINITY = (float)-1e+30;
+//const char  CBandedSmithWaterman::AlignmentConstant::GAP = '-';
 
 // constructor
 CBandedSmithWaterman::CBandedSmithWaterman(float matchScore, float mismatchScore, float gapOpenPenalty, float gapExtendPenalty, unsigned int bandWidth) 
@@ -120,7 +120,7 @@ void CBandedSmithWaterman::Align(
 
 	unsigned int bestColumn	= 0;
 	unsigned int bestRow	= 0;
-	float bestScore         = FLOAT_NEGATIVE_INFINITY;
+	float bestScore         = AlignmentConstant::FLOAT_NEGATIVE_INFINITY;
 	float currentQueryGapScore;
 
 	// rowNum and column indicate the row and column numbers in the Smith-Waterman matrix respectively
@@ -138,7 +138,7 @@ void CBandedSmithWaterman::Align(
 
 		// columnEnd indicates how many columns which should be dealt with in the current row
 		unsigned int columnEnd = min((mBandwidth - numBlankElements), (s1Length - columnNum + 1) );
-		currentQueryGapScore = FLOAT_NEGATIVE_INFINITY;
+		currentQueryGapScore = AlignmentConstant::FLOAT_NEGATIVE_INFINITY;
 		for( unsigned int j = 0; j < columnEnd; j++){
 			float score = CalculateScore(s1, s2, rowNum, columnNum, currentQueryGapScore, rowOffset, columnOffset);
 			//cout << s1[columnNum] << s2[rowNum] << score << endl;
@@ -156,7 +156,7 @@ void CBandedSmithWaterman::Align(
 		columnNum = columnNum - (mBandwidth / 2);
 
 		// there are mBandwidth columns which should be dealt with in each row
-		currentQueryGapScore = FLOAT_NEGATIVE_INFINITY;
+		currentQueryGapScore = AlignmentConstant::FLOAT_NEGATIVE_INFINITY;
 
 		for(unsigned int j = 0; j < mBandwidth; j++){
 			float score = CalculateScore(s1, s2, rowNum, columnNum, currentQueryGapScore, rowOffset, columnOffset);
@@ -175,9 +175,9 @@ void CBandedSmithWaterman::Align(
 	columnNum = columnNum - (mBandwidth / 2);
 	for(unsigned int i = 0; numBlankElements > 0; i++, rowNum++, numBlankElements--) {
 
-		mBestScores[ mBandwidth - i ] = FLOAT_NEGATIVE_INFINITY;;
+		mBestScores[ mBandwidth - i ] = AlignmentConstant::FLOAT_NEGATIVE_INFINITY;;
 		// columnEnd indicates how many columns which should be dealt with
-		currentQueryGapScore = FLOAT_NEGATIVE_INFINITY;
+		currentQueryGapScore = AlignmentConstant::FLOAT_NEGATIVE_INFINITY;
 
 		for( unsigned int j = columnNum; j < s1Length; j++){
 			float score = CalculateScore(s1, s2, rowNum, columnNum, currentQueryGapScore, rowOffset, columnOffset);
@@ -290,14 +290,14 @@ void CBandedSmithWaterman::CorrectHomopolymerGapOrder(const unsigned int numBase
 		hasReferenceGap = false;
 		hasQueryGap     = false;
 
-		if(pReference[i] == GAP) {
+		if(pReference[i] == AlignmentConstant::GAP) {
 			hasReferenceGap = true;
 			pNonGapSeq      = pQuery;
 			pGapSeq         = pReference;
 			nonGapBase      = pQuery[i];
 		}
 
-		if(pQuery[i] == GAP) {
+		if(pQuery[i] == AlignmentConstant::GAP) {
 			hasQueryGap = true;
 			pNonGapSeq  = pReference;
 			pGapSeq     = pQuery;
@@ -323,10 +323,10 @@ void CBandedSmithWaterman::CorrectHomopolymerGapOrder(const unsigned int numBase
 			const char ngs = pNonGapSeq[testPos];
 
 			bool isPartofHomopolymer = false;
-			if(((gs == nonGapBase) || (gs == GAP)) && (ngs == nonGapBase)) isPartofHomopolymer = true;
+			if(((gs == nonGapBase) || (gs == AlignmentConstant::GAP)) && (ngs == nonGapBase)) isPartofHomopolymer = true;
 			if(!isPartofHomopolymer) break;
 
-			if(gs == GAP) numGappedBases++;
+			if(gs == AlignmentConstant::GAP) numGappedBases++;
 			else nonGapLength++;
 			testPos++;
 		}
@@ -336,7 +336,7 @@ void CBandedSmithWaterman::CorrectHomopolymerGapOrder(const unsigned int numBase
 			char* pCurrentSequence = pGapSeq + i;
 			memset(pCurrentSequence, nonGapBase, nonGapLength);
 			pCurrentSequence += nonGapLength;
-			memset(pCurrentSequence, GAP, numGappedBases);
+			memset(pCurrentSequence, AlignmentConstant::GAP, numGappedBases);
 		}
 
 		// increment
@@ -512,10 +512,10 @@ void CBandedSmithWaterman::ReinitializeMatrices(
 	}
 
 	// initialize the gap score and score vectors
-	uninitialized_fill(mAnchorGapScores, mAnchorGapScores + mBandwidth + 2, FLOAT_NEGATIVE_INFINITY);
+	uninitialized_fill(mAnchorGapScores, mAnchorGapScores + mBandwidth + 2, AlignmentConstant::FLOAT_NEGATIVE_INFINITY);
 	memset( ( char* ) mBestScores, 0, sizeof( float ) * ( mBandwidth + 2 ) );
-	mBestScores[0]              = FLOAT_NEGATIVE_INFINITY;
-	mBestScores[mBandwidth + 1] = FLOAT_NEGATIVE_INFINITY;
+	mBestScores[0]              = AlignmentConstant::FLOAT_NEGATIVE_INFINITY;
+	mBestScores[mBandwidth + 1] = AlignmentConstant::FLOAT_NEGATIVE_INFINITY;
 }
 
 // performs the backtrace algorithm
@@ -551,7 +551,7 @@ void CBandedSmithWaterman::Traceback(
 			case Directions_DIAGONAL:
 				nVerticalGap = mPointers[currentPosition].mSizeOfVerticalGaps;
 				for(unsigned int i = 0; i < nVerticalGap; i++){
-					mReversedAnchor[gappedAnchorLen++] = GAP;
+					mReversedAnchor[gappedAnchorLen++] = AlignmentConstant::GAP;
 					mReversedQuery[gappedQueryLen++]   = s2[currentRow];
 
 					numMismatches++;
@@ -587,7 +587,7 @@ void CBandedSmithWaterman::Traceback(
 				for(unsigned int i = 0; i < nHorizontalGap; i++){
 
 					mReversedAnchor[gappedAnchorLen++] = s1[currentColumn];
-					mReversedQuery[gappedQueryLen++]   = GAP;
+					mReversedQuery[gappedQueryLen++]   = AlignmentConstant::GAP;
 
 					numMismatches++;
 
