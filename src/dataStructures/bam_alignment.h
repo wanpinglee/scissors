@@ -5,9 +5,13 @@
 
 #include <stdint.h>
 
-using namespace std;
+using std::string;
+
+namespace BamAlignmentConstant {
 
 const unsigned short kBamCoreSize   = 32;
+const unsigned short kBamCigarShift = 4;
+
 // cigar operator for bam packed cigar
 const unsigned short kBamCmatch     = 0;
 const unsigned short kBamCins       = 1;
@@ -16,6 +20,8 @@ const unsigned short kBamCrefSkip   = 3;
 const unsigned short kBamCsoftClip  = 4;
 const unsigned short kBamChardClip  = 5;
 const unsigned short kBamCpad       = 6;
+
+} // namespace BamAlignmentConstant
 
 struct BamAlignment {
 	string        query_name;

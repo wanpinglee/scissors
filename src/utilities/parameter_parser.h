@@ -4,10 +4,10 @@
 
 #include <string>
 
-using namespace std;
+using std::string;
 
 class ParameterParser {
-	
+
 	public:
 	ParameterParser(const int argc, char* const * argv);
 

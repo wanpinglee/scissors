@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 
-using namespace std;
+using std::string;
 
 #define MOSAIK_NUM_NUCLEOTIDES 26
 

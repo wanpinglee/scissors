@@ -23,6 +23,10 @@ const int32_t  GZIP_WINDOW_BITS    = -15;
 const uint32_t BLOCK_HEADER_LENGTH = 18;
 const uint32_t BLOCK_FOOTER_LENGTH = 8;
 
+using std::cout;
+using std::endl;
+using std::min;
+
 // constructor
 BamWriter::BamWriter(void) {
 }
@@ -243,6 +247,8 @@ void BamWriter::Open(void) {
 // saves the alignment to the alignment archive
 void BamWriter::SaveAlignment( const BamAlignment& al ) {
 
+	namespace Constant = BamAlignmentConstant;
+
 	// retrieve our bin
 	unsigned int bin = CalculateMinimumBin( al.reference_begin, al.reference_end );
 
@@ -261,11 +267,11 @@ void BamWriter::SaveAlignment( const BamAlignment& al ) {
 
 	// write the block size
 	const unsigned int dataBlockSize = al.query_name.size() + al.bam_packed_cigar.size() + al.encoded_sequence.size() + al.read_length;
-	const unsigned int blockSize = kBamCoreSize + dataBlockSize;
+	const unsigned int blockSize = Constant::kBamCoreSize + dataBlockSize;
 	BgzfWrite( (char*) &blockSize, sizeof( int32_t ) );
 
 	// write the BAM core
-	BgzfWrite( (char*) &buffer, kBamCoreSize );
+	BgzfWrite( (char*) &buffer, Constant::kBamCoreSize );
 
 	// write the query name
 	BgzfWrite( al.query_name.c_str(), al.query_name.size() );

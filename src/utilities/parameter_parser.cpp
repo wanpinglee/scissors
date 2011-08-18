@@ -1,11 +1,16 @@
 #include <stdlib.h>
-
 #include <getopt.h>
-#include <iostream>
 #include <unistd.h>
+
+#include <iostream>
+#include <string>
 
 #include "string_converter.h"
 #include "parameter_parser.h"
+
+using std::cout;
+using std::endl;
+using std::string;
 
 ParameterParser::ParameterParser(const int argc, char* const * argv) {
 	// parse the arguments and save the parameters

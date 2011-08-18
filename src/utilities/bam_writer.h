@@ -14,10 +14,13 @@
 #include <cstring>
 #include <zlib.h>
 #include <stdint.h>
+#include <memory>
 
 #include "../dataStructures/bam_alignment.h"
 
-using namespace std;
+using std::string;
+using std::ofstream;
+using std::bad_alloc;
 
 // define our sorting types
 typedef unsigned char SortOrderType;
@@ -74,7 +77,7 @@ struct BGZF {
 		try {
 			CompressedBlock   = new char[CompressedBlockSize];
 			UncompressedBlock = new char[UncompressedBlockSize];
-		} catch(bad_alloc&) {
+		} catch(bad_alloc) {
 			printf("ERROR: Unable to allocate memory for our BGZF object.\n");
 			exit(1);
 		}
