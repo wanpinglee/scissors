@@ -1,5 +1,19 @@
 
 Compiling:
 
-Just enter the src directory, and type "make"
+Just enter the src directory, and type "make".
 
+
+Building Google C++ Testing:
+
+Just enter the src directory, and type "make test".
+
+
+
+Author: Wan-Ping Lee <wanping.lee@bc.edu> and
+        Jiantao Wu <jiantao.wu@bc.edu>
+	Marth Lab., Boston College
+
+
+References:
+[1] http://bioinformatics.bc.edu/marthlab/Main_Page
