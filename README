@@ -1,18 +1,24 @@
 
+##########
 Compiling:
+##########
 
 Just enter the src directory, and type "make".
 
-
+############################
 Building Google C++ Testing:
+############################
 
 Just enter the src directory, and type "make test".
 
 
+########
+Authors:
+########
 
-Author: Wan-Ping Lee <wanping.lee@bc.edu> and
-        Jiantao Wu <jiantao.wu@bc.edu>
-	Marth Lab., Boston College
+Wan-Ping Lee <wanping.lee@bc.edu> and
+Jiantao Wu <jiantao.wu@bc.edu>
+Marth Lab. [1], Boston College
 
 
 References:
