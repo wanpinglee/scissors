@@ -20,8 +20,8 @@ void EncodeQuerySequence( string& encodedSequence, const string& sequence ) {
 	const unsigned int sequenceLen = sequence.size();
 	const unsigned int encodedSequenceLen = (unsigned int)( ( sequenceLen / 2.0 ) + 0.5 );
 	encodedSequence.resize( encodedSequenceLen );
-	char* pEncodedSequence = (char*) encodedSequence.data();
-	const char* pSequence = (const char*) sequence.data();
+	char* pEncodedSequence = (char*) encodedSequence.c_str();
+	const char* pSequence = (const char*) sequence.c_str();
 
 	unsigned char nucleotideCode;
 	bool useHighWord = true;
@@ -47,9 +47,11 @@ void EncodeQuerySequence( string& encodedSequence, const string& sequence ) {
 				nucleotideCode = 15;
 				break;
 			default:
-				cout << "ERROR: Only the following bases are supported in the BAM format: {=, A, C, G, T, N}." << endl
-				     << "       Found: " <<  *pSequence << endl;
-				exit(1);
+				++pSequence;
+				continue;
+				//cout << "ERROR: Only the following bases are supported in the BAM format: {=, A, C, G, T, N}." << endl
+				//     << "       Found: " <<  *pSequence << endl;
+				//exit(1);
 		}
 
 		// pack the nucleotide code
@@ -69,7 +71,7 @@ void EncodeQuerySequence( string& encodedSequence, const string& sequence ) {
 
 
 // Get bam-format packed cigar
-bool GetPackedCigar( string& packed_cigar,
+bool GetPackedCigar( vector<uint32_t>& packed_cigar,
 		const string& reference,
 		const string& query,
 		const uint32_t& query_begin,
@@ -78,16 +80,34 @@ bool GetPackedCigar( string& packed_cigar,
 
 	namespace Constant = BamAlignmentConstant;
 
+	packed_cigar.clear();
+
+
 	// NOTE: the lengths of reference and query should be the same
 	uint32_t sequence_length = reference.size();
-
-	if ( query_begin > 0 )
-		packed_cigar += query_begin << Constant::kBamCigarShift 
+	uint32_t current_cigar   = 0;
+	
+	// no aligned bases
+	if ( sequence_length == 0 ) {
+		current_cigar = read_length << Constant::kBamCigarShift
 		              | Constant::kBamCsoftClip;
+		packed_cigar.push_back(current_cigar);
+		return true;
+	}
+	
 
+	// beginning soft clips
+	if ( query_begin > 0 ) {
+		current_cigar = query_begin << Constant::kBamCigarShift 
+		              | Constant::kBamCsoftClip;
+		packed_cigar.push_back(current_cigar);
+
+	}
+
+	//const unsigned int test_length = query_end - query_begin + 1;
 	for ( unsigned int i = 0; i < sequence_length; ++i ) {
-		static uint32_t operation_length = 0;
-		static uint32_t test_position = i;
+		uint32_t operation_length = 0;
+		uint32_t test_position = i;
 
 		// matchs
 		if ( ( reference[i] != '-' ) && ( query[i] != '-' ) ) {
@@ -100,9 +120,9 @@ bool GetPackedCigar( string& packed_cigar,
 				         && ( test_position < sequence_length ) );
 			}
 
-			packed_cigar += operation_length << Constant::kBamCigarShift 
+			current_cigar = operation_length << Constant::kBamCigarShift 
 			              | Constant::kBamCmatch;
-		}
+		} // if
 		// insertion
 		else if ( reference[i] == '-' ) {
 			bool still_go = true;
@@ -113,38 +133,43 @@ bool GetPackedCigar( string& packed_cigar,
 				         && ( test_position < sequence_length ) );
 			}
 
-			packed_cigar += operation_length << Constant::kBamCigarShift 
-			              | Constant::kBamCins; 
-		}
+			current_cigar = operation_length << Constant::kBamCigarShift 
+		                      | Constant::kBamCins; 
+		} // else if
 		// deletion
 		else if ( query[i] == '-' ) {
 			bool still_go = true;
 			while( still_go ) {
 				++operation_length;
 				++test_position;
-				still_go = ( ( query[i] == '-')
+				still_go = ( ( query[test_position] == '-')
 				         && ( test_position < sequence_length ) );
 			}
 
-			packed_cigar += operation_length << Constant::kBamCigarShift 
-			              | Constant::kBamCdel;
-		}
+			current_cigar = operation_length << Constant::kBamCigarShift 
+		     	              | Constant::kBamCdel;
+		} // else if
 		else {
 			cout << "ERROR: Generating the packed cigar failed." << endl;
 			cout << "       Unknown char(" << reference[i] << "," << query[i] 
 			     << ")." << endl;
 
 			return false;
-		}
+		} // else
 
 		i = test_position - 1;
+		packed_cigar.push_back(current_cigar);
+
+	} // for
+
+	// trailing soft clips
+	uint32_t num_tail_soft_clip = read_length - query_end - 1;
+	if ( num_tail_soft_clip > 0 ) {
+		current_cigar = num_tail_soft_clip << Constant::kBamCigarShift
+		              | Constant::kBamCsoftClip;
+		packed_cigar.push_back(current_cigar);
 
 	}
-
-	uint32_t num_tail_soft_clip = read_length - query_end - 1;
-	if ( num_tail_soft_clip > 0 )
-		packed_cigar += num_tail_soft_clip << Constant::kBamCigarShift
-		              | Constant::kBamCsoftClip;
 
 
 	return true;

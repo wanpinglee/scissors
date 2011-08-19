@@ -5,8 +5,10 @@
 #include <stdint.h>
 
 #include <string>
+#include <vector>
 
 using std::string;
+using std::vector;
 
 namespace BamUtilities {
 
@@ -15,10 +17,14 @@ namespace BamUtilities {
 void EncodeQuerySequence( string& encodedSequence, const string& sequence );
 
 
+// Given the packed_cigar,
+// convert packed_cigar into uint8_t for writing
+//inline const uint8_t* ConvertPackedCigar( const vector<uint32_t>& packed_cigar );
+
 // Given aligned reference and query sequences,
 // generate bam-foramt packed cigar and store it in packed_cigar
 bool GetPackedCigar( 
-	string& packed_cigar, 
+	vector<uint32_t>& packed_cigar, 
 	const string& reference,
 	const string& query,
 	const uint32_t& query_begin,

@@ -266,7 +266,7 @@ void BamWriter::SaveAlignment( const BamAlignment& al ) {
 	buffer[7] = al.isize;
 
 	// write the block size
-	const unsigned int dataBlockSize = al.query_name.size() + al.bam_packed_cigar.size() + al.encoded_sequence.size() + al.read_length;
+	const unsigned int dataBlockSize = al.query_name.size() + ( al.bam_packed_cigar.size() * 4 ) + al.encoded_sequence.size() + al.read_length;
 	const unsigned int blockSize = Constant::kBamCoreSize + dataBlockSize;
 	BgzfWrite( (char*) &blockSize, sizeof( int32_t ) );
 
@@ -277,7 +277,15 @@ void BamWriter::SaveAlignment( const BamAlignment& al ) {
 	BgzfWrite( al.query_name.c_str(), al.query_name.size() );
 
 	// write the packed cigar
-	BgzfWrite( al.bam_packed_cigar.c_str(), al.bam_packed_cigar.size() );
+	uint8_t cigar[ al.bam_packed_cigar.size() * 4 ];
+	for ( uint32_t i = 0; i < al.bam_packed_cigar.size(); ++i ) {
+		uint32_t current = i * 4;
+		cigar[ current + 0 ] = al.bam_packed_cigar[i];
+		cigar[ current + 1 ] = ( al.bam_packed_cigar[i] >> 8 );
+		cigar[ current + 2 ] = ( al.bam_packed_cigar[i] >> 16 );
+		cigar[ current + 3 ] = ( al.bam_packed_cigar[i] >> 24 );
+	}
+	BgzfWrite( (char*)cigar, al.bam_packed_cigar.size() * 4 );
 
 	// write the encoded query sequence
 	BgzfWrite( al.encoded_sequence.c_str(), al.encoded_sequence.size() );

@@ -29,6 +29,9 @@ $(EXECUTABLE): $(BUILT_OBJECTS) | $(BIN_DIR)
 	@echo "  * linking $(EXECUTABLE)"
 	@$(CXX) $(CXXFLAGS) -o $(BIN_DIR)/$@ $(OBJ_DIR)/*.o $(LIBS)
 
+test: $(BUILT_OBJECTS)
+	@cd googletest && $(MAKE) --no-print-directory
+
 $(BUILT_OBJECTS): $(SOURCES) | $(OBJ_DIR)
 	@for dir in $(SUB_DIRS); do \
 	$(MAKE) --no-print-directory --directory=$$dir; \
@@ -36,13 +39,12 @@ $(BUILT_OBJECTS): $(SOURCES) | $(OBJ_DIR)
 	@echo "  * compiling" $(*F).cpp
 	@$(CXX) -c $(CXXFLAGS) $(*F).cpp -o $@
 
-
 $(OBJ_DIR):
 	@mkdir $(OBJ_DIR)
 $(BIN_DIR):
 	@mkdir $(BIN_DIR)
 
 clean:
-	@echo "Cleaning......"
+	@echo "Cleaning up......"
 	@rm -rf $(OBJ_DIR) $(BIN_DIR)
 .PHONY: clean
