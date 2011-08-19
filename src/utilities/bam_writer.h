@@ -152,28 +152,3 @@ private:
 };
 
 #endif
-
-// packs an unsigned integer into the specified buffer
-inline void BamWriter::BgzfPackUnsignedInt(char* buffer, unsigned int value) {
-	buffer[0] = (char)value;
-	buffer[1] = (char)(value >> 8);
-	buffer[2] = (char)(value >> 16);
-	buffer[3] = (char)(value >> 24);
-}
-
-// packs an unsigned short into the specified buffer
-inline void BamWriter::BgzfPackUnsignedShort(char* buffer, unsigned short value) {
-	buffer[0] = (char)value;
-	buffer[1] = (char)(value >> 8);
-}
-
-// calculates the minimum bin that contains a region [begin, end)
-inline unsigned int BamWriter::CalculateMinimumBin(unsigned int begin, unsigned int end) {
-	--end;
-	if((begin >> 14) == (end >> 14)) return 4681 + (begin >> 14);
-	if((begin >> 17) == (end >> 17)) return  585 + (begin >> 17);
-	if((begin >> 20) == (end >> 20)) return   73 + (begin >> 20);
-	if((begin >> 23) == (end >> 23)) return    9 + (begin >> 23);
-	if((begin >> 26) == (end >> 26)) return    1 + (begin >> 26);
-	return 0;
-}

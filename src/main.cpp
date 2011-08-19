@@ -137,6 +137,8 @@ int main ( int argc, char** argv ) {
 	// close files
 	fclose( hashTableInput );
 */
+
+	bam_writer.Close();
 	return 0;
 
 }
