@@ -16,7 +16,8 @@
 #include <stdint.h>
 #include <memory>
 
-#include "../dataStructures/bam_alignment.h"
+#include "dataStructures/bam_alignment.h"
+#include "samtools/bam.h"
 
 using std::string;
 using std::ofstream;
@@ -131,7 +132,8 @@ public:
 	// opens the alignment archive
 	void Open(void);
 	// saves the alignment to the alignment archive
-	void SaveAlignment( const BamAlignment& al );
+	void SaveAlignment(const BamAlignment& al);
+	void SaveAlignment(const bam1_t& al);
 private:
 	// compresses the current block
 	int BgzfDeflateBlock(void);

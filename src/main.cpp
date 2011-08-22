@@ -47,7 +47,9 @@ int main ( int argc, char** argv ) {
 	SR_QueryRegion* query_region = SR_QueryRegionAlloc();
 
 	while( SR_BamInStreamGetPair( &(query_region->pAnchor), &(query_region->pOrphan), bam_reader ) == SR_OK ) {
-		;
+		cout << "Got a pair of alignments" << endl;
+		bam_writer.SaveAlignment( *query_region->pAnchor );
+		bam_writer.SaveAlignment( *query_region->pOrphan );
 	}
 
 

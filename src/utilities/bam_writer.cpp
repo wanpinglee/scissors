@@ -270,6 +270,34 @@ void BamWriter::Open(void) {
 }
 
 // saves the alignment to the alignment archive
+void BamWriter::SaveAlignment( const bam1_t& al ) {
+	
+	namespace Constant = BamAlignmentConstant;
+
+	// assign the BAM core data
+	unsigned int buffer[8] = {0};
+	buffer[0] = al.core.tid;
+	buffer[1] = al.core.pos;
+	buffer[2] = ( (uint32_t) al.core.bin << 16 ) | ( al.core.qual << 8 ) | al.core.l_qname;
+	buffer[3] = ( al.core.flag << 16) | al.core.n_cigar;
+	buffer[4] = al.core.l_qseq;
+
+	// mate info
+	buffer[5] = al.core.mtid;
+	buffer[6] = al.core.mpos;
+	buffer[7] = al.core.isize;
+
+	// write the block size
+	const unsigned int blockSize = Constant::kBamCoreSize + al.data_len;
+	BgzfWrite( (char*) &blockSize, sizeof( blockSize ) );
+
+	// write the BAM core
+	BgzfWrite( (char*) &buffer, Constant::kBamCoreSize );
+	BgzfWrite( (char*) al.data, al.data_len );
+
+}
+
+// saves the alignment to the alignment archive
 void BamWriter::SaveAlignment( const BamAlignment& al ) {
 
 	namespace Constant = BamAlignmentConstant;
@@ -293,7 +321,7 @@ void BamWriter::SaveAlignment( const BamAlignment& al ) {
 	// write the block size
 	const unsigned int dataBlockSize = al.query_name.size() + ( al.bam_packed_cigar.size() * 4 ) + al.encoded_sequence.size() + al.read_length;
 	const unsigned int blockSize = Constant::kBamCoreSize + dataBlockSize;
-	BgzfWrite( (char*) &blockSize, sizeof( int32_t ) );
+	BgzfWrite( (char*) &blockSize, sizeof( blockSize ) );
 
 	// write the BAM core
 	BgzfWrite( (char*) &buffer, Constant::kBamCoreSize );

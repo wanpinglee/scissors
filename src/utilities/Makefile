@@ -7,6 +7,7 @@ SOURCES = parameter_parser.cpp \
 
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES) )
 LIBS = -lz
+INCLUDE = -I..
 
 # C
 CSOURCES = md5.c \
@@ -18,7 +19,7 @@ all: $(OBJECTS) $(COBJECTS)
 
 $(OBJECTS): $(SOURCES)
 	@echo "  * compiling" $(*F).cpp
-	@$(CXX) -c $(CXXFLAGS) $(*F).cpp -o $@ $(LIBS)
+	@$(CXX) -c $(CXXFLAGS) $(*F).cpp $(INCLUDE) -o $@ $(LIBS)
 
 $(COBJECTS): $(CSOURCES)
 	@echo "  * compiling" $(*F).c
