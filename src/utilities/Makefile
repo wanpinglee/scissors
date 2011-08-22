@@ -1,17 +1,28 @@
 OBJ_DIR = ../../obj
 
+# C++
 SOURCES = parameter_parser.cpp \
 		bam_writer.cpp \
 		bam_utilities.cpp
 
-OBJECTS = $(SOURCES:.cpp=.o)
-BUILT_OBJECTS = $(patsubst %, $(OBJ_DIR)/%, $(OBJECTS) )
+OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES) )
+LIBS = -lz
 
-all: $(BUILT_OBJECTS)
+# C
+CSOURCES = md5.c \
+		SR_BamInStream.c
+COBJECTS = $(patsubst %.c, $(OBJ_DIR)/%.o, $(CSOURCES) )
+CINCLUDE = -I..
 
-$(BUILT_OBJECTS): $(SOURCES)
-	@echo "  * compliing" $(*F).cpp
-	@$(CXX) -c $(CXXFLAGS) $(*F).cpp -o $@ -lz
+all: $(OBJECTS) $(COBJECTS)
+
+$(OBJECTS): $(SOURCES)
+	@echo "  * compiling" $(*F).cpp
+	@$(CXX) -c $(CXXFLAGS) $(*F).cpp -o $@ $(LIBS)
+
+$(COBJECTS): $(CSOURCES)
+	@echo "  * compiling" $(*F).c
+	@$(CC) -c $(CFLAGS) $(*F).c $(CINCLUDE) -o $@
 
 .PHONY: all
 

@@ -4,13 +4,12 @@ SOURCES = SR_InHashTable.c\
 		SR_Reference.c \
 		SR_HashRegionTable.c
 
-OBJECTS = $(SOURCES:.c=.o)
-BUILT_OBJECTS = $(patsubst %, $(OBJ_DIR)/%, $(OBJECTS) )
+OBJECTS = $(patsubst %, $(OBJ_DIR)/%, $(SOURCES) )
 
 
-all: $(BUILT_OBJECTS)
+all: $(OBJECTS)
 
-$(BUILT_OBJECTS): $(SOURCES) $(HEADERS)
+$(OBJECTS): $(SOURCES) $(HEADERS)
 	@echo "  * compliing" $(*F).c
 	@$(CC) -c $(CFLAGS) $(*F).c -o $@
 

@@ -45,6 +45,10 @@
 
 #define SR_ARRAY_GET_SIZE(pArray) ((pArray)->size)
 
+#define SR_ARRAY_GET_LAST(pArray) ((pArray)->data[(pArray)->size - 1])
+
+#define SR_ARRAY_GET_LAST_PT(pArray) ((pArray)->data + (pArray)->size - 1)
+
 #define SR_ARRAY_ALLOC(pArray, pArrayCap, objType, dataType)              \
     do                                                                    \
     {                                                                     \
@@ -83,6 +87,13 @@
         SR_ARRAY_GET(pArray, (pArray)->size) = *(pNewElt);                                                    \
         ++((pArray)->size);                                                                                   \
                                                                                                               \
+    }while(0)
+
+#define SR_ARRAY_POP(pArray)   \
+    do                         \
+    {                          \
+        (pArray)->size -= 1;   \
+                               \
     }while(0)
 
 

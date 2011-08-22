@@ -55,7 +55,7 @@ struct BamHeader {
 };
 
 // define our BZGF structure
-struct BGZF {
+struct myBGZF {
 	unsigned int UncompressedBlockSize;
 	unsigned int CompressedBlockSize;
 	//unsigned int BlockLength;
@@ -66,7 +66,7 @@ struct BGZF {
 	char*        CompressedBlock;
 
 	// constructor
-	BGZF(void)
+	myBGZF(void)
 		: UncompressedBlockSize(MAX_BGZF_BLOCK_SIZE)
 		, CompressedBlockSize(MAX_BGZF_BLOCK_SIZE)
 		, BlockOffset(0)
@@ -84,13 +84,13 @@ struct BGZF {
 	}
 
 	// destructor
-	~BGZF(void) {
+	~myBGZF(void) {
 		if(CompressedBlock)   delete [] CompressedBlock;
 		if(UncompressedBlock) delete [] UncompressedBlock;
 	}
 
 	// copy constructor
-	BGZF ( const BGZF & copy ) {
+	myBGZF ( const myBGZF & copy ) {
 		CompressedBlockSize   = copy.CompressedBlockSize;
 		UncompressedBlockSize = copy.UncompressedBlockSize;
 		CompressedBlock       = new char[ CompressedBlockSize ];
@@ -101,7 +101,7 @@ struct BGZF {
 	}
 
 	// assign operator
-	BGZF& operator=( const BGZF & copy ) {
+	myBGZF& operator=( const myBGZF & copy ) {
 		CompressedBlockSize          = copy.CompressedBlockSize;
 		UncompressedBlockSize        = copy.UncompressedBlockSize;
 		char* temp_CompressedBlock   = new char[ CompressedBlockSize ];
@@ -146,7 +146,7 @@ private:
 	// calculates the minimum bin that contains a region [begin, end)
 	static inline unsigned int CalculateMinimumBin(unsigned int begin, unsigned int end);
 	// our BGZF output object
-	BGZF mBGZF;
+	myBGZF mBGZF;
 	ofstream outputStream;
 	string filename_;
 };

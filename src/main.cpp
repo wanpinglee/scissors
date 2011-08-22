@@ -5,9 +5,10 @@
 #include <string>
 
 extern "C" {
-#include "hasher/reader/SR_InHashTable.h"
-#include "hasher/reader/SR_Reference.h"
-#include "hasher/reader/SR_HashRegionTable.h"
+//#include "hasher/reader/SR_InHashTable.h"
+//#include "hasher/reader/SR_Reference.h"
+//#include "hasher/reader/SR_HashRegionTable.h"
+#include "utilities/SR_BamInStream.h"
 }
 
 #include "utilities/bam_writer.h"
@@ -33,6 +34,9 @@ int main ( int argc, char** argv ) {
 	//     missing required parameters are found
 	const ParameterParser parameter_parser( argc, argv );
 	
+	// bam file reader
+	SR_BamInStream* bam_reader = SR_BamInStreamAlloc( parameter_parser.input_bam.c_str() );
+
 	// bam file writer
 	BamWriter bam_writer( parameter_parser.output_bam );
 	bam_writer.Open();
@@ -138,6 +142,7 @@ int main ( int argc, char** argv ) {
 	fclose( hashTableInput );
 */
 
+	SR_BamInStreamFree( bam_reader );
 	bam_writer.Close();
 	return 0;
 
