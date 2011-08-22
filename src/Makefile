@@ -17,7 +17,8 @@ INCLUDE = -I.
 
 
 # define our source subdirectories
-SUB_DIRS = hasher \
+SUB_DIRS = dataStructures \
+		hasher \
 		utilities \
 		smithwaterman \
 		samtools

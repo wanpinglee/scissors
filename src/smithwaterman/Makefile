@@ -6,8 +6,8 @@ OBJ_DIR = ../../obj
 SOURCES = BandedSmithWaterman.cpp \
 		SmithWatermanGotoh.cpp
 
-OBJECTS= $(SOURCES:.cpp=.o)
-BUILT_OBJECTS = $(patsubst %, $(OBJ_DIR)/%, $(OBJECTS) )
+OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES) )
+INCLUDE = -I..
 
 # ----------------
 # compiler options
@@ -15,11 +15,11 @@ BUILT_OBJECTS = $(patsubst %, $(OBJ_DIR)/%, $(OBJECTS) )
 
 PROGRAM=smithwaterman
 
-all: $(BUILT_OBJECTS)
+all: $(OBJECTS)
 
 .PHONY: all
 
-$(BUILT_OBJECTS): $(SOURCES)
+$(OBJECTS): $(SOURCES)
 	@echo "  * compliing" $(*F).cpp
-	@$(CXX) -c $(CXXFLAGS) $(*F).cpp -o $@
+	@$(CXX) -c $(CXXFLAGS) $(*F).cpp $(INCLUDE) -o $@
 

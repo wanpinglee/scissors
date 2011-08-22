@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "../dataStructures/alignment.h"
+#include "dataStructures/alignment.h"
 
 using namespace std;
 

@@ -11,9 +11,7 @@
 
 using namespace std;
 
-#include "../dataStructures/alignment.h"
-
-#define MOSAIK_NUM_NUCLEOTIDES 26
+#include "dataStructures/alignment.h"
 
 class CSmithWatermanGotoh {
 public:

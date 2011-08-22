@@ -9,6 +9,8 @@ extern "C" {
 //#include "hasher/reader/SR_Reference.h"
 //#include "hasher/reader/SR_HashRegionTable.h"
 #include "utilities/SR_BamInStream.h"
+#include "hasher/common/SR_Types.h"
+#include "dataStructures/SR_QueryRegion.h"
 }
 
 #include "utilities/bam_writer.h"
@@ -40,6 +42,13 @@ int main ( int argc, char** argv ) {
 	// bam file writer
 	BamWriter bam_writer( parameter_parser.output_bam );
 	bam_writer.Open();
+
+	// bam records are in SR_QueryRegion structure
+	SR_QueryRegion* query_region = SR_QueryRegionAlloc();
+
+	while( SR_BamInStreamGetPair( &(query_region->pAnchor), &(query_region->pOrphan), bam_reader ) == SR_OK ) {
+		;
+	}
 
 
 /*
@@ -142,6 +151,8 @@ int main ( int argc, char** argv ) {
 	fclose( hashTableInput );
 */
 
+
+	SR_QueryRegionFree( query_region );
 	SR_BamInStreamFree( bam_reader );
 	bam_writer.Close();
 	return 0;
