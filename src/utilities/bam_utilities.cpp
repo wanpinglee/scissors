@@ -2,20 +2,40 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <iostream>
+#include <sstream>
 
 #include "dataStructures/bam_alignment.h"
-#include "samtools/sam_header.h"
 #include "samtools/bam.h"
 
 using std::string;
 using std::cout;
 using std::endl;
 
-
 namespace BamUtilities {
 
-void ReplaceHeaderText( const bam_header_t* header ) {
-	sam_header_parse2( header->text );
+bool ReplaceHeaderSoText( bam_header_t* const header ) {
+	
+	string header_string( header->text );
+	
+	size_t so_pos = header_string.find("SO:coordinate");
+	if ( so_pos != string::npos )
+		header_string.replace( so_pos, 13, "SO:unsorted");
+
+	so_pos = header_string.find("SO:queryname");
+	if ( so_pos != string::npos )
+		header_string.replace( so_pos, 12, "SO:unsorted");
+	
+
+	// Follow by the samtools style to allocate memory
+	if ( header->text ) {
+		header->l_text = header_string.size();
+		free( header->text );
+		header->text = (char*)calloc(header->l_text + 1, 1);
+		strncpy( header->text, header_string.c_str(), header->l_text );
+	}
+
+	return true;
+
 }
 
 // encode the aligned sequence in bam-foramt encoded sequence

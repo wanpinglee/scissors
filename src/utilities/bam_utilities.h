@@ -14,7 +14,7 @@ using std::vector;
 
 namespace BamUtilities {
 
-void ReplaceHeaderText( const bam_header_t* header );
+bool ReplaceHeaderSoText( bam_header_t* const header );
 
 // Given sequence, generate bam-format encoded sequence 
 // and store it in encodedSequence

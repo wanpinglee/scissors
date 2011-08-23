@@ -83,7 +83,7 @@ int main ( int argc, char** argv ) {
 
 	// Load and then write bam header
 	bam_header_t* bam_header = SR_BamInStreamReadHeader( bam_reader );
-	BamUtilities::ReplaceHeaderText( bam_header );
+	BamUtilities::ReplaceHeaderSoText( bam_header ); // set SO to unsorted if SO is there
 	bam_header_write( bam_writer, bam_header );
 
 	// bam records are in SR_QueryRegion structure
