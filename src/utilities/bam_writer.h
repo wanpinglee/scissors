@@ -23,6 +23,7 @@ using std::string;
 using std::ofstream;
 using std::bad_alloc;
 
+/*
 // define our sorting types
 typedef unsigned char SortOrderType;
 const SortOrderType SORTORDER_UNSORTED = 0;
@@ -54,6 +55,8 @@ struct BamHeader {
 		//, pReferenceSequences(NULL)
 	{}
 };
+*/
+
 
 // define our BZGF structure
 struct myBGZF {
@@ -124,16 +127,15 @@ class BamWriter {
 public:
 	// constructor
 	BamWriter(void);
-	BamWriter(const string& filename);
 	// destructor
 	~BamWriter(void);
 	// closes the alignment archive
 	void Close(void);
 	// opens the alignment archive
 	void Open(void);
-	// saves the alignment to the alignment archive
-	void SaveAlignment(const BamAlignment& al);
-	void SaveAlignment(const bam1_t& al);
+	// write the alignment to the alignment archive
+	void WriteAlignment(const BamAlignment& al);
+	void WriteAlignment(const bam1_t& al);
 private:
 	// compresses the current block
 	int BgzfDeflateBlock(void);

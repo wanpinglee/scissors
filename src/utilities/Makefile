@@ -2,7 +2,6 @@ OBJ_DIR = ../../obj
 
 # C++
 SOURCES = parameter_parser.cpp \
-		bam_writer.cpp \
 		bam_utilities.cpp
 
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES) )

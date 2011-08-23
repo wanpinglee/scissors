@@ -31,10 +31,6 @@ using std::min;
 BamWriter::BamWriter(void) {
 }
 
-BamWriter::BamWriter(const string& filename)
-	: filename_(filename)
-{}
-
 // destructor
 BamWriter::~BamWriter(void) {
 
@@ -227,7 +223,7 @@ void BamWriter::Open(void) {
 	outputStream.open( filename_.c_str(), ofstream::binary );
 	if ( !outputStream.good() ) {
 		cout << "ERROR: Unable to open the BAM file " << filename_ << " for writing." << endl;
-		exit( 1 );
+		exit(1);
 	}
 
 	// ================
@@ -269,8 +265,9 @@ void BamWriter::Open(void) {
 
 }
 
-// saves the alignment to the alignment archive
-void BamWriter::SaveAlignment( const bam1_t& al ) {
+
+// Write the alignment to the alignment archive
+void BamWriter::WriteAlignment( const bam1_t& al ) {
 	
 	namespace Constant = BamAlignmentConstant;
 
@@ -297,8 +294,8 @@ void BamWriter::SaveAlignment( const bam1_t& al ) {
 
 }
 
-// saves the alignment to the alignment archive
-void BamWriter::SaveAlignment( const BamAlignment& al ) {
+// Write the alignment to the alignment archive
+void BamWriter::WriteAlignment( const BamAlignment& al ) {
 
 	namespace Constant = BamAlignmentConstant;
 

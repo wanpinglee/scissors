@@ -14,7 +14,8 @@ extern "C" {
 #include "samtools/bam.h"
 }
 
-#include "utilities/bam_writer.h"
+//#include "utilities/bam_writer.h"
+#include "utilities/bam_utilities.h"
 #include "utilities/parameter_parser.h"
 
 using namespace std;
@@ -31,13 +32,13 @@ inline FILE* openFile( const string filename, const string type ) {
 }
 
 void Deconstruct( 
-	SR_BamInStream* bam_reader,
-	BamWriter& bam_writer,
-	SR_QueryRegion* query_region,
-	bam_header_t* bam_header) {
+		SR_BamInStream* bam_reader,
+		bamFile         bam_writer,
+		SR_QueryRegion* query_region,
+		bam_header_t*   bam_header) {
 
 	SR_BamInStreamFree( bam_reader );
-	bam_writer.Close();
+	bam_close( bam_writer );
 	SR_QueryRegionFree( query_region );
 
 	// free bam header
@@ -45,36 +46,61 @@ void Deconstruct(
 	
 }
 
+
+void CheckFileOrDie( 
+		const bamFile bam_writer){
+
+	bool error_found = false;
+
+	if ( bam_writer == NULL ) {
+		cout << "ERROR: Cannot open bam file for writing." << endl
+		     << "       Please check -o option." << endl;
+		error_found = true;
+	}
+
+	if ( error_found )
+		exit(1);
+
+}
+
+
 int main ( int argc, char** argv ) {
 
 	// Parse the arguments and store them
-	// The program will exit(1) if any errors or
-	//     missing required parameters are found
+	// The program will exit(1) with printing error message 
+	//     if any errors or missing required parameters are found
 	const ParameterParser parameter_parser( argc, argv );
 	
-	// bam file reader
+	// Initialize bam input reader
+	// The program will be terminated with printing error message
+	//     if the input file cannot be opened.
 	SR_BamInStream* bam_reader = SR_BamInStreamAlloc( parameter_parser.input_bam.c_str() );
+	// Initialize bam output writer
+	bamFile bam_writer = bam_open( parameter_parser.output_bam.c_str(), "w" );
 
-	// bam file writer
-	BamWriter bam_writer( parameter_parser.output_bam );
-	bam_writer.Open();
+	// Check files statuses
+	CheckFileOrDie( bam_writer );
 
-	// load bam header
+	// Load and then write bam header
 	bam_header_t* bam_header = SR_BamInStreamReadHeader( bam_reader );
-	
+	BamUtilities::ReplaceHeaderText( bam_header );
+	bam_header_write( bam_writer, bam_header );
+
 	// bam records are in SR_QueryRegion structure
 	SR_QueryRegion* query_region = SR_QueryRegionAlloc();
 
 
-	while( SR_BamInStreamGetPair( &(query_region->pAnchor), &(query_region->pOrphan), bam_reader ) == SR_OK ) {
+	while( ( SR_BamInStreamGetPair( &(query_region->pAnchor), &(query_region->pOrphan), bam_reader ) == SR_OK )
+		|| ( SR_BamInStreamGetPair( &(query_region->pAnchor), &(query_region->pOrphan), bam_reader ) == SR_OUT_OF_RANGE ) ) {
 		cout << "Got a pair of alignments" << endl;
-		bam_writer.SaveAlignment( *query_region->pAnchor );
-		bam_writer.SaveAlignment( *query_region->pOrphan );
+		bam_write1( bam_writer, query_region->pAnchor );
+		bam_write1( bam_writer, query_region->pOrphan );
 	}
 
 
 	// free memory and close files
 	Deconstruct( bam_reader, bam_writer, query_region, bam_header );
+
 	cout << "Program done." << endl;
 
 	return 0;

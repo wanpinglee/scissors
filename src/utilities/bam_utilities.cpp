@@ -1,10 +1,11 @@
 #include <string>
 #include <stdlib.h>
-//#include <stdio.h>
 #include <stdint.h>
 #include <iostream>
 
-#include "../dataStructures/bam_alignment.h"
+#include "dataStructures/bam_alignment.h"
+#include "samtools/sam_header.h"
+#include "samtools/bam.h"
 
 using std::string;
 using std::cout;
@@ -12,6 +13,10 @@ using std::endl;
 
 
 namespace BamUtilities {
+
+void ReplaceHeaderText( const bam_header_t* header ) {
+	sam_header_parse2( header->text );
+}
 
 // encode the aligned sequence in bam-foramt encoded sequence
 void EncodeQuerySequence( string& encodedSequence, const string& sequence ) {

@@ -7,10 +7,14 @@
 #include <string>
 #include <vector>
 
+#include "samtools/bam.h"
+
 using std::string;
 using std::vector;
 
 namespace BamUtilities {
+
+void ReplaceHeaderText( const bam_header_t* header );
 
 // Given sequence, generate bam-format encoded sequence 
 // and store it in encodedSequence
