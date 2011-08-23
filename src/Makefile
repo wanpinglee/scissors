@@ -12,7 +12,7 @@ export CXXFLAGS = -Wall -O3
 SOURCES = main.cpp
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES) )
 LIBS = -lz -lbam
-LIBS_DIR = -L samtools
+LIBS_DIR = -Lsamtools
 INCLUDE = -I.
 
 

@@ -21,9 +21,9 @@
 #include <assert.h>
 #include <string.h>
 
-#include "../common/SR_Error.h"
-#include "../common/SR_Types.h"
-#include "../common/SR_Utilities.h"
+#include "hasher/common/SR_Error.h"
+#include "hasher/common/SR_Types.h"
+#include "hasher/common/SR_Utilities.h"
 #include "SR_HashRegionTable.h"
 
 
@@ -41,7 +41,7 @@ static void ResetBestRegions(HashRegionTable* pRegionTable, unsigned short query
         SR_ARRAY_ALLOC(pRegionTable->pBestFarRegions, queryLen, BestRegionArray, BestRegion);
     }
 
-    Bool isSmall = FALSE;
+    SR_Bool isSmall = FALSE;
     if ((pRegionTable->pBestCloseRegions)->capacity < queryLen)
     {
         isSmall = TRUE;
@@ -66,7 +66,7 @@ static void ResetBestRegions(HashRegionTable* pRegionTable, unsigned short query
 
 
 // calculate the hash key for a hash in a read that starts at a certain position
-static Bool GetNextHashKey(const char* query, unsigned int queryLen, unsigned int* pPos, uint32_t* pHashKey, uint32_t mask, unsigned int hashSize)
+static SR_Bool GetNextHashKey(const char* query, uint32_t queryLen, unsigned int* pPos, uint32_t* pHashKey, uint32_t mask, unsigned int hashSize)
 {
     // table use to translate a nucleotide into its corresponding 2-bit representation
     static const char translation[26] = { 0, -1, 1, -1, -1, -1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 3, -1, -1, -1, -1, -1, -1 };
@@ -134,7 +134,7 @@ static unsigned int GetStartHashPosIndex(const HashPosView* pHashPosView, uint32
 
 
 // merge a new hash region with existing ones
-static Bool MergeHashRegions(HashRegionTable* pRegionTable, HashRegion* pNewRegion)
+static SR_Bool MergeHashRegions(HashRegionTable* pRegionTable, HashRegion* pNewRegion)
 {
     if (pNewRegion->refBegin < SR_ARRAY_GET(pRegionTable->pPrevRegions, 0).refBegin)
         return TRUE;
@@ -177,7 +177,7 @@ static Bool MergeHashRegions(HashRegionTable* pRegionTable, HashRegion* pNewRegi
 }
 
 // update the best hash regions after each merge
-static void UpdateBestRegions(HashRegionTable* pRegionTable, const HashRegion* pNewRegion, const QueryRegion* pQueryRegion)
+static void UpdateBestRegions(HashRegionTable* pRegionTable, const HashRegion* pNewRegion, const SR_QueryRegion* pQueryRegion)
 {
     BestRegion* pBestClose = SR_ARRAY_GET_PT(pRegionTable->pBestCloseRegions, pNewRegion->queryBegin);
     BestRegion* pBestFar = SR_ARRAY_GET_PT(pRegionTable->pBestFarRegions, pNewRegion->queryBegin);
@@ -196,7 +196,8 @@ static void UpdateBestRegions(HashRegionTable* pRegionTable, const HashRegion* p
         ++(pBestFar->numPos);
     }
 
-    if (pNewRegion->refBegin <= pQueryRegion->closeRefBound)
+    if (pNewRegion->refBegin >= pQueryRegion->closeRefBegin 
+        && pNewRegion->refBegin <= pQueryRegion->closeRefEnd)
     {
         if (pNewRegion->length > pBestClose->length)
         {
@@ -215,12 +216,11 @@ static void UpdateBestRegions(HashRegionTable* pRegionTable, const HashRegion* p
 }
 
 
-
 //===============================
 // Constructors and Destructors
 //===============================
 
-HashRegionTable* HashRegionTableAlloc(double edgeTolPercent)
+HashRegionTable* HashRegionTableAlloc(void)
 {
     HashRegionTable* pNewTable = (HashRegionTable*) malloc(sizeof(HashRegionTable));
     if (pNewTable == NULL)
@@ -232,7 +232,6 @@ HashRegionTable* HashRegionTableAlloc(double edgeTolPercent)
     pNewTable->pBestCloseRegions = NULL;
     pNewTable->pBestFarRegions = NULL;
 
-    pNewTable->edgeTolPercent = edgeTolPercent;
     pNewTable->searchBegin = 0;
 
     return pNewTable;
@@ -253,23 +252,21 @@ void HashRegionTableFree(HashRegionTable* pRegionTable)
 
 
 //===============================
-// Non-constant methods
+// Interface functions
 //===============================
 
-
 // for each query find the best hash regions in the reference
-void HashRegionTableLoad(HashRegionTable* pRegionTable, const SR_InHashTable* pHashTable, const QueryRegion* pQueryRegion)
+void HashRegionTableLoad(HashRegionTable* pRegionTable, const SR_InHashTable* pHashTable, const SR_QueryRegion* pQueryRegion)
 {
     unsigned int prevQueryPos = 0;
     unsigned int currQueryPos = 0;
     uint32_t hashKey = 0;
 
     // get the next hash key in the query
-    while (GetNextHashKey(pQueryRegion->query, pQueryRegion->queryLen, &currQueryPos, &hashKey, pHashTable->highEndMask, pHashTable->hashSize))
+    while (GetNextHashKey(pQueryRegion->orphanSeq, SR_GetQueryLen(pQueryRegion->pOrphan), &currQueryPos, &hashKey, pHashTable->highEndMask, pHashTable->hashSize))
     {
         // an array stores the hash positions under current hash key
         HashPosView hashPosArray;
-
         // this struct will store the new hash region from the query
         HashRegion newRegion;
 
@@ -278,12 +275,12 @@ void HashRegionTableLoad(HashRegionTable* pRegionTable, const SR_InHashTable* pH
 
             // we only have to merge the hash regions when we do get some hash regions in the last round
             // and the current query position is 1bp ahead the previous query position
-            Bool doMerge = FALSE;
+            SR_Bool doMerge = FALSE;
             if (currQueryPos == prevQueryPos + 1 && SR_ARRAY_GET_SIZE(pRegionTable->pPrevRegions) > 0)
                 doMerge = TRUE;
 
             // find the start index of the first hash position that is in our search region
-            unsigned int startIndex = GetStartHashPosIndex(&hashPosArray, pQueryRegion->refBegin);
+            unsigned int startIndex = GetStartHashPosIndex(&hashPosArray, pQueryRegion->farRefBegin);
             for (unsigned int i = startIndex; i != hashPosArray.size; ++i)
             {
                 // initialize the new hash region
@@ -295,7 +292,7 @@ void HashRegionTableLoad(HashRegionTable* pRegionTable, const SR_InHashTable* pH
                     doMerge = MergeHashRegions(pRegionTable, &newRegion);
 
                 // we will get out of the loop if the hash position in reference exceeds our search region
-                if (newRegion.refBegin > pQueryRegion->farRefBound)
+                if (newRegion.refBegin > pQueryRegion->farRefEnd)
                     break;
 
                 // we will update the best hash region with this new region and push it into the current hash region array for next round merge
@@ -316,10 +313,7 @@ void HashRegionTableLoad(HashRegionTable* pRegionTable, const SR_InHashTable* pH
     }
 }
 
-// by default, the query begin of each best hash region is its index in the array
-// for example, in the array of "pBestCloseRegions", the first element with index "0" stores the best hash region
-// that starts at query position "0". This function will reverse each best hash region so that it stores the best
-// hash region end in that position instead of begin
+// index the best hash regions with their end position
 void HashRegionTableReverseBest(HashRegionTable* pRegionTable)
 {
     for (int i = SR_ARRAY_GET_SIZE(pRegionTable->pBestCloseRegions) - 1; i >= 0; --i)
@@ -352,7 +346,7 @@ void HashRegionTableReverseBest(HashRegionTable* pRegionTable)
 
 
 // initialize the hash region table for a new query
-void HashRegionTableInit(HashRegionTable* pRegionTable, unsigned short queryLen)
+void HashRegionTableInit(HashRegionTable* pRegionTable, uint32_t queryLen)
 {
     SR_ARRAY_RESET(pRegionTable->pPrevRegions);
     SR_ARRAY_RESET(pRegionTable->pCurrRegions);

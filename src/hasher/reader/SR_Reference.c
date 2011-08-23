@@ -21,28 +21,9 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "../common/md5.h"
-#include "../common/SR_Error.h"
+#include "utilities/md5.h"
+#include "hasher/common/SR_Error.h"
 #include "SR_Reference.h"
-
-// maximum number of character will be load in a line from the fasta file
-const uint32_t MAX_REF_LINE = 1024;
-
-// number of characters can be held in a reference object
-// this value assure that the largest chromosome in the human reference, chromsome 1, can be
-// load into the object without any reallocation.
-const uint32_t DEFAULT_REF_CAPACITY = 300000000;
-
-// the default start chromosome ID
-#define DEFAULT_START_CHR 1
-
-// reset the reference object for next reading
-#define SR_ReferenceReset(reference, nextChr) \
-	do                                     \
-	{                                      \
-	(reference)->chr = (nextChr);      \
-	(reference)->length = 0;           \
-	}while(0)
 
 // process a line of reference sequence
 static const char* ProcessRefLine(unsigned short* len, char* buff)
@@ -176,7 +157,7 @@ void SR_ReferenceFree(SR_Reference* reference)
 }
 
 // read the reference sequence in the fasta file line by line, one chromosome at each time
-Bool SR_ReferenceLoad(SR_Reference* reference, unsigned char* nextChr, FILE* faInput)
+SR_Bool SR_ReferenceLoad(SR_Reference* reference, unsigned char* nextChr, FILE* faInput)
 {
     char buff[MAX_REF_LINE];
 
@@ -221,7 +202,7 @@ Bool SR_ReferenceLoad(SR_Reference* reference, unsigned char* nextChr, FILE* faI
 }
 
 // skip the reference sequence with unknown chromosome ID
-Bool SR_ReferenceSkip(unsigned char* nextChr, FILE* faInput)
+SR_Bool SR_ReferenceSkip(unsigned char* nextChr, FILE* faInput)
 {
 
     char buff[MAX_REF_LINE];
@@ -270,7 +251,7 @@ off_t SR_ReferenceWrite(FILE* refOutput, const SR_Reference* reference)
 }
 
 // read the reference sequence from an input file in the binary format
-Bool SR_ReferenceRead(SR_Reference* reference, FILE* refInput)
+SR_Bool SR_ReferenceRead(SR_Reference* reference, FILE* refInput)
 {
     size_t readSize = 0;
 

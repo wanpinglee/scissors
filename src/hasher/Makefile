@@ -1,6 +1,6 @@
 # define our build subdirectories
 SUB_DIRS = common \
-#		reader
+		reader
 
 all:
 	@for dir in $(SUB_DIRS); do \

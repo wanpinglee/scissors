@@ -11,6 +11,7 @@ extern "C" {
 #include "utilities/SR_BamInStream.h"
 #include "hasher/common/SR_Types.h"
 #include "dataStructures/SR_QueryRegion.h"
+#include "samtools/bam.h"
 }
 
 #include "utilities/bam_writer.h"
@@ -29,6 +30,21 @@ inline FILE* openFile( const string filename, const string type ) {
 	return file;
 }
 
+void Deconstruct( 
+	SR_BamInStream* bam_reader,
+	BamWriter& bam_writer,
+	SR_QueryRegion* query_region,
+	bam_header_t* bam_header) {
+
+	SR_BamInStreamFree( bam_reader );
+	bam_writer.Close();
+	SR_QueryRegionFree( query_region );
+
+	// free bam header
+	bam_header_destroy( bam_header );
+	
+}
+
 int main ( int argc, char** argv ) {
 
 	// Parse the arguments and store them
@@ -43,8 +59,12 @@ int main ( int argc, char** argv ) {
 	BamWriter bam_writer( parameter_parser.output_bam );
 	bam_writer.Open();
 
+	// load bam header
+	bam_header_t* bam_header = SR_BamInStreamReadHeader( bam_reader );
+	
 	// bam records are in SR_QueryRegion structure
 	SR_QueryRegion* query_region = SR_QueryRegionAlloc();
+
 
 	while( SR_BamInStreamGetPair( &(query_region->pAnchor), &(query_region->pOrphan), bam_reader ) == SR_OK ) {
 		cout << "Got a pair of alignments" << endl;
@@ -54,10 +74,7 @@ int main ( int argc, char** argv ) {
 
 
 	// free memory and close files
-	SR_QueryRegionFree( query_region );
-	SR_BamInStreamFree( bam_reader );
-	bam_writer.Close();
-
+	Deconstruct( bam_reader, bam_writer, query_region, bam_header );
 	cout << "Program done." << endl;
 
 	return 0;

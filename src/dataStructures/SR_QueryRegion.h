@@ -91,7 +91,7 @@ void SR_QueryRegionFree(SR_QueryRegion* pQueryRegion);
 //return:
 //      the strand of the alignment
 //=========================================================
-static inline SR_Strand SR_GetStrand(const bam1_t* pAlignment)
+static inline SR_Strand SR_GetStrand(const bam1_t* const pAlignment)
 {
     if (bam1_strand(pAlignment))
         return SR_REVERSE_COMP;

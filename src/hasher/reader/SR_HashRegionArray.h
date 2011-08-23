@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 
-#include "../common/SR_Types.h"
+#include "hasher/common/SR_Types.h"
 
 //===============================
 // Type and constant definition
@@ -31,16 +31,16 @@
 #define MAX_BEST_REF_BEGINS 3
 
 // default capacity of a hash region array
-const uint32_t DEFAULT_HASH_ARR_CAPACITY = 50;
+static const uint32_t DEFAULT_HASH_ARR_CAPACITY = 50;
 
 // structure hold the information of a hash region
 typedef struct HashRegion
 {
-    uint32_t       refBegin;     // begin position of a hash region at the reference
+    uint32_t refBegin;     // begin position of a hash region at the reference
 
-    unsigned short queryBegin;   // begin position of a hash region at a read
+    uint32_t  queryBegin;   // begin position of a hash region at a read
 
-    unsigned short length;       // length of a hash region
+    uint32_t  length;       // length of a hash region
 
 }HashRegion;
 
@@ -49,11 +49,11 @@ typedef struct BestRegion
 {
     uint32_t refBegins[MAX_BEST_REF_BEGINS];
 
-    unsigned short queryBegin;
+    uint32_t queryBegin;
 
-    unsigned short length;
+    uint32_t length;
 
-    unsigned short numPos;
+    uint32_t numPos;
 
 }BestRegion;
 
