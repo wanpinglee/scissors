@@ -103,12 +103,12 @@ bool ParameterParser::CheckParameters(void) {
 		cout << "ERROR: Please specific an output file, -o." << endl;
 		errorFound = true;
 	}
-	
+/*	
 	if ( input_reference_hash.empty() ) {
 		cout << "ERROR: Please specific a reference hash table, -r." << endl;
 		errorFound = true;
 	}
-
+*/
 	return !errorFound;
 
 }

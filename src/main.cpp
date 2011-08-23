@@ -90,11 +90,12 @@ int main ( int argc, char** argv ) {
 	SR_QueryRegion* query_region = SR_QueryRegionAlloc();
 
 
-	while( ( SR_BamInStreamGetPair( &(query_region->pAnchor), &(query_region->pOrphan), bam_reader ) == SR_OK )
-		|| ( SR_BamInStreamGetPair( &(query_region->pAnchor), &(query_region->pOrphan), bam_reader ) == SR_OUT_OF_RANGE ) ) {
+	for ( unsigned int i = 0; i < 84; ++i ) {
+	while( SR_BamInStreamGetPair( &(query_region->pAnchor), &(query_region->pOrphan), bam_reader ) == SR_OK  ) {
 		cout << "Got a pair of alignments" << endl;
 		bam_write1( bam_writer, query_region->pAnchor );
 		bam_write1( bam_writer, query_region->pOrphan );
+	}
 	}
 
 
