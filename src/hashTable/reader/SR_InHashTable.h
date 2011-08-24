@@ -21,8 +21,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "hasher/common/SR_Types.h"
-#include "hasher/common/SR_Error.h"
+#include "hashTable/common/SR_Types.h"
+#include "hashTable/common/SR_Error.h"
 
 
 //===============================

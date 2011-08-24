@@ -22,7 +22,7 @@
 #include <ctype.h>
 
 #include "utilities/md5.h"
-#include "hasher/common/SR_Error.h"
+#include "hashTable/common/SR_Error.h"
 #include "SR_Reference.h"
 
 // process a line of reference sequence

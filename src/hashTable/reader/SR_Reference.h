@@ -23,7 +23,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-#include "hasher/common/SR_Types.h"
+#include "hashTable/common/SR_Types.h"
 
 // maximum number of character will be load in a line from the fasta file
 static const uint32_t MAX_REF_LINE = 1024;

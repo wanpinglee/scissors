@@ -5,11 +5,11 @@
 #include <string>
 
 extern "C" {
-#include "hasher/reader/SR_InHashTable.h"
-#include "hasher/reader/SR_Reference.h"
-#include "hasher/reader/SR_HashRegionTable.h"
+#include "hashTable/reader/SR_InHashTable.h"
+#include "hashTable/reader/SR_Reference.h"
+#include "hashTable/reader/SR_HashRegionTable.h"
 #include "utilities/SR_BamInStream.h"
-#include "hasher/common/SR_Types.h"
+#include "hashTable/common/SR_Types.h"
 #include "dataStructures/SR_QueryRegion.h"
 #include "samtools/bam.h"
 }

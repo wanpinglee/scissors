@@ -22,7 +22,7 @@
 #include <stdlib.h>
 
 #include "samtools/bam.h"
-#include "hasher/common/SR_Types.h"
+#include "hashTable/common/SR_Types.h"
 
 
 //===============================

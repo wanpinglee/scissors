@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 
-#include "hasher/common/SR_Types.h"
+#include "hashTable/common/SR_Types.h"
 
 //===============================
 // Type and constant definition

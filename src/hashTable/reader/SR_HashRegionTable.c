@@ -21,9 +21,9 @@
 #include <assert.h>
 #include <string.h>
 
-#include "hasher/common/SR_Error.h"
-#include "hasher/common/SR_Types.h"
-#include "hasher/common/SR_Utilities.h"
+#include "hashTable/common/SR_Error.h"
+#include "hashTable/common/SR_Types.h"
+#include "hashTable/common/SR_Utilities.h"
 #include "SR_HashRegionTable.h"
 
 

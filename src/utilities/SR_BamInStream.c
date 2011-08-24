@@ -20,8 +20,8 @@
 #include <limits.h>
 
 #include "samtools/khash.h"
-#include "hasher/common/SR_Error.h"
-#include "hasher/common/SR_Utilities.h"
+#include "hashTable/common/SR_Error.h"
+#include "hashTable/common/SR_Utilities.h"
 #include "SR_BamInStream.h"
 
 

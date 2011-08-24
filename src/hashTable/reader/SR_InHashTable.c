@@ -18,7 +18,7 @@
 
 #include <stdlib.h>
 
-#include "hasher/common/SR_Error.h"
+#include "hashTable/common/SR_Error.h"
 #include "SR_InHashTable.h"
 
 SR_InHashTable* SR_InHashTableAlloc(unsigned char hashSize)
