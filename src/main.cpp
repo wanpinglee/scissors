@@ -63,6 +63,13 @@ void CheckFileOrDie(
 
 }
 
+void ResetHeader( bam_header_t* const bam_header ){
+
+	// Reset header line to "@HD\tVN:1.0\tSO:unsorted"
+	//BamUtilities::ResetHeaderLineText( bam_header, "@HD\tVN:1.0\tSO:unsorted" );
+	// Replace SO:coordinate or SO:queryname by SO:unsorted
+	BamUtilities::ReplaceHeaderSoText( bam_header );
+}
 
 int main ( int argc, char** argv ) {
 
@@ -81,9 +88,16 @@ int main ( int argc, char** argv ) {
 	// Check files statuses
 	CheckFileOrDie( bam_writer );
 
-	// Load and then write bam header
+	// Load bam header
 	bam_header_t* bam_header = SR_BamInStreamReadHeader( bam_reader );
-	BamUtilities::ReplaceHeaderSoText( bam_header ); // set SO to unsorted if SO is there
+	if( !parameter_parser.is_input_sorted && !BamUtilities::IsFileSorted( bam_header ) ) {
+		// The input bam is unsorted, exit
+		cout << "ERROR: The input bam seems unsorted. Please use bamtools sort to sort the bam" << endl
+		     << "       or type -s to ignore this checker." << endl;
+	}
+	
+	// Write bam header
+	ResetHeader( bam_header );
 	bam_header_write( bam_writer, bam_header );
 
 	// bam records are in SR_QueryRegion structure

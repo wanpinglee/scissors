@@ -35,7 +35,7 @@ void ParameterParser::ParseArgumentsOrDie(const int argc, char* const * argv) {
 		command_line += argv[i];
 	}
 
-	const char *short_option = "hi:r:o:l:";
+	const char *short_option = "hi:r:o:l:s";
 
 	const struct option long_option[] = {
 		{ "help", no_argument, NULL, 'h' },
@@ -44,6 +44,7 @@ void ParameterParser::ParseArgumentsOrDie(const int argc, char* const * argv) {
 		{ "reference-hash-table", required_argument, NULL, 'r' },
 
 		{ "fragment-length", required_argument, NULL, 'l' },
+		{ "is-input-sorted", no_argument, NULL, 's'},
 
 		{ 0, 0, 0, 0 }
 	};
@@ -77,6 +78,8 @@ void ParameterParser::ParseArgumentsOrDie(const int argc, char* const * argv) {
 				if ( !convert_from_string( optarg, fragment_length ) )
 					cout << "WARNING: Cannot parse --fragment-length." << endl;
 				break;
+			case 's':
+				is_input_sorted = true;
 			default:
 				break;
 		}
@@ -135,6 +138,7 @@ void ParameterParser::PrintHelp(const char* const * argv) {
 		<< endl
 		<< "   -l --fragment-length <INT>" << endl
 		<< "                         Fragment length."
+		<< "   -s --is-input-sorted" << endl
 
 		<< endl;
 }

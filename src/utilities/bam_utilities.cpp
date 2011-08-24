@@ -6,12 +6,66 @@
 
 #include "dataStructures/bam_alignment.h"
 #include "samtools/bam.h"
+#include "samtools/sam_header.h"
 
 using std::string;
 using std::cout;
 using std::endl;
+using std::istringstream;
 
 namespace BamUtilities {
+
+bool ResetHeaderText( bam_header_t* const header, const string& header_string ){
+	
+	// Follow by the samtools style to allocate memory
+	if ( header->text ) {
+		header->l_text = header_string.size();
+		free( header->text );
+		header->text = (char*)calloc(header->l_text + 1, 1);
+		strncpy( header->text, header_string.c_str(), header->l_text );
+	}
+
+	return true;
+}
+/*
+bool ResetHeaderLineText( bam_header_t* const header, const char* const str ) {
+	string input( header->text );
+
+	// The header line (@HD) must be the first line if present
+	if ( input.empty() )
+		input = str;
+	else {
+		if ( input.substr(1, 2) != "HD" ) {
+		// @HD doesn't exist
+			input.insert(0, str+'\n');
+		}
+		else {
+		// @HD is found
+			size_t pos = input.find('\n');
+			if ( pos == string::npos ) // cannot find '\n'
+				pos = input.find('\r');
+
+			if ( pos == string::npos ) // cannot find '\n' and '\r'
+				return false;
+
+
+		}
+	}
+
+	ResetHeaderText( header, input );
+	return true;
+}
+*/
+
+bool IsFileSorted( const bam_header_t* const header ){
+	string header_string( header->text );
+	size_t so_pos = header_string.find("SO:coordinate");
+
+	if ( so_pos != string::npos )
+		return true;
+	else
+		return false;
+}
 
 bool ReplaceHeaderSoText( bam_header_t* const header ) {
 	
@@ -24,15 +78,8 @@ bool ReplaceHeaderSoText( bam_header_t* const header ) {
 	so_pos = header_string.find("SO:queryname");
 	if ( so_pos != string::npos )
 		header_string.replace( so_pos, 12, "SO:unsorted");
-	
 
-	// Follow by the samtools style to allocate memory
-	if ( header->text ) {
-		header->l_text = header_string.size();
-		free( header->text );
-		header->text = (char*)calloc(header->l_text + 1, 1);
-		strncpy( header->text, header_string.c_str(), header->l_text );
-	}
+	ResetHeaderText( header, header_string);
 
 	return true;
 

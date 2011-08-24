@@ -17,7 +17,8 @@ class ParameterParser {
 	string output_bam;            // -o  --output
 
 	// operation parameters
-	unsigned int fragment_length;
+	unsigned int fragment_length; // -l --fragmenr-length
+	bool is_input_sorted;
 	
 	// command line
 	string command_line;

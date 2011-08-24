@@ -15,6 +15,7 @@ using std::vector;
 namespace BamUtilities {
 
 bool ReplaceHeaderSoText( bam_header_t* const header );
+bool IsFileSorted( const bam_header_t* const header );
 
 // Given sequence, generate bam-format encoded sequence 
 // and store it in encodedSequence
