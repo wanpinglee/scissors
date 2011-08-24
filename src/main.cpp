@@ -5,9 +5,9 @@
 #include <string>
 
 extern "C" {
-//#include "hasher/reader/SR_InHashTable.h"
+#include "hasher/reader/SR_InHashTable.h"
 #include "hasher/reader/SR_Reference.h"
-//#include "hasher/reader/SR_HashRegionTable.h"
+#include "hasher/reader/SR_HashRegionTable.h"
 #include "utilities/SR_BamInStream.h"
 #include "hasher/common/SR_Types.h"
 #include "dataStructures/SR_QueryRegion.h"
@@ -33,6 +33,7 @@ struct MainVars{
 	SR_QueryRegion* query_region;
 	bam_header_t*   bam_header;
 	SR_Reference*   reference;
+	SR_InHashTable* hash_table;
 };
 
 
@@ -47,6 +48,7 @@ void Deconstruct( MainFiles& files, MainVars& vars ) {
 	SR_QueryRegionFree( vars.query_region );
 	bam_header_destroy( vars.bam_header );
 	SR_ReferenceFree( vars.reference );
+	SR_InHashTableFree( vars.hash_table );
 
 	
 }
@@ -143,10 +145,15 @@ int main ( int argc, char** argv ) {
 	// bam records are in SR_QueryRegion structure
 	vars.query_region = SR_QueryRegionAlloc();
 
-	// Load reference
+	// Load first reference
 	uint32_t buffer_size = 1000000;
 	vars.reference = SR_ReferenceAlloc( buffer_size );
 	SR_ReferenceRead( vars.reference, files.ref_reader );
+	
+	// Load first hash table
+	uint32_t hash_size = 0;
+	READ_HASH_SIZE( hash_size, files.hash_reader );
+	vars.hash_table = SR_InHashTableAlloc(hash_size);
 
 	// =========
 	// Algorithm

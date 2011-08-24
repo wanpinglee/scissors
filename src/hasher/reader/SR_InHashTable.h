@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include "hasher/common/SR_Types.h"
+#include "hasher/common/SR_Error.h"
 
 
 //===============================
