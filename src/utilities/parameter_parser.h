@@ -16,6 +16,9 @@ class ParameterParser {
 	string input_reference_hash;  // -r  --reference-hash-table
 	string output_bam;            // -o  --output
 
+	string reference_filename;
+	string hash_filename;
+
 	// operation parameters
 	unsigned int fragment_length; // -l --fragmenr-length
 	bool is_input_sorted;

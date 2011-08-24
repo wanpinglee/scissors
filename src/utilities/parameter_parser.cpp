@@ -72,6 +72,8 @@ void ParameterParser::ParseArgumentsOrDie(const int argc, char* const * argv) {
 				break;
 			case 'r':
 				input_reference_hash = optarg;
+				reference_filename   = input_reference_hash + ".ref"; 
+				hash_filename        = input_reference_hash + ".ht";
 				break;
 			// operation parameters
 			case 'l':
@@ -106,12 +108,12 @@ bool ParameterParser::CheckParameters(void) {
 		cout << "ERROR: Please specific an output file, -o." << endl;
 		errorFound = true;
 	}
-/*	
+	
 	if ( input_reference_hash.empty() ) {
 		cout << "ERROR: Please specific a reference hash table, -r." << endl;
 		errorFound = true;
 	}
-*/
+
 	return !errorFound;
 
 }

@@ -18,43 +18,59 @@ extern "C" {
 #include "utilities/bam_utilities.h"
 #include "utilities/parameter_parser.h"
 
-using namespace std;
+using std::string;
+using std::cout;
+using std::endl;
 
-inline FILE* openFile( const string filename, const string type ) {
+struct MainFiles {
+	SR_BamInStream* bam_reader;  // bam reader
+	bamFile         bam_writer;  // bam writer
+	FILE*           ref_reader;  // reference reader
+	FILE*           hash_reader; // hash table reader
+};
 
-	FILE* file = fopen( filename.c_str(), type.c_str() );
-	if ( file == NULL ) {
-		cout << "ERROR: Cannot open the file " << filename << endl;
-		exit( 1 );
-	}
-	
-	return file;
-}
+struct MainVars{
+	SR_QueryRegion* query_region;
+	bam_header_t*   bam_header;
+};
 
-void Deconstruct( 
-		SR_BamInStream* bam_reader,
-		bamFile         bam_writer,
-		SR_QueryRegion* query_region,
-		bam_header_t*   bam_header) {
 
-	SR_BamInStreamFree( bam_reader );
-	bam_close( bam_writer );
-	SR_QueryRegionFree( query_region );
+void Deconstruct( MainFiles& files, MainVars& vars ) {
+	// close files
+	SR_BamInStreamFree( files.bam_reader );
+	bam_close( files.bam_writer );
+	fclose( files.ref_reader );
+	fclose( files.hash_reader );
 
-	// free bam header
-	bam_header_destroy( bam_header );
+	// free variables
+	SR_QueryRegionFree( vars.query_region );
+	bam_header_destroy( vars.bam_header );
+
 	
 }
 
 
 void CheckFileOrDie( 
-		const bamFile bam_writer){
+		const ParameterParser& parameter_parser,
+		const MainFiles& files){
 
 	bool error_found = false;
 
-	if ( bam_writer == NULL ) {
-		cout << "ERROR: Cannot open bam file for writing." << endl
+	if ( files.bam_writer == NULL ) {
+		cout << "ERROR: Cannot open " << parameter_parser.output_bam << " for writing." << endl
 		     << "       Please check -o option." << endl;
+		error_found = true;
+	}
+
+	if ( files.ref_reader == NULL ) {
+		cout << "ERROR: Cannot open " << parameter_parser.reference_filename << " for reading." << endl
+		     << "       Please check -r option." << endl;
+		error_found = true;
+	}
+
+	if ( files.hash_reader == NULL ) {
+		cout << "ERROR: Cannot open " << parameter_parser.hash_filename << " for reading." << endl
+		     << "       Please check -r option." << endl;
 		error_found = true;
 	}
 
@@ -72,49 +88,77 @@ void ResetHeader( bam_header_t* const bam_header ){
 }
 
 int main ( int argc, char** argv ) {
-
+	
 	// Parse the arguments and store them
 	// The program will exit(1) with printing error message 
 	//     if any errors or missing required parameters are found
 	const ParameterParser parameter_parser( argc, argv );
+
+
+	// =================
+	// Files Preparation
+	// =================
+	MainFiles files;
 	
 	// Initialize bam input reader
 	// The program will be terminated with printing error message
 	//     if the input file cannot be opened.
-	SR_BamInStream* bam_reader = SR_BamInStreamAlloc( parameter_parser.input_bam.c_str() );
+	files.bam_reader = SR_BamInStreamAlloc( parameter_parser.input_bam.c_str() );
 	// Initialize bam output writer
-	bamFile bam_writer = bam_open( parameter_parser.output_bam.c_str(), "w" );
+	files.bam_writer = bam_open( parameter_parser.output_bam.c_str(), "w" );
+
+	// Initialize reference input reader
+	files.ref_reader = fopen( parameter_parser.reference_filename.c_str(), "rb");
+	files.hash_reader = fopen( parameter_parser.hash_filename.c_str(), "rb");
 
 	// Check files statuses
-	CheckFileOrDie( bam_writer );
+	CheckFileOrDie( parameter_parser, files );
+
+
+	// =====================
+	// Variables Preparation
+	// =====================
+	MainVars vars;
 
 	// Load bam header
-	bam_header_t* bam_header = SR_BamInStreamReadHeader( bam_reader );
-	if( !parameter_parser.is_input_sorted && !BamUtilities::IsFileSorted( bam_header ) ) {
+	vars.bam_header = SR_BamInStreamReadHeader( files.bam_reader );
+	if( !parameter_parser.is_input_sorted && !BamUtilities::IsFileSorted( vars.bam_header ) ) {
 		// The input bam is unsorted, exit
-		cout << "ERROR: The input bam seems unsorted. Please use bamtools sort to sort the bam" << endl
+		cout << "ERROR: The input bam seems unsorted. "
+		     << "Please use bamtools sort to sort the bam" << endl
 		     << "       or type -s to ignore this checker." << endl;
+		exit(1);
 	}
 	
 	// Write bam header
-	ResetHeader( bam_header );
-	bam_header_write( bam_writer, bam_header );
+	ResetHeader( vars.bam_header );
+	bam_header_write( files.bam_writer, vars.bam_header );
 
+
+	// =====================
+	// Variables Preparation
+	// =====================
+	
 	// bam records are in SR_QueryRegion structure
-	SR_QueryRegion* query_region = SR_QueryRegionAlloc();
+	vars.query_region = SR_QueryRegionAlloc();
 
 
+
+	// =========
+	// Algorithm
+	// =========
+	
 	for ( unsigned int i = 0; i < 84; ++i ) {
-	while( SR_BamInStreamGetPair( &(query_region->pAnchor), &(query_region->pOrphan), bam_reader ) == SR_OK  ) {
+	while( SR_BamInStreamGetPair( &(vars.query_region->pAnchor), &(vars.query_region->pOrphan), files.bam_reader ) == SR_OK  ) {
 		cout << "Got a pair of alignments" << endl;
-		bam_write1( bam_writer, query_region->pAnchor );
-		bam_write1( bam_writer, query_region->pOrphan );
+		bam_write1( files.bam_writer, vars.query_region->pAnchor );
+		bam_write1( files.bam_writer, vars.query_region->pOrphan );
 	}
 	}
 
 
 	// free memory and close files
-	Deconstruct( bam_reader, bam_writer, query_region, bam_header );
+	Deconstruct( files, vars );
 
 	cout << "Program done." << endl;
 
