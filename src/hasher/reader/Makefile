@@ -4,7 +4,7 @@ SOURCES = SR_InHashTable.c\
 		SR_Reference.c \
 		SR_HashRegionTable.c
 
-OBJECTS = $(patsubst %, $(OBJ_DIR)/%, $(SOURCES) )
+OBJECTS = $(patsubst %.c, $(OBJ_DIR)/%.o, $(SOURCES) )
 INCLUDE = -I../..
 
 all: $(OBJECTS)

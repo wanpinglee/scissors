@@ -6,7 +6,7 @@
 
 extern "C" {
 //#include "hasher/reader/SR_InHashTable.h"
-//#include "hasher/reader/SR_Reference.h"
+#include "hasher/reader/SR_Reference.h"
 //#include "hasher/reader/SR_HashRegionTable.h"
 #include "utilities/SR_BamInStream.h"
 #include "hasher/common/SR_Types.h"
@@ -32,6 +32,7 @@ struct MainFiles {
 struct MainVars{
 	SR_QueryRegion* query_region;
 	bam_header_t*   bam_header;
+	SR_Reference*   reference;
 };
 
 
@@ -45,10 +46,10 @@ void Deconstruct( MainFiles& files, MainVars& vars ) {
 	// free variables
 	SR_QueryRegionFree( vars.query_region );
 	bam_header_destroy( vars.bam_header );
+	SR_ReferenceFree( vars.reference );
 
 	
 }
-
 
 void CheckFileOrDie( 
 		const ParameterParser& parameter_parser,
@@ -142,7 +143,10 @@ int main ( int argc, char** argv ) {
 	// bam records are in SR_QueryRegion structure
 	vars.query_region = SR_QueryRegionAlloc();
 
-
+	// Load reference
+	uint32_t buffer_size = 1000000;
+	vars.reference = SR_ReferenceAlloc( buffer_size );
+	SR_ReferenceRead( vars.reference, files.ref_reader );
 
 	// =========
 	// Algorithm
