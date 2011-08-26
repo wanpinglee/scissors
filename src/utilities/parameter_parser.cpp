@@ -14,6 +14,7 @@ using std::string;
 
 ParameterParser::ParameterParser(const int argc, char* const * argv) 
 		: fragment_length(0)
+		, mate_window_size(2)
 		, allowed_clip(0.2)
 		, is_input_sorted(false){
 	// parse the arguments and save the parameters
@@ -47,6 +48,7 @@ void ParameterParser::ParseArgumentsOrDie(const int argc, char* const * argv) {
 		{ "reference-hash-table", required_argument, NULL, 'r' },
 
 		{ "fragment-length", required_argument, NULL, 'l' },
+		{ "window-size", required_argument, NULL, 'w' },
 		{ "allowed-clip", required_argument, NULL, 'c' },
 		{ "is-input-sorted", no_argument, NULL, 's'},
 
@@ -83,6 +85,10 @@ void ParameterParser::ParseArgumentsOrDie(const int argc, char* const * argv) {
 			case 'l':
 				if ( !convert_from_string( optarg, fragment_length ) )
 					cout << "WARNING: Cannot parse --fragment-length." << endl;
+				break;
+			case 'w':
+				if ( !convert_from_string( optarg, mate_window_size ) )
+					cout << "WARNING: Cannot parse --window-size." << endl;
 				break;
 			case 'c':
 				if ( !convert_from_string( optarg, allowed_clip) )
@@ -122,6 +128,7 @@ bool ParameterParser::CheckParameters(void) {
 		errorFound = true;
 	}
 
+	// unnecessary parameters
 	if ( ( allowed_clip < 0.0 ) || ( allowed_clip > 1.0 ) ) {
 		cout << "WARNING: -c should be in [0.0 - 1.0]." << endl
 		     << "         Set it to default 0.2." << endl;
@@ -153,6 +160,9 @@ void ParameterParser::PrintHelp(const char* const * argv) {
 		<< endl
 		<< "   -l --fragment-length <INT>" << endl
 		<< "                         Fragment length." << endl
+		<< "   -w --window-size <INT>" << endl
+		<< "                         Window size (-w x -l) for searching mates in bam." << endl
+		<< "                         Default: 2" << endl
 		<< "   -c --allowed-clip <FLOAT>"  << endl
 		<< "                         Percentage [0.0 - 1.0] of allowed soft clip." << endl
 		<< "                         Default: 0.2" << endl

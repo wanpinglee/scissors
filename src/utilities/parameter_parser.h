@@ -20,9 +20,10 @@ class ParameterParser {
 	string hash_filename;
 
 	// operation parameters
-	unsigned int fragment_length; // -l --fragmenr-length
-	float allowed_clip;           // -c --allowed-clip
-	bool is_input_sorted;         // -s --is-input-sorted
+	unsigned int fragment_length;  // -l --fragmenr-length
+	unsigned int mate_window_size; // -w --window-size
+	float allowed_clip;            // -c --allowed-clip
+	bool is_input_sorted;          // -s --is-input-sorted
 	
 	// command line
 	string command_line;
