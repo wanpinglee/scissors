@@ -12,7 +12,10 @@ using std::cout;
 using std::endl;
 using std::string;
 
-ParameterParser::ParameterParser(const int argc, char* const * argv) {
+ParameterParser::ParameterParser(const int argc, char* const * argv) 
+		: fragment_length(0)
+		, allowed_clip(0.2)
+		, is_input_sorted(false){
 	// parse the arguments and save the parameters
 	ParseArgumentsOrDie( argc, argv );
 	
@@ -44,6 +47,7 @@ void ParameterParser::ParseArgumentsOrDie(const int argc, char* const * argv) {
 		{ "reference-hash-table", required_argument, NULL, 'r' },
 
 		{ "fragment-length", required_argument, NULL, 'l' },
+		{ "allowed-clip", required_argument, NULL, 'c' },
 		{ "is-input-sorted", no_argument, NULL, 's'},
 
 		{ 0, 0, 0, 0 }
@@ -80,6 +84,10 @@ void ParameterParser::ParseArgumentsOrDie(const int argc, char* const * argv) {
 				if ( !convert_from_string( optarg, fragment_length ) )
 					cout << "WARNING: Cannot parse --fragment-length." << endl;
 				break;
+			case 'c':
+				if ( !convert_from_string( optarg, allowed_clip) )
+					cout << "WARNING: Cannot parse --allowed-clip." << endl;
+				break;
 			case 's':
 				is_input_sorted = true;
 			default:
@@ -114,6 +122,11 @@ bool ParameterParser::CheckParameters(void) {
 		errorFound = true;
 	}
 
+	if ( ( allowed_clip < 0.0 ) || ( allowed_clip > 1.0 ) ) {
+		cout << "WARNING: -c should be in [0.0 - 1.0]." << endl
+		     << "         Set it to default 0.2." << endl;
+	}
+
 	return !errorFound;
 
 }
@@ -139,7 +152,10 @@ void ParameterParser::PrintHelp(const char* const * argv) {
 		<< "Operations" << endl
 		<< endl
 		<< "   -l --fragment-length <INT>" << endl
-		<< "                         Fragment length."
+		<< "                         Fragment length." << endl
+		<< "   -c --allowed-clip <FLOAT>"  << endl
+		<< "                         Percentage [0.0 - 1.0] of allowed soft clip." << endl
+		<< "                         Default: 0.2" << endl
 		<< "   -s --is-input-sorted" << endl
 
 		<< endl;
