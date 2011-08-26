@@ -129,19 +129,22 @@ int main ( int argc, char** argv ) {
 	MainVars vars;
 
 	// Load bam header
+	
 	vars.bam_header = SR_BamHeaderAlloc();
 	vars.bam_header = SR_BamInStreamLoadHeader( files.bam_reader );
-	//if( !parameter_parser.is_input_sorted && !BamUtilities::IsFileSorted( vars.bam_header ) ) {
+	
+	if( !parameter_parser.is_input_sorted && !BamUtilities::IsFileSorted( vars.bam_header->pOrigHeader ) ) {
 		// The input bam is unsorted, exit
-	//	cout << "ERROR: The input bam seems unsorted. "
-	//	     << "Please use bamtools sort to sort the bam" << endl
-	//	     << "       or type -s to ignore this checker." << endl;
-	//	exit(1);
-	//}
+		cout << "ERROR: The input bam seems unsorted. "
+		     << "Please use bamtools sort to sort the bam" << endl
+		     << "       or type -s to ignore this checker." << endl;
+		exit(1);
+	}
+	
 	
 	// Write bam header
-	//ResetHeader( vars.bam_header );
-	//bam_header_write( files.bam_writer, vars.bam_header );
+	ResetHeader( vars.bam_header->pOrigHeader );
+	bam_header_write( files.bam_writer, vars.bam_header->pOrigHeader );
 
 
 	// =====================
@@ -164,13 +167,12 @@ int main ( int argc, char** argv ) {
 	// =========
 	// Algorithm
 	// =========
-	
+
 	while( SR_BamInStreamGetPair( &(vars.query_region->pAnchor), &(vars.query_region->pOrphan), files.bam_reader ) == SR_OK  ) {
 		cout << "Got a pair of alignments" << endl;
 		bam_write1( files.bam_writer, vars.query_region->pAnchor );
 		bam_write1( files.bam_writer, vars.query_region->pOrphan );
 	}
-
 
 	// free memory and close files
 	Deconstruct( files, vars );

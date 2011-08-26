@@ -39,7 +39,7 @@ void ParameterParser::ParseArgumentsOrDie(const int argc, char* const * argv) {
 		command_line += argv[i];
 	}
 
-	const char *short_option = "hi:r:o:l:s";
+	const char *short_option = "hi:r:o:l:w:c:s";
 
 	const struct option long_option[] = {
 		{ "help", no_argument, NULL, 'h' },
@@ -128,10 +128,20 @@ bool ParameterParser::CheckParameters(void) {
 		errorFound = true;
 	}
 
+	if ( fragment_length == 0 ) {
+		cout << "ERROR: Please specific fragment length, -l." << endl;
+		errorFound = true;
+	}
+
 	// unnecessary parameters
 	if ( ( allowed_clip < 0.0 ) || ( allowed_clip > 1.0 ) ) {
-		cout << "WARNING: -c should be in [0.0 - 1.0]." << endl
-		     << "         Set it to default 0.2." << endl;
+		cout << "WARNING: -c should be in [0.0 - 1.0]. Set it to default, 0.2." << endl;
+		allowed_clip = 0.2;
+	}
+
+	if ( mate_window_size == 0 ) {
+		cout << "WARNING: -w should not be zero. Set it to default, 2." << endl;
+		mate_window_size = 2;
 	}
 
 	return !errorFound;
