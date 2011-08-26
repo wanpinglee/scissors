@@ -108,7 +108,10 @@ int main ( int argc, char** argv ) {
 	// Initialize bam input reader
 	// The program will be terminated with printing error message
 	//     if the input file cannot be opened.
-	files.bam_reader = SR_BamInStreamAlloc( parameter_parser.input_bam.c_str(), 10000, 0.2 );
+	files.bam_reader = SR_BamInStreamAlloc( 
+		parameter_parser.input_bam.c_str(), 
+		parameter_parser.fragment_length * parameter_parser.mate_window_size, 
+		parameter_parser.allowed_clip );
 	// Initialize bam output writer
 	files.bam_writer = bam_open( parameter_parser.output_bam.c_str(), "w" );
 
