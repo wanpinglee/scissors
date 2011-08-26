@@ -17,6 +17,8 @@ extern "C" {
 //#include "utilities/bam_writer.h"
 #include "utilities/bam_utilities.h"
 #include "utilities/parameter_parser.h"
+#include "dataStructures/search_region_type.h"
+#include "dataStructures/technology.h"
 
 using std::string;
 using std::cout;
@@ -31,7 +33,7 @@ struct MainFiles {
 
 struct MainVars{
 	SR_QueryRegion* query_region;
-	bam_header_t*   bam_header;
+	SR_BamHeader*   bam_header;
 	SR_Reference*   reference;
 	SR_InHashTable* hash_table;
 };
@@ -46,7 +48,7 @@ void Deconstruct( MainFiles& files, MainVars& vars ) {
 
 	// free variables
 	SR_QueryRegionFree( vars.query_region );
-	bam_header_destroy( vars.bam_header );
+	SR_BamHeaderFree( vars.bam_header );
 	SR_ReferenceFree( vars.reference );
 	SR_InHashTableFree( vars.hash_table );
 
@@ -106,7 +108,7 @@ int main ( int argc, char** argv ) {
 	// Initialize bam input reader
 	// The program will be terminated with printing error message
 	//     if the input file cannot be opened.
-	files.bam_reader = SR_BamInStreamAlloc( parameter_parser.input_bam.c_str() );
+	files.bam_reader = SR_BamInStreamAlloc( parameter_parser.input_bam.c_str(), 10000, 0.2 );
 	// Initialize bam output writer
 	files.bam_writer = bam_open( parameter_parser.output_bam.c_str(), "w" );
 
@@ -124,18 +126,19 @@ int main ( int argc, char** argv ) {
 	MainVars vars;
 
 	// Load bam header
-	vars.bam_header = SR_BamInStreamReadHeader( files.bam_reader );
-	if( !parameter_parser.is_input_sorted && !BamUtilities::IsFileSorted( vars.bam_header ) ) {
+	vars.bam_header = SR_BamHeaderAlloc();
+	vars.bam_header = SR_BamInStreamLoadHeader( files.bam_reader );
+	//if( !parameter_parser.is_input_sorted && !BamUtilities::IsFileSorted( vars.bam_header ) ) {
 		// The input bam is unsorted, exit
-		cout << "ERROR: The input bam seems unsorted. "
-		     << "Please use bamtools sort to sort the bam" << endl
-		     << "       or type -s to ignore this checker." << endl;
-		exit(1);
-	}
+	//	cout << "ERROR: The input bam seems unsorted. "
+	//	     << "Please use bamtools sort to sort the bam" << endl
+	//	     << "       or type -s to ignore this checker." << endl;
+	//	exit(1);
+	//}
 	
 	// Write bam header
-	ResetHeader( vars.bam_header );
-	bam_header_write( files.bam_writer, vars.bam_header );
+	//ResetHeader( vars.bam_header );
+	//bam_header_write( files.bam_writer, vars.bam_header );
 
 
 	// =====================
@@ -159,12 +162,10 @@ int main ( int argc, char** argv ) {
 	// Algorithm
 	// =========
 	
-	for ( unsigned int i = 0; i < 84; ++i ) {
 	while( SR_BamInStreamGetPair( &(vars.query_region->pAnchor), &(vars.query_region->pOrphan), files.bam_reader ) == SR_OK  ) {
 		cout << "Got a pair of alignments" << endl;
 		bam_write1( files.bam_writer, vars.query_region->pAnchor );
 		bam_write1( files.bam_writer, vars.query_region->pOrphan );
-	}
 	}
 
 

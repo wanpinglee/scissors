@@ -45,6 +45,10 @@
 
 #define SR_ARRAY_GET_SIZE(pArray) ((pArray)->size)
 
+#define SR_ARRAY_GET_FIRST(pArray) ((pArray)->data[0])
+
+#define SR_ARRAY_GET_FIRST_PT(pArray) ((pArray)->data)
+
 #define SR_ARRAY_GET_LAST(pArray) ((pArray)->data[(pArray)->size - 1])
 
 #define SR_ARRAY_GET_LAST_PT(pArray) ((pArray)->data + (pArray)->size - 1)

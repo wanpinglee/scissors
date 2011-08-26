@@ -16,13 +16,13 @@
  * =====================================================================================
  */
 
-#include <assert.h>
 #include <limits.h>
+#include <assert.h>
 
 #include "samtools/khash.h"
 #include "hashTable/common/SR_Error.h"
-#include "hashTable/common/SR_Utilities.h"
 #include "SR_BamInStream.h"
+#include "hashTable/common/SR_Utilities.h"
 
 
 //===============================
@@ -34,7 +34,20 @@
 #define NO_QUERY_YET (-2)
 
 // default capacity of a bam array
-#define DEFAULT_BAM_ARRAY_CAP 30
+#define DEFAULT_BAM_ARRAY_CAP 50
+
+// default soft clipping tolerance
+#define DEFAULT_SC_TOLERANCE 0.2
+
+// alignment status
+enum AlignmentStatus
+{
+    NEITHER_GOOD = -1,    // neither a good anchor nor a good orphan candidate
+
+    GOOD_ANCHOR  = 0,     // a good anchor candidate
+
+    GOOD_ORPHAN  = 1      // a good orphan candidate
+};
 
 // a mask used to filter out those unwanted reads for split alignments
 // it includes proper paired reads, secondar reads, qc-failed reads and duplicated reads
@@ -54,23 +67,28 @@ typedef struct SR_BamArray
 
 }SR_BamArray;
 
-// private data structure that holds all bam-input-related 
-// information
+// private data structure that holds all bam-input-related information
 struct SR_BamInStreamPrvt
 {
-    bamFile fpBamInput;               // file pointer to a input bam file
+    bamFile fpBamInput;                   // file pointer to a input bam file
 
-    bam_index_t* pBamIndex;           // file pointer to a input bam index file
+    bam_index_t* pBamIndex;               // file pointer to a input bam index file
 
-    bam_iter_t pBamIter;              // pointer to a bam iterator (used for jump)
+    SR_BamArray* pBamArrayPrev;           // a bam array for all incoming alignments in the previous bin
 
-    SR_BamArray* pBamArray;           // a bam array for all incoming alignments in the bam file
+    SR_BamArray* pBamArrayCurr;           // a bam array for all incoming alignments in the current bin
 
-    khash_t(queryName)* nameHash;     // a hash table that holds queryName-bam1_t* pair
+    khash_t(queryName)* nameHashPrev;     // a hash table that holds queryName-bam1_t* pair in previous bin
 
-    int32_t currRefID;                // the reference ID of the current read-in alignment
+    khash_t(queryName)* nameHashCurr;     // a hash table that holds queryName-bam1_t* pair in current bin
 
-    int32_t currPos;                  // the aligned position of the current read-in alignment
+    int32_t currRefID;                    // the reference ID of the current read-in alignment
+
+    int32_t currBinPos;                   // the start position of current bin (0-based)
+
+    uint32_t binLen;                      // the length of bin
+
+    double scTolerance;                   // soft clipping tolerance rate. 
 };
 
 
@@ -121,25 +139,83 @@ static void SR_BamArrayStartOver(SR_BamArray* pBamArray)
 
 static int SR_BamInStreamLoadNext(SR_BamInStream* pBamInStream)
 {
-    if (pBamInStream->pBamArray->size == pBamInStream->pBamArray->capacity)
+    if (pBamInStream->pBamArrayCurr->size == pBamInStream->pBamArrayCurr->capacity)
     {
-        pBamInStream->pBamArray->capacity *= 2;
-        pBamInStream->pBamArray->data = (bam1_t*) realloc(pBamInStream->pBamArray->data, sizeof(bam1_t) * pBamInStream->pBamArray->capacity);
+        pBamInStream->pBamArrayCurr->capacity *= 2;
+        pBamInStream->pBamArrayCurr->data = (bam1_t*) realloc(pBamInStream->pBamArrayCurr->data, sizeof(bam1_t) * pBamInStream->pBamArrayCurr->capacity);
     }
 
-    int ret = bam_read1(pBamInStream->fpBamInput, SR_ARRAY_GET_PT(pBamInStream->pBamArray, pBamInStream->pBamArray->size));
-    ++(pBamInStream->pBamArray->size);
+    ++(pBamInStream->pBamArrayCurr->size);
+    int ret = bam_read1(pBamInStream->fpBamInput, SR_ARRAY_GET_LAST_PT(pBamInStream->pBamArrayCurr));
 
     return ret;
 }
 
+static int SR_CheckSC(bam1_t* pAlignment, double scTolerance)
+{
+    if ((pAlignment->core.flag & BAM_FUNMAP) != 0)
+        return GOOD_ORPHAN;
+
+    unsigned int scLimit = scTolerance * pAlignment->core.l_qseq;
+    uint32_t* cigar = bam1_cigar(pAlignment);
+
+    SR_Bool isHeadSC = FALSE;
+    SR_Bool isTailSC = FALSE;
+
+    if ((cigar[0] & BAM_CIGAR_MASK) == BAM_CSOFT_CLIP 
+        && (cigar[0] >> BAM_CIGAR_SHIFT) >= scLimit)
+    {
+        isHeadSC = TRUE;
+    }
+
+    unsigned int lastIndex = pAlignment->core.n_cigar - 1;
+    if ((cigar[lastIndex] & BAM_CIGAR_MASK) == BAM_CSOFT_CLIP 
+        && (cigar[lastIndex] >> BAM_CIGAR_SHIFT) >= scLimit)
+    {
+        isTailSC = TRUE;
+    }
+
+    if (!isHeadSC && !isTailSC) 
+    {
+        if (pAlignment->core.qual != 0)
+            return GOOD_ANCHOR;
+        else
+            return NEITHER_GOOD;
+    }
+    else if (isHeadSC && isTailSC)
+        return NEITHER_GOOD;
+    else
+        return GOOD_ORPHAN;
+
+}
+
+static SR_Bool SR_IsQualifiedPair(bam1_t** ppAnchor, bam1_t** ppOrphan, double scTolerance)
+{
+    int anchorStatus = SR_CheckSC((*ppAnchor), scTolerance);
+    int orphanStatus = SR_CheckSC((*ppOrphan), scTolerance);
+
+    if ((anchorStatus == NEITHER_GOOD || orphanStatus == NEITHER_GOOD)
+        || (anchorStatus == GOOD_ANCHOR && orphanStatus == GOOD_ANCHOR)
+        || (anchorStatus == GOOD_ORPHAN && orphanStatus == GOOD_ORPHAN))
+    {
+        return FALSE;
+    }
+    else if (anchorStatus == GOOD_ORPHAN)
+        SR_SWAP(*ppAnchor, *ppOrphan, bam1_t*);
+
+    return TRUE;
+}
+
 static void SR_BamInStreamClear(SR_BamInStream* pBamInStream)
 {
+    pBamInStream->currBinPos = NO_QUERY_YET;
     pBamInStream->currRefID = NO_QUERY_YET;
-    pBamInStream->currPos = NO_QUERY_YET;
 
-    SR_ARRAY_RESET(pBamInStream->pBamArray);
-    kh_clear(queryName, pBamInStream->nameHash);
+    kh_clear(queryName, pBamInStream->nameHashPrev);
+    kh_clear(queryName, pBamInStream->nameHashCurr);
+
+    SR_ARRAY_RESET(pBamInStream->pBamArrayPrev);
+    SR_ARRAY_RESET(pBamInStream->pBamArrayCurr);
 }
 
 
@@ -147,16 +223,18 @@ static void SR_BamInStreamClear(SR_BamInStream* pBamInStream)
 // Constructors and Destructors
 //===============================
 
-SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename)
+SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename, uint32_t binLen, double scTolerance)
 {
     SR_BamInStream* pBamInStream = (SR_BamInStream*) calloc(1, sizeof(struct SR_BamInStreamPrvt));
     if (pBamInStream == NULL)
         SR_ErrQuit("ERROR: Not enough memory for a bam aux object.");
 
-    pBamInStream->nameHash = kh_init(queryName);
-    pBamInStream->pBamArray = SR_BamArrayAlloc(DEFAULT_BAM_ARRAY_CAP);
+    pBamInStream->nameHashPrev = kh_init(queryName);
+    pBamInStream->nameHashCurr = kh_init(queryName);
 
-    pBamInStream->pBamIter = NULL;
+    pBamInStream->pBamArrayPrev = SR_BamArrayAlloc(DEFAULT_BAM_ARRAY_CAP);
+    pBamInStream->pBamArrayCurr = SR_BamArrayAlloc(DEFAULT_BAM_ARRAY_CAP);
+
     pBamInStream->fpBamInput = bam_open(bamFilename, "r");
     if (pBamInStream->fpBamInput == NULL)
         SR_ErrQuit("ERROR: Cannot open bam file %s for reading.\n", bamFilename);
@@ -166,7 +244,10 @@ SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename)
         SR_ErrMsg("WARNING: Cannot open bam index file for reading. No jump allowed.\n");
 
     pBamInStream->currRefID = NO_QUERY_YET;
-    pBamInStream->currPos = NO_QUERY_YET;
+    pBamInStream->currBinPos = NO_QUERY_YET;
+    pBamInStream->binLen = binLen;
+
+    pBamInStream->scTolerance = scTolerance;
 
     return pBamInStream;
 }
@@ -175,14 +256,36 @@ void SR_BamInStreamFree(SR_BamInStream* pBamInStream)
 {
     if (pBamInStream != NULL)
     {
-        kh_destroy(queryName, pBamInStream->nameHash);
-        SR_BamArrayFree(pBamInStream->pBamArray);
+        kh_destroy(queryName, pBamInStream->nameHashPrev);
+        kh_destroy(queryName, pBamInStream->nameHashCurr);
 
-        bam_iter_destroy(pBamInStream->pBamIter);
+        SR_BamArrayFree(pBamInStream->pBamArrayPrev);
+        SR_BamArrayFree(pBamInStream->pBamArrayCurr);
+
         bam_close(pBamInStream->fpBamInput);
         bam_index_destroy(pBamInStream->pBamIndex);
 
         free(pBamInStream);
+    }
+}
+
+SR_BamHeader* SR_BamHeaderAlloc(void)
+{
+    SR_BamHeader* pNewHeader = (SR_BamHeader*) calloc(1, sizeof(SR_BamHeader));
+    if (pNewHeader == NULL)
+        SR_ErrQuit("ERROR: Not enough memory for a bam header object");
+
+    return pNewHeader;
+}
+
+void SR_BamHeaderFree(SR_BamHeader* pBamHeader)
+{
+    if (pBamHeader != NULL)
+    {
+        free(pBamHeader->pMD5s);
+        bam_header_destroy(pBamHeader->pOrigHeader);
+
+        free(pBamHeader);
     }
 }
 
@@ -203,17 +306,37 @@ SR_Status SR_BamInStreamJump(SR_BamInStream* pBamInStream, int32_t refID)
     // jump and read the first alignment in the given chromosome
     int ret;
     bam_iter_t pBamIter = bam_iter_query(pBamInStream->pBamIndex, refID, 0, INT_MAX);
-    ret = bam_iter_read(pBamInStream->fpBamInput, pBamIter, SR_ARRAY_GET_PT(pBamInStream->pBamArray, 0));
-    ++(pBamInStream->pBamArray->size);
+
+    ++(pBamInStream->pBamArrayCurr->size);
+    ret = bam_iter_read(pBamInStream->fpBamInput, pBamIter, SR_ARRAY_GET_FIRST_PT(pBamInStream->pBamArrayCurr));
 
     bam_iter_destroy(pBamIter);
 
     // see if we jump to the desired chromosome
-    if (ret > 0 && SR_ARRAY_GET(pBamInStream->pBamArray, 0).core.tid == refID)
+    if (ret > 0 && SR_ARRAY_GET_FIRST(pBamInStream->pBamArrayCurr).core.tid == refID)
     {
-        pBamInStream->currRefID = refID;
-        pBamInStream->currPos = SR_ARRAY_GET(pBamInStream->pBamArray, 0).core.pos;
+        // exclude those reads who are non-paired-end, qc-fail, duplicate-marked, proper-paired, 
+        // both aligned, secondary-alignment and no-name-specified.
+        if ((SR_ARRAY_GET_LAST(pBamInStream->pBamArrayCurr).core.flag & SR_BAM_FMASK) != 0
+            || strcmp(bam1_qname(SR_ARRAY_GET_LAST_PT(pBamInStream->pBamArrayCurr)), "*") == 0)
+        {
+            SR_ARRAY_POP(pBamInStream->pBamArrayCurr);
+            pBamInStream->currBinPos = NO_QUERY_YET;
+        }
+        else
+        {
+            int khRet = 0;
+            khiter_t khIter = kh_put(queryName, pBamInStream->nameHashCurr, bam1_qname(SR_ARRAY_GET_FIRST_PT(pBamInStream->pBamArrayCurr)), &khRet);
 
+            if (khRet != 0)
+                kh_value(pBamInStream->nameHashCurr, khIter) = SR_ARRAY_GET_FIRST_PT(pBamInStream->pBamArrayCurr);
+            else
+                return SR_ERR;
+
+            pBamInStream->currBinPos = SR_ARRAY_GET_LAST(pBamInStream->pBamArrayCurr).core.pos;
+        }
+
+        pBamInStream->currRefID = refID;
         return SR_OK;
     }
     else if (ret == -1)
@@ -227,9 +350,36 @@ SR_Status SR_BamInStreamJump(SR_BamInStream* pBamInStream, int32_t refID)
 }
 
 // read the header of a bam file
-bam_header_t* SR_BamInStreamReadHeader(SR_BamInStream* pBamInStream)
+SR_BamHeader* SR_BamInStreamLoadHeader(SR_BamInStream* pBamInStream)
 {
-    return bam_header_read(pBamInStream->fpBamInput);
+    bam_header_t* pOrigHeader = bam_header_read(pBamInStream->fpBamInput);
+    if (pOrigHeader == NULL)
+        return NULL;
+
+    SR_BamHeader* pBamHeader = SR_BamHeaderAlloc();
+
+    pBamHeader->pOrigHeader = pOrigHeader;
+
+    pBamHeader->pMD5s = (const char**) calloc(pOrigHeader->n_targets, sizeof(char*));
+    if (pBamHeader->pMD5s == NULL)
+        SR_ErrQuit("ERROR: Not enough memory for md5 string");
+
+    unsigned int numMD5 = 0;
+    for (const char* md5Pos = pOrigHeader->text; numMD5 <= pOrigHeader->n_targets && (md5Pos = strstr(md5Pos, "M5:")) != NULL; ++numMD5, ++md5Pos)
+    {
+        pBamHeader->pMD5s[numMD5] = md5Pos + 3;
+    }
+
+    if (numMD5 != pOrigHeader->n_targets)
+    {
+        free(pBamHeader->pMD5s);
+        pBamHeader->pMD5s = NULL;
+
+        if (numMD5 != 0)
+            SR_ErrMsg("WARNING: Number of MD5 string is not consistent with number of chromosomes.");
+    }
+
+    return pBamHeader;
 }
 
 // read an alignment from a bam file
@@ -245,6 +395,12 @@ SR_Status SR_BamInStreamRead(bam1_t* pAlignment, SR_BamInStream* pBamInStream)
         return SR_ERR;
 }
 
+// get the current reference ID
+int32_t SR_BamInStreamGetRefID(const SR_BamInStream* pBamInStream)
+{
+    return (pBamInStream->currRefID);
+}
+
 // load a unique-orphan pair from a bam file
 SR_Status SR_BamInStreamGetPair(bam1_t** ppAnchor, bam1_t** ppOrphan, SR_BamInStream* pBamInStream)
 {
@@ -254,69 +410,79 @@ SR_Status SR_BamInStreamGetPair(bam1_t** ppAnchor, bam1_t** ppOrphan, SR_BamInSt
     {
         // exclude those reads who are non-paired-end, qc-fail, duplicate-marked, proper-paired, 
         // both aligned, secondary-alignment and no-name-specified.
-        if ((SR_ARRAY_GET_LAST(pBamInStream->pBamArray).core.flag & BAM_FPAIRED) == 0
-            || (SR_ARRAY_GET_LAST(pBamInStream->pBamArray).core.flag & SR_BAM_FMASK) != 0
-            || strcmp(bam1_qname(SR_ARRAY_GET_LAST_PT(pBamInStream->pBamArray)), "*") == 0)
+        if ((SR_ARRAY_GET_LAST(pBamInStream->pBamArrayCurr).core.flag & SR_BAM_FMASK) != 0
+            || strcmp(bam1_qname(SR_ARRAY_GET_LAST_PT(pBamInStream->pBamArrayCurr)), "*") == 0)
         {
-            SR_ARRAY_POP(pBamInStream->pBamArray);
+            SR_ARRAY_POP(pBamInStream->pBamArrayCurr);
             continue;
         }
 
         // update the current ref ID or position if the incoming alignment has a 
         // different value. The name hash and the bam array will be reset
-        if (SR_ARRAY_GET_LAST(pBamInStream->pBamArray).core.tid != pBamInStream->currRefID 
-            || SR_ARRAY_GET_LAST(pBamInStream->pBamArray).core.pos != pBamInStream->currPos)
+        if (SR_ARRAY_GET_LAST(pBamInStream->pBamArrayCurr).core.tid != pBamInStream->currRefID
+            || SR_ARRAY_GET_LAST(pBamInStream->pBamArrayCurr).core.pos >= pBamInStream->currBinPos + 2 * pBamInStream->binLen)
         {
-            // if we got a different reference ID, we should quit
-            if (SR_ARRAY_GET_LAST(pBamInStream->pBamArray).core.tid != pBamInStream->currRefID)
-            {
-                ret = SR_OUT_OF_RANGE;
-            }
+            pBamInStream->currRefID  = SR_ARRAY_GET_LAST(pBamInStream->pBamArrayCurr).core.tid;
+            pBamInStream->currBinPos = SR_ARRAY_GET_LAST(pBamInStream->pBamArrayCurr).core.pos;
 
-            pBamInStream->currRefID = SR_ARRAY_GET_LAST(pBamInStream->pBamArray).core.tid;
-            pBamInStream->currPos   = SR_ARRAY_GET_LAST(pBamInStream->pBamArray).core.pos;
+            kh_clear(queryName, pBamInStream->nameHashPrev);
+            kh_clear(queryName, pBamInStream->nameHashCurr);
 
-            kh_clear(queryName, pBamInStream->nameHash);
-            SR_BamArrayStartOver(pBamInStream->pBamArray);
+            SR_ARRAY_RESET(pBamInStream->pBamArrayPrev);
+            SR_BamArrayStartOver(pBamInStream->pBamArrayCurr);
+        }
+        else if (SR_ARRAY_GET_LAST(pBamInStream->pBamArrayCurr).core.pos >= pBamInStream->currBinPos + pBamInStream->binLen)
+        {
+            pBamInStream->currBinPos += pBamInStream->binLen;
 
+            kh_clear(queryName, pBamInStream->nameHashPrev);
+            SR_SWAP(pBamInStream->nameHashPrev, pBamInStream->nameHashCurr, khash_t(queryName)*);
+
+            SR_ARRAY_RESET(pBamInStream->pBamArrayPrev);
+            SR_SWAP(pBamInStream->pBamArrayPrev, pBamInStream->pBamArrayCurr, SR_BamArray*);
+
+            bam_copy1(SR_ARRAY_GET_FIRST_PT(pBamInStream->pBamArrayCurr), SR_ARRAY_GET_LAST_PT(pBamInStream->pBamArrayPrev));
+            ++(pBamInStream->pBamArrayCurr->size);
+
+            SR_ARRAY_POP(pBamInStream->pBamArrayPrev);
         }
 
-        int khRet = 0;
-        khiter_t khIter = kh_put(queryName, pBamInStream->nameHash, bam1_qname(SR_ARRAY_GET_LAST_PT(pBamInStream->pBamArray)), &khRet);
+        khiter_t khIter;
+        (*ppAnchor) = NULL;
+        (*ppOrphan) = NULL;
 
-        if (khRet == 0) // we found a pair of alignments 
+        khIter = kh_get(queryName, pBamInStream->nameHashPrev, bam1_qname(SR_ARRAY_GET_LAST_PT(pBamInStream->pBamArrayCurr)));
+        if (khIter != kh_end(pBamInStream->nameHashPrev))
         {
-            // retrieve the unique-orphan pair
-            bam1_t* pAlignment = SR_ARRAY_GET_LAST_PT(pBamInStream->pBamArray);
-            if ((pAlignment->core.flag & BAM_FUNMAP) == 0)
-            {
-                (*ppAnchor) = pAlignment;
-                (*ppOrphan) = kh_value(pBamInStream->nameHash, khIter);
-            }
-            else
-            {
-                (*ppOrphan) = pAlignment;
-                (*ppAnchor) = kh_value(pBamInStream->nameHash, khIter);
-            }
+            (*ppAnchor) = kh_value(pBamInStream->nameHashPrev, khIter);
+            (*ppOrphan) = SR_ARRAY_GET_LAST_PT(pBamInStream->pBamArrayCurr);
 
-            // the anchor mate must be aligned uniquely and its mapping quality does not equal to zero
-            // the orphan mate must be an unaligned read
-            if ((*ppAnchor)->core.qual != 0
-                && ((*ppAnchor)->core.flag & BAM_FUNMAP) == 0
-                && ((*ppOrphan)->core.flag & BAM_FUNMAP) != 0)
-            {
+            if (SR_IsQualifiedPair(ppAnchor, ppOrphan, pBamInStream->scTolerance))
                 ret = SR_OK;
-            }
         }
-        else // not finding corresponding mate, save the current value and move on
+        else
         {
-            kh_value(pBamInStream->nameHash, khIter) = SR_ARRAY_GET_LAST_PT(pBamInStream->pBamArray);
+            int khRet = 0;
+            khIter = kh_put(queryName, pBamInStream->nameHashCurr, bam1_qname(SR_ARRAY_GET_LAST_PT(pBamInStream->pBamArrayCurr)), &khRet);
+
+            if (khRet == 0) // we found a pair of alignments 
+            {
+                (*ppAnchor) = kh_value(pBamInStream->nameHashCurr, khIter);
+                (*ppOrphan) = SR_ARRAY_GET_LAST_PT(pBamInStream->pBamArrayCurr);
+
+                if (SR_IsQualifiedPair(ppAnchor, ppOrphan, pBamInStream->scTolerance))
+                    ret = SR_OK;
+            }
+            else // not finding corresponding mate, save the current value and move on
+            {
+                kh_value(pBamInStream->nameHashCurr, khIter) = SR_ARRAY_GET_LAST_PT(pBamInStream->pBamArrayCurr);
+            }
         }
     }
 
     if (ret < 0)
     {
-        if (ret != SR_EOF && ret != SR_OUT_OF_RANGE)
+        if (ret != SR_EOF)
             return SR_ERR;
     }
 
