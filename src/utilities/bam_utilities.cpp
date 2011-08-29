@@ -73,13 +73,13 @@ bool ReplaceHeaderSoText( bam_header_t* const header ) {
 	
 	size_t so_pos = header_string.find("SO:coordinate");
 	if ( so_pos != string::npos )
-		header_string.replace( so_pos, 13, "SO:unsorted");
+		header_string.replace(so_pos, 13, "SO:unsorted");
 
 	so_pos = header_string.find("SO:queryname");
 	if ( so_pos != string::npos )
-		header_string.replace( so_pos, 12, "SO:unsorted");
+		header_string.replace(so_pos, 12, "SO:unsorted");
 
-	ResetHeaderText( header, header_string);
+	ResetHeaderText(header, header_string);
 
 	return true;
 

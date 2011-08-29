@@ -29,7 +29,7 @@ SearchRegionType::SearchRegionType(const Technology technology)
   ResetRegionTypeList();
 }
 
-bool SearchRegionType::LoadNextRegionType(const bool is_anchor_forward, 
+bool SearchRegionType::GetNextRegionType(const bool is_anchor_forward, 
     RegionType* region_type) {
 
   list<RegionType>::iterator ptr = is_anchor_forward ? forward_anchor_region_type_list_ptr_ 

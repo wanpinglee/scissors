@@ -24,7 +24,7 @@ class SearchRegionType {
 
   void ResetRegionTypeList();
   void RewindRegionTypeList();
-  bool LoadNextRegionType(const bool is_anchor_forward, RegionType* region_type);
+  bool GetNextRegionType(const bool is_anchor_forward, RegionType* region_type);
 
  private:
   const Technology technology_;

@@ -11,17 +11,17 @@ using std::vector;
 
 namespace BamAlignmentConstant {
 
-const unsigned short kBamCoreSize   = 32;
-const unsigned short kBamCigarShift = 4;
+const unsigned char kBamCoreSize   = 32;
+const unsigned char kBamCigarShift = 4;
 
 // cigar operator for bam packed cigar
-const unsigned short kBamCmatch     = 0;
-const unsigned short kBamCins       = 1;
-const unsigned short kBamCdel       = 2;
-const unsigned short kBamCrefSkip   = 3;
-const unsigned short kBamCsoftClip  = 4;
-const unsigned short kBamChardClip  = 5;
-const unsigned short kBamCpad       = 6;
+const unsigned char kBamCmatch     = 0;
+const unsigned char kBamCins       = 1;
+const unsigned char kBamCdel       = 2;
+const unsigned char kBamCrefSkip   = 3;
+const unsigned char kBamCsoftClip  = 4;
+const unsigned char kBamChardClip  = 5;
+const unsigned char kBamCpad       = 6;
 
 } // namespace BamAlignmentConstant
 

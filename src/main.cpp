@@ -52,7 +52,6 @@ void Deconstruct( MainFiles& files, MainVars& vars ) {
 	SR_ReferenceFree( vars.reference );
 	SR_InHashTableFree( vars.hash_table );
 
-	
 }
 
 void CheckFileOrDie( 
