@@ -1,24 +1,23 @@
-
 #include <stdlib.h>
 
 #include <iostream>
 #include <string>
 
 extern "C" {
+#include "dataStructures/SR_QueryRegion.h"
+#include "hashTable/common/SR_Types.h"
+#include "hashTable/reader/SR_HashRegionTable.h"
 #include "hashTable/reader/SR_InHashTable.h"
 #include "hashTable/reader/SR_Reference.h"
-#include "hashTable/reader/SR_HashRegionTable.h"
-#include "utilities/SR_BamInStream.h"
-#include "hashTable/common/SR_Types.h"
-#include "dataStructures/SR_QueryRegion.h"
 #include "samtools/bam.h"
+#include "utilities/SR_BamInStream.h"
 }
 
-//#include "utilities/bam_writer.h"
-#include "utilities/bam_utilities.h"
-#include "utilities/parameter_parser.h"
+#include "dataStructures/anchor_region.h"
 #include "dataStructures/search_region_type.h"
 #include "dataStructures/technology.h"
+#include "utilities/bam_utilities.h"
+#include "utilities/parameter_parser.h"
 
 using std::string;
 using std::cout;
@@ -36,6 +35,7 @@ struct MainVars{
 	SR_BamHeader*   bam_header;
 	SR_Reference*   reference;
 	SR_InHashTable* hash_table;
+	AnchorRegion    anchor_region;
 };
 
 
@@ -45,7 +45,6 @@ void CheckFileOrDie(
 		const ParameterParser& parameter_parser,
 		const MainFiles& files);
 void ResetHeader( bam_header_t* const bam_header );
-
 
 
 int main ( int argc, char** argv ) {
@@ -125,6 +124,8 @@ int main ( int argc, char** argv ) {
 	// =========
 
 	while( SR_BamInStreamGetPair( &(vars.query_region->pAnchor), &(vars.query_region->pOrphan), files.bam_reader ) == SR_OK  ) {
+		uint32_t* cigar = bam1_cigar(vars.query_region->pAnchor);
+		vars.anchor_region.IsNewRegion(cigar, vars.query_region->pAnchor->core.n_cigar, vars.query_region->pAnchor->core.pos);
 		cout << "Got a pair of alignments" << endl;
 		bam_write1( files.bam_writer, vars.query_region->pAnchor );
 		bam_write1( files.bam_writer, vars.query_region->pOrphan );
