@@ -6,12 +6,11 @@
 class AnchorRegion {
  public:
   AnchorRegion() : begin_(0), end_(0){};
-  ~AnchorRegion();
 
-  bool IsNewRegion(const char* cigar, const uint32_t cigar_length, const uint32_t begin);
+  bool IsNewRegion(const uint32_t* packed_cigar, const uint32_t cigar_length, const uint32_t begin);
 
  private:
-  uint32_t CalculateEndPosition(const char* cigar, const uint32_t cigar_length, const uint32_t begin);
+  uint32_t CalculateEndPosition(const uint32_t* packed_cigar, const uint32_t cigar_length, const uint32_t begin);
   uint32_t begin_;
   uint32_t end_;
 };

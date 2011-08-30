@@ -39,57 +39,14 @@ struct MainVars{
 };
 
 
-void Deconstruct( MainFiles& files, MainVars& vars ) {
-	// close files
-	SR_BamInStreamFree( files.bam_reader );
-	bam_close( files.bam_writer );
-	fclose( files.ref_reader );
-	fclose( files.hash_reader );
-
-	// free variables
-	SR_QueryRegionFree( vars.query_region );
-	SR_BamHeaderFree( vars.bam_header );
-	SR_ReferenceFree( vars.reference );
-	SR_InHashTableFree( vars.hash_table );
-
-}
-
+// Prototype of functions
+void Deconstruct( MainFiles& files, MainVars& vars );
 void CheckFileOrDie( 
 		const ParameterParser& parameter_parser,
-		const MainFiles& files){
+		const MainFiles& files);
+void ResetHeader( bam_header_t* const bam_header );
 
-	bool error_found = false;
 
-	if ( files.bam_writer == NULL ) {
-		cout << "ERROR: Cannot open " << parameter_parser.output_bam << " for writing." << endl
-		     << "       Please check -o option." << endl;
-		error_found = true;
-	}
-
-	if ( files.ref_reader == NULL ) {
-		cout << "ERROR: Cannot open " << parameter_parser.reference_filename << " for reading." << endl
-		     << "       Please check -r option." << endl;
-		error_found = true;
-	}
-
-	if ( files.hash_reader == NULL ) {
-		cout << "ERROR: Cannot open " << parameter_parser.hash_filename << " for reading." << endl
-		     << "       Please check -r option." << endl;
-		error_found = true;
-	}
-
-	if ( error_found )
-		exit(1);
-
-}
-
-void ResetHeader( bam_header_t* const bam_header ){
-
-	// Reset header line to "@HD\tVN:1.0\tSO:unsorted"
-	//BamUtilities::ResetHeaderLineText( bam_header, "@HD\tVN:1.0\tSO:unsorted" );
-	// Replace SO:coordinate or SO:queryname by SO:unsorted
-	BamUtilities::ReplaceHeaderSoText( bam_header );
-}
 
 int main ( int argc, char** argv ) {
 	
@@ -181,3 +138,57 @@ int main ( int argc, char** argv ) {
 	return 0;
 
 }
+
+void Deconstruct( MainFiles& files, MainVars& vars ) {
+	// close files
+	SR_BamInStreamFree( files.bam_reader );
+	bam_close( files.bam_writer );
+	fclose( files.ref_reader );
+	fclose( files.hash_reader );
+
+	// free variables
+	SR_QueryRegionFree( vars.query_region );
+	SR_BamHeaderFree( vars.bam_header );
+	SR_ReferenceFree( vars.reference );
+	SR_InHashTableFree( vars.hash_table );
+
+}
+
+
+void CheckFileOrDie( 
+		const ParameterParser& parameter_parser,
+		const MainFiles& files){
+
+	bool error_found = false;
+
+	if ( files.bam_writer == NULL ) {
+		cout << "ERROR: Cannot open " << parameter_parser.output_bam << " for writing." << endl
+		     << "       Please check -o option." << endl;
+		error_found = true;
+	}
+
+	if ( files.ref_reader == NULL ) {
+		cout << "ERROR: Cannot open " << parameter_parser.reference_filename << " for reading." << endl
+		     << "       Please check -r option." << endl;
+		error_found = true;
+	}
+
+	if ( files.hash_reader == NULL ) {
+		cout << "ERROR: Cannot open " << parameter_parser.hash_filename << " for reading." << endl
+		     << "       Please check -r option." << endl;
+		error_found = true;
+	}
+
+	if ( error_found )
+		exit(1);
+
+}
+
+void ResetHeader( bam_header_t* const bam_header ){
+
+	// Reset header line to "@HD\tVN:1.0\tSO:unsorted"
+	//BamUtilities::ResetHeaderLineText( bam_header, "@HD\tVN:1.0\tSO:unsorted" );
+	// Replace SO:coordinate or SO:queryname by SO:unsorted
+	BamUtilities::ReplaceHeaderSoText( bam_header );
+}
+

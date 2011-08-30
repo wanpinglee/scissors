@@ -10,12 +10,12 @@ using std::cout;
 using std::endl;
 using std::vector;
 
-namespace Constant = BamAlignmentConstant;
-
+namespace {
 
 // convert the readable cigar string into the packed string
-void ConvertCigarToPackedCigar( vector<uint32_t>& packed_cigar, const string& cigar){
-	packed_cigar.clear();
+void ConvertCigarToPackedCigar( vector<uint32_t>* packed_cigar, const string& cigar){
+	namespace Constant = BamAlignmentConstant;
+	packed_cigar->clear();
 	uint32_t digit_begin  = 0;
 	uint32_t digit_length = 0;
 	bool digit_found = false;
@@ -44,7 +44,7 @@ void ConvertCigarToPackedCigar( vector<uint32_t>& packed_cigar, const string& ci
 				}
 			}
 			
-			packed_cigar.push_back( current_cigar );
+			packed_cigar->push_back( current_cigar );
 			
 			digit_found  = false;
 			digit_length = 0;
@@ -63,7 +63,7 @@ TEST(GetPackedCigarTest, NullString) {
   // expected result
   // ===============
   vector<uint32_t> expected_cigar;
-  ConvertCigarToPackedCigar( expected_cigar, "50S");
+  ConvertCigarToPackedCigar( &expected_cigar, "50S");
   // ===============
 
   BamUtilities::GetPackedCigar( packed_cigar, reference, query,
@@ -89,7 +89,7 @@ TEST(GetPackedCigarTest, Match) {
   
 
   vector<uint32_t> expected_cigar;
-  ConvertCigarToPackedCigar( expected_cigar, "30M");
+  ConvertCigarToPackedCigar( &expected_cigar, "30M");
 	
   BamUtilities::GetPackedCigar( packed_cigar, reference, query,
 	query_begin, query_end, read_length);
@@ -108,7 +108,7 @@ TEST(GetPackedCigarTest, Match) {
   query_end   = 29;
   read_length = 50;
 
-  ConvertCigarToPackedCigar( expected_cigar, "30M20S");
+  ConvertCigarToPackedCigar( &expected_cigar, "30M20S");
 
   BamUtilities::GetPackedCigar( packed_cigar, reference, query,
 	query_begin, query_end, read_length);
@@ -127,7 +127,7 @@ TEST(GetPackedCigarTest, Match) {
   query_end   = 39;
   read_length = 50;
 
-  ConvertCigarToPackedCigar( expected_cigar, "10S30M10S");
+  ConvertCigarToPackedCigar( &expected_cigar, "10S30M10S");
 
   BamUtilities::GetPackedCigar( packed_cigar, reference, query,
 	query_begin, query_end, read_length);
@@ -145,7 +145,7 @@ TEST(GetPackedCigarTest, Match) {
   query_end   = 16;
   read_length = 40;
 
-  ConvertCigarToPackedCigar( expected_cigar, "17M23S");
+  ConvertCigarToPackedCigar( &expected_cigar, "17M23S");
 
   BamUtilities::GetPackedCigar( packed_cigar, reference, query,
 	query_begin, query_end, read_length);
@@ -170,7 +170,7 @@ TEST(GetPackedCigarTest, OneBaseMatch) {
 
   // expected result
   vector<uint32_t> expected_cigar;
-  ConvertCigarToPackedCigar( expected_cigar, "1M");
+  ConvertCigarToPackedCigar( &expected_cigar, "1M");
 
   BamUtilities::GetPackedCigar( packed_cigar, reference, query,
         query_begin, query_end, read_length);
@@ -190,7 +190,7 @@ TEST(GetPackedCigarTest, OneBaseMatch) {
   read_length = 3;
 
   // expected result
-  ConvertCigarToPackedCigar( expected_cigar, "1M2S");
+  ConvertCigarToPackedCigar( &expected_cigar, "1M2S");
 
   BamUtilities::GetPackedCigar( packed_cigar, reference, query,
         query_begin, query_end, read_length);
@@ -210,7 +210,7 @@ TEST(GetPackedCigarTest, OneBaseMatch) {
   read_length = 3;
 
   // expected result
-  ConvertCigarToPackedCigar( expected_cigar, "2S1M");
+  ConvertCigarToPackedCigar( &expected_cigar, "2S1M");
 
   BamUtilities::GetPackedCigar( packed_cigar, reference, query,
         query_begin, query_end, read_length);
@@ -231,7 +231,7 @@ TEST(GetPackedCigarTest, OneBaseMatch) {
   read_length = 3;
 
   // expected result
-  ConvertCigarToPackedCigar( expected_cigar, "1S1M1S");
+  ConvertCigarToPackedCigar( &expected_cigar, "1S1M1S");
 
 
   BamUtilities::GetPackedCigar( packed_cigar, reference, query,
@@ -256,7 +256,7 @@ TEST(GetPackedCigarTest, Insertion) {
 
   // expected result
   vector<uint32_t> expected_cigar;
-  ConvertCigarToPackedCigar( expected_cigar, "2M1I3M");
+  ConvertCigarToPackedCigar( &expected_cigar, "2M1I3M");
 
   BamUtilities::GetPackedCigar( packed_cigar, reference, query,
         query_begin, query_end, read_length);
@@ -276,7 +276,7 @@ TEST(GetPackedCigarTest, Insertion) {
   read_length = 6;
 
   // expected result
-  ConvertCigarToPackedCigar( expected_cigar, "2M1I1M1I1M");
+  ConvertCigarToPackedCigar( &expected_cigar, "2M1I1M1I1M");
 
   BamUtilities::GetPackedCigar( packed_cigar, reference, query,
         query_begin, query_end, read_length);
@@ -295,7 +295,7 @@ TEST(GetPackedCigarTest, Insertion) {
   read_length = 13;
 
   // expected result
-  ConvertCigarToPackedCigar( expected_cigar, "3S1I1M1I1M1I1M4S");
+  ConvertCigarToPackedCigar( &expected_cigar, "3S1I1M1I1M1I1M4S");
 
   BamUtilities::GetPackedCigar( packed_cigar, reference, query,
         query_begin, query_end, read_length);
@@ -318,7 +318,7 @@ TEST(GetPackedCigarTest, Deletion) {
 
   // expected result
   vector<uint32_t> expected_cigar;
-  ConvertCigarToPackedCigar( expected_cigar, "2M1D3M1S");
+  ConvertCigarToPackedCigar( &expected_cigar, "2M1D3M1S");
 
   BamUtilities::GetPackedCigar( packed_cigar, reference, query,
         query_begin, query_end, read_length);
@@ -338,7 +338,7 @@ TEST(GetPackedCigarTest, Deletion) {
   read_length = 10;
 
   // expected result
-  ConvertCigarToPackedCigar( expected_cigar, "2S2M3D1M5S");
+  ConvertCigarToPackedCigar( &expected_cigar, "2S2M3D1M5S");
 
   BamUtilities::GetPackedCigar( packed_cigar, reference, query,
         query_begin, query_end, read_length);
@@ -362,7 +362,7 @@ TEST(GetPackedCigarTest, Mix) {
 
   // expected result
   vector<uint32_t> expected_cigar;
-  ConvertCigarToPackedCigar( expected_cigar, "3S1M2D1M2I2M1D1M2S");
+  ConvertCigarToPackedCigar( &expected_cigar, "3S1M2D1M2I2M1D1M2S");
 
   BamUtilities::GetPackedCigar( packed_cigar, reference, query,
         query_begin, query_end, read_length);
@@ -371,3 +371,4 @@ TEST(GetPackedCigarTest, Mix) {
   	EXPECT_EQ( expected_cigar[i], packed_cigar[i] );
   EXPECT_EQ( expected_cigar.size(), packed_cigar.size() );
 }
+} // namespace
