@@ -17,17 +17,18 @@ class SearchRegionType {
  public:
   // Constructor
   SearchRegionType();
-  explicit SearchRegionType( const Technology technology );
+  explicit SearchRegionType( const Technology& technology );
+  void SetTechnology(const Technology& technology);
 
   // Destructor
-  ~SearchRegionType();
+  //~SearchRegionType();
 
   void ResetRegionTypeList();
   void RewindRegionTypeList();
   bool GetNextRegionType(const bool is_anchor_forward, RegionType* region_type);
 
  private:
-  const Technology technology_;
+  Technology technology_;
   list<RegionType> forward_anchor_region_type_list_;
   list<RegionType> reverse_anchor_region_type_list_;
   list<RegionType>::iterator forward_anchor_region_type_list_ptr_;

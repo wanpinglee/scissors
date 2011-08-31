@@ -21,11 +21,16 @@ SearchRegionType::SearchRegionType()
   ResetRegionTypeList();
 }
 
-SearchRegionType::SearchRegionType(const Technology technology)
+SearchRegionType::SearchRegionType(const Technology& technology)
     : technology_(technology)
 {
   forward_anchor_region_type_list_.resize(4);
   reverse_anchor_region_type_list_.resize(4);
+  ResetRegionTypeList();
+}
+
+void SearchRegionType::SetTechnology(const Technology& technology) {
+  technology_ = technology;
   ResetRegionTypeList();
 }
 

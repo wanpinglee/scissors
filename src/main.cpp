@@ -31,11 +31,13 @@ struct MainFiles {
 };
 
 struct MainVars{
-	SR_QueryRegion* query_region;
-	SR_BamHeader*   bam_header;
-	SR_Reference*   reference;
-	SR_InHashTable* hash_table;
-	AnchorRegion    anchor_region;
+	SR_QueryRegion*  query_region;
+	SR_BamHeader*    bam_header;
+	SR_Reference*    reference;
+	SR_InHashTable*  hash_table;
+	AnchorRegion     anchor_region;
+	SearchRegionType search_region_type;
+	RegionType       region_type;
 };
 
 
@@ -123,12 +125,23 @@ int main ( int argc, char** argv ) {
 	// Algorithm
 	// =========
 
-	while( SR_BamInStreamGetPair( &(vars.query_region->pAnchor), &(vars.query_region->pOrphan), files.bam_reader ) == SR_OK  ) {
+	while(SR_BamInStreamGetPair( &(vars.query_region->pAnchor), &(vars.query_region->pOrphan), files.bam_reader ) == SR_OK) {
 		uint32_t* cigar = bam1_cigar(vars.query_region->pAnchor);
-		vars.anchor_region.IsNewRegion(cigar, vars.query_region->pAnchor->core.n_cigar, vars.query_region->pAnchor->core.pos);
+		bool is_new_region = vars.anchor_region.IsNewRegion(cigar, 
+			vars.query_region->pAnchor->core.n_cigar, vars.query_region->pAnchor->core.pos);
+		
+		if ( is_new_region ) {
+			vars.search_region_type.ResetRegionTypeList();
+		}else{
+			vars.search_region_type.RewindRegionTypeList();
+		}
+
+		const bool is_anchor_forward = bam1_strand(vars.query_region->pAnchor);
+		while (vars.search_region_type.GetNextRegionType(is_anchor_forward, &vars.region_type))
 		cout << "Got a pair of alignments" << endl;
-		bam_write1( files.bam_writer, vars.query_region->pAnchor );
-		bam_write1( files.bam_writer, vars.query_region->pOrphan );
+		
+		//bam_write1( files.bam_writer, vars.query_region->pAnchor );
+		//bam_write1( files.bam_writer, vars.query_region->pOrphan );
 	}
 
 	// free memory and close files
