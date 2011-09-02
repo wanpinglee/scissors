@@ -7,7 +7,12 @@ TESTS_DIR = test_src
 # * THE FILES SHOULD BE IN TESTS_DIR  *
 # *************************************
 TESTS_SOURCES_ = bam_utilities_GetPackedCigar_test.cpp \
-		anchor_region_test.cpp
+		anchor_region_test.cpp \
+		search_region_type_test.cpp
+
+TARGET_SOURCES = bam_utilities.cpp \
+			anchor_region.cpp \
+			search_region_type.cpp
 
 # *********************************************
 # YOU MAY NOT NEED TO CHANGE THE FOLLOWING CODE
@@ -41,8 +46,6 @@ TEST_EXE = aligner_test
 # ========================
 # define my target sources
 # ========================
-TARGET_SOURCES = bam_utilities.cpp \
-			anchor_region.cpp
 TARGET_OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(TARGET_SOURCES) )
 # end // define my target sources
 

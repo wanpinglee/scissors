@@ -1,5 +1,9 @@
 #include "search_region_type.h" 
 
+#include <stdio.h>
+
+#include <algorithm>
+
 // for illumina forward anchors
 const static RegionType kRegionType1 = {true, true, true};
 const static RegionType kRegionType2 = {false, true, true};
@@ -16,78 +20,159 @@ const static RegionType kRegionType8 = {true, true, false};
 SearchRegionType::SearchRegionType()
     : technology_(ILLUMINA) // the default tech is ILLUMINA
 {
-  forward_anchor_region_type_list_.resize(4);
-  reverse_anchor_region_type_list_.resize(4);
-  ResetRegionTypeList();
+  forward_anchor_type_vector_.resize(4);
+  reverse_anchor_type_vector_.resize(4);
+  forward_anchor_type_preference_.resize(4);
+  reverse_anchor_type_preference_.resize(4);
+  forward_anchor_type_count_.resize(4);
+  reverse_anchor_type_count_.resize(4);
+  Init();
 }
 
 SearchRegionType::SearchRegionType(const Technology& technology)
     : technology_(technology)
 {
-  forward_anchor_region_type_list_.resize(4);
-  reverse_anchor_region_type_list_.resize(4);
-  ResetRegionTypeList();
+  forward_anchor_type_vector_.resize(4);
+  reverse_anchor_type_vector_.resize(4);
+  forward_anchor_type_preference_.resize(4);
+  reverse_anchor_type_preference_.resize(4);
+  forward_anchor_type_count_.resize(4);
+  reverse_anchor_type_count_.resize(4);
+  Init();
 }
 
-void SearchRegionType::SetTechnology(const Technology& technology) {
-  technology_ = technology;
+void SearchRegionType::Init() {
+  switch (technology_) {
+    case ILLUMINA: {
+      // for forward anchor region type list
+      forward_anchor_type_vector_[0] = kRegionType1; 
+      forward_anchor_type_vector_[1] = kRegionType2; 
+      forward_anchor_type_vector_[2] = kRegionType3; 
+      forward_anchor_type_vector_[3] = kRegionType4;
+      // for reverse anchor region type list
+      reverse_anchor_type_vector_[0] = kRegionType5;
+      reverse_anchor_type_vector_[1] = kRegionType6;
+      reverse_anchor_type_vector_[2] = kRegionType7;
+      reverse_anchor_type_vector_[3] = kRegionType8;
+      break;
+    } // ILLUMINA
+    
+    // TODO(WP): assign the types for LS454 reads
+    case LS454: {
+      break;
+    } // LS454
+
+    default: {
+    } // default
+  } // switch
+
+
   ResetRegionTypeList();
+  RewindRegionTypeList();
+}
+
+
+// Use this function when the current type successfully supports 
+// split-read alignment.
+// The function will rewind the list since the current is successful,
+// other types should not be applied.
+bool SearchRegionType::SetCurrentTypeSuccess(const bool is_anchor_forward){
+  // No type is gotten, so shouldn't set success.
+  if (is_anchor_forward && !has_gotten_forward_type_)  return false;
+  if (!is_anchor_forward && !has_gotten_reverse_type_) return false;
+
+  // increases the current counter and update the list if necessary
+  // if the current counter is greater than the previous
+  // then swap the current and the previous one
+  if (is_anchor_forward) {
+    const int id = current_forward_anchor_type_preference_ - 1;
+    ++forward_anchor_type_count_[id];
+    bool update_preference = (id != 0 ) &&
+      forward_anchor_type_count_[id] > forward_anchor_type_count_[id - 1];
+    
+    if (update_preference) {
+      int temp = forward_anchor_type_count_[id];
+      forward_anchor_type_count_[id] = forward_anchor_type_count_[id - 1];
+      forward_anchor_type_count_[id - 1] = temp;
+      temp = forward_anchor_type_preference_[id];
+      forward_anchor_type_preference_[id] = forward_anchor_type_preference_[id - 1];
+      forward_anchor_type_preference_[id - 1] = temp;
+    }
+
+  } else {
+    const int id = current_reverse_anchor_type_preference_ - 1;
+    ++reverse_anchor_type_count_[id];
+    bool update_preference = (id != 0 ) &&
+      reverse_anchor_type_count_[id] > reverse_anchor_type_count_[id - 1];
+    
+    if (update_preference) {
+      int temp = reverse_anchor_type_count_[id];
+      reverse_anchor_type_count_[id] = reverse_anchor_type_count_[id - 1];
+      reverse_anchor_type_count_[id - 1] = temp;
+      temp = reverse_anchor_type_preference_[id];
+      reverse_anchor_type_preference_[id] = reverse_anchor_type_preference_[id - 1];
+      reverse_anchor_type_preference_[id - 1] = temp;
+    } // if
+  } // if-else
+
+  RewindRegionTypeList();
+
+  return true;
+
 }
 
 bool SearchRegionType::GetNextRegionType(const bool is_anchor_forward, 
     RegionType* region_type) {
 
-  list<RegionType>::iterator ptr = is_anchor_forward ? forward_anchor_region_type_list_ptr_ 
-      : reverse_anchor_region_type_list_ptr_;
-
   if (is_anchor_forward) {
-    if (forward_anchor_region_type_list_ptr_ == forward_anchor_region_type_list_.end()) return false;
-    *region_type = *forward_anchor_region_type_list_ptr_;
-    ++forward_anchor_region_type_list_ptr_;
+    int preference_id = current_forward_anchor_type_preference_;
+    if (preference_id == 4) {
+      has_gotten_forward_type_ = false; // make SetCurrentTypeSuccess fail
+      return false;
+    } else {
+      // output current type and increase preference_id
+      int type_id = forward_anchor_type_preference_[preference_id];
+      *region_type = forward_anchor_type_vector_[type_id];
+      ++current_forward_anchor_type_preference_;
+      has_gotten_forward_type_ = true;
+    }
+  
   } else {
-    if (reverse_anchor_region_type_list_ptr_ == reverse_anchor_region_type_list_.end()) return false;
-    *region_type = *reverse_anchor_region_type_list_ptr_;
-    ++reverse_anchor_region_type_list_ptr_;
+    int preference_id = current_reverse_anchor_type_preference_;
+    if (preference_id == 4) {
+      has_gotten_reverse_type_ = false; // make SetCurrentTypeSuccess fail
+      return false;
+    } else {
+      // output current type and increase preference_id
+      int type_id = reverse_anchor_type_preference_[preference_id];
+      *region_type = reverse_anchor_type_vector_[type_id];
+      ++current_reverse_anchor_type_preference_;
+      has_gotten_reverse_type_ = true;
+    }
   }
 
   return true;
 }
 
-void SearchRegionType::RewindRegionTypeList(){
-  forward_anchor_region_type_list_ptr_ = forward_anchor_region_type_list_.begin();
-  reverse_anchor_region_type_list_ptr_ = reverse_anchor_region_type_list_.begin();
+void SearchRegionType::ResetRegionTypeList(void) {
+  // reset the preference as defaults
+  forward_anchor_type_preference_[0] = 0;
+  forward_anchor_type_preference_[1] = 1;
+  forward_anchor_type_preference_[2] = 2;
+  forward_anchor_type_preference_[3] = 3;
+  reverse_anchor_type_preference_[0] = 0;
+  reverse_anchor_type_preference_[1] = 1;
+  reverse_anchor_type_preference_[2] = 2;
+  reverse_anchor_type_preference_[3] = 3;
+  // reset counters
+  forward_anchor_type_count_[0] = 0;
+  forward_anchor_type_count_[1] = 0;
+  forward_anchor_type_count_[2] = 0;
+  forward_anchor_type_count_[3] = 0;
+  reverse_anchor_type_count_[0] = 0;
+  reverse_anchor_type_count_[1] = 0;
+  reverse_anchor_type_count_[2] = 0;
+  reverse_anchor_type_count_[3] = 0;
+  RewindRegionTypeList();
 }
 
-void SearchRegionType::ResetRegionTypeList() {
-  forward_anchor_region_type_list_ptr_ = forward_anchor_region_type_list_.begin();
-  reverse_anchor_region_type_list_ptr_ = reverse_anchor_region_type_list_.begin();
-  
-  switch (technology_) {
-    case ILLUMINA: {
-      // for forward anchor region type list
-      *forward_anchor_region_type_list_ptr_ = kRegionType1; 
-      ++forward_anchor_region_type_list_ptr_;
-      *forward_anchor_region_type_list_ptr_ = kRegionType2; 
-      ++forward_anchor_region_type_list_ptr_;
-      *forward_anchor_region_type_list_ptr_ = kRegionType3; 
-      ++forward_anchor_region_type_list_ptr_;
-      *forward_anchor_region_type_list_ptr_ = kRegionType4;
-      // for reverse anchor region type list
-      *reverse_anchor_region_type_list_ptr_ = kRegionType5;
-      ++reverse_anchor_region_type_list_ptr_;
-      *reverse_anchor_region_type_list_ptr_ = kRegionType6;
-      ++reverse_anchor_region_type_list_ptr_;
-      *reverse_anchor_region_type_list_ptr_ = kRegionType7;
-      ++reverse_anchor_region_type_list_ptr_;
-      *reverse_anchor_region_type_list_ptr_ = kRegionType8;
-      break;
-    } // ILLUMINA
-    // TODO(WP): assign the types for LS454 reads
-    case LS454: {
-      break;
-    }
-
-    default: {
-    }
-  }
-}
