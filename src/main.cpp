@@ -55,6 +55,9 @@ void PrepareFiles(const ParameterParser& parameter_parser, MainFiles* files);
 void PrepareVariablesOrDie(
     const ParameterParser& parameter_parser, 
     const MainFiles& files, MainVars* vars);
+bool NeedNewReference(const SR_Reference& reference,
+    const SR_RefHeader& reference_header, const int32_t& anchor_ref_id,
+    const BamReference& bam_reference);
 void CheckFileOrDie(
     const ParameterParser& parameter_parser,
     const MainFiles& files);
@@ -89,15 +92,32 @@ int main ( int argc, char** argv ) {
 
 
   // Load first reference and its hash table
-  SR_ReferenceRead(vars.reference, files.ref_reader);
-  SR_InHashTableRead(vars.hash_table, files.hash_reader);
+  //SR_ReferenceRead(vars.reference, files.ref_reader);
+  //SR_InHashTableRead(vars.hash_table, files.hash_reader);
 
 
   // =========
   // Algorithm
   // =========
 
+  bam1_t* anchor;
   while(SR_BamInStreamGetPair( &(vars.query_region->pAnchor), &(vars.query_region->pOrphan), files.bam_reader ) == SR_OK) {
+    anchor = vars.query_region->pAnchor;
+    // Load new reference and hash table if necessary
+    bool new_ref_need = NeedNewReference(*vars.reference, *vars.reference_header, 
+                                         anchor->core.tid, vars.bam_reference);
+    if (new_ref_need) {
+      if (anchor->core.tid > vars.bam_reference.num_reference) exit(1);
+      const char* ref_name = vars.bam_reference.reference_names[anchor->core.tid];
+      int32_t ref_id = SR_RefHeaderGetRefID(vars.reference_header, ref_name);
+      if (ref_id < 0) exit(1);
+      SR_ReferenceJump(files.ref_reader, vars.reference_header, ref_id);
+      SR_InHashTableJump(files.hash_reader, vars.reference_header, ref_id);
+      printf("%s\n", SR_RefHeaderGetName(vars.reference_header, vars.reference->id));
+      SR_ReferenceRead(vars.reference, files.ref_reader);
+      SR_InHashTableRead(vars.hash_table, files.hash_reader);
+    }
+
     uint32_t* cigar = bam1_cigar(vars.query_region->pAnchor);
     bool is_new_region = vars.anchor_region.IsNewRegion(cigar, 
                          vars.query_region->pAnchor->core.n_cigar, vars.query_region->pAnchor->core.pos);
@@ -199,6 +219,22 @@ void PrepareVariablesOrDie(const ParameterParser& parameter_parser,
   // init reference and hash table
   vars->reference  = SR_ReferenceAlloc();
   vars->hash_table = SR_InHashTableAlloc(hash_size);
+}
+
+
+bool NeedNewReference(const SR_Reference& reference, 
+    const SR_RefHeader& reference_header, const int32_t& anchor_ref_id, 
+    const BamReference& bam_reference) {
+  // Unknown reference id
+  if (anchor_ref_id > bam_reference.num_reference)
+    return false;
+
+  const char* bam_ptr = bam_reference.reference_names[anchor_ref_id];
+  const char* ref_ptr = SR_RefHeaderGetName(&reference_header, reference.id);
+  if (strcmp(bam_ptr, ref_ptr) != 0)
+    return true;
+  else
+    return false;
 }
 
 void CheckFileOrDie( 
