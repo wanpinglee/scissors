@@ -50,7 +50,8 @@ struct MainVars{
 
 
 // Prototype of functions
-void Deconstruct( MainFiles& files, MainVars& vars );
+void Deconstruct(MainFiles* files, MainVars* vars);
+void PrepareFiles(MainFiles* files, MainVars* vars);
 void CheckFileOrDie(
     const ParameterParser& parameter_parser,
     const MainFiles& files);
@@ -62,7 +63,7 @@ int main ( int argc, char** argv ) {
   // Parse the arguments and store them
   // The program will exit(1) with printing error message 
   //     if any errors or missing required parameters are found
-  const ParameterParser parameter_parser( argc, argv );
+  ParameterParser const parameter_parser(argc, argv);
 
 
   // =================
@@ -170,7 +171,7 @@ int main ( int argc, char** argv ) {
   }
 
   // free memory and close files
-  Deconstruct( files, vars );
+  Deconstruct(&files, &vars);
 
   cout << "Program done." << endl;
 
@@ -178,18 +179,18 @@ int main ( int argc, char** argv ) {
 
 }
 
-void Deconstruct( MainFiles& files, MainVars& vars ) {
+void Deconstruct(MainFiles* files, MainVars* vars) {
 	// close files
-	SR_BamInStreamFree( files.bam_reader );
-	bam_close( files.bam_writer );
-	fclose( files.ref_reader );
-	fclose( files.hash_reader );
+	SR_BamInStreamFree(files->bam_reader);
+	bam_close(files->bam_writer);
+	fclose(files->ref_reader);
+	fclose(files->hash_reader);
 
 	// free variables
-	SR_QueryRegionFree( vars.query_region );
-	SR_BamHeaderFree( vars.bam_header );
-	SR_ReferenceFree( vars.reference );
-	SR_InHashTableFree( vars.hash_table );
+	SR_QueryRegionFree(vars->query_region);
+	SR_BamHeaderFree(vars->bam_header);
+	SR_ReferenceFree(vars->reference);
+	SR_InHashTableFree(vars->hash_table);
 
 }
 
