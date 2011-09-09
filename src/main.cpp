@@ -61,7 +61,9 @@ void CheckFileOrDie(
     const ParameterParser& parameter_parser,
     const MainFiles& files);
 void ResetHeader( bam_header_t* const bam_header );
-
+void LoadRegionType(const bam1_t& anchor,
+    AnchorRegion& anchor_region,
+    SearchRegionType& search_region_type);
 
 int main ( int argc, char** argv ) {
 	
@@ -89,31 +91,15 @@ int main ( int argc, char** argv ) {
   ResetHeader( vars.bam_header->pOrigHeader );
   bam_header_write( files.bam_writer, vars.bam_header->pOrigHeader );
 
-
-  // Load first reference and its hash table
-  //SR_ReferenceRead(vars.reference, files.ref_reader);
-  //SR_InHashTableRead(vars.hash_table, files.hash_reader);
-
-
   // =========
   // Algorithm
   // =========
 
-  bam1_t* anchor;
   while(SR_BamInStreamGetPair( &(vars.query_region->pAnchor), &(vars.query_region->pOrphan), files.bam_reader ) == SR_OK) {
-    anchor = vars.query_region->pAnchor;
     // Load new reference and hash table if necessary
-    LoadReferenceOrDie(*anchor, &files, &vars);
+    LoadReferenceOrDie(*vars.query_region->pAnchor, &files, &vars);
 
-    uint32_t* cigar = bam1_cigar(vars.query_region->pAnchor);
-    bool is_new_region = vars.anchor_region.IsNewRegion(cigar, 
-                         vars.query_region->pAnchor->core.n_cigar, vars.query_region->pAnchor->core.pos);
-		
-    if (is_new_region) {
-      vars.search_region_type.ResetRegionTypeList();
-    }else{
-      vars.search_region_type.RewindRegionTypeList();
-    }
+    LoadRegionType(*vars.query_region->pAnchor, vars.anchor_region, vars.search_region_type);
 
     const bool is_anchor_forward = bam1_strand(vars.query_region->pAnchor);
     while (vars.search_region_type.GetNextRegionType(is_anchor_forward, &vars.region_type))
@@ -130,6 +116,20 @@ int main ( int argc, char** argv ) {
   cout << "Program done." << endl;
 
   return 0;
+
+}
+
+void LoadRegionType(const bam1_t& anchor, 
+    AnchorRegion& anchor_region,
+    SearchRegionType& search_region_type) {
+  uint32_t* cigar = bam1_cigar(&anchor);
+  bool is_new_region = anchor_region.IsNewRegion(cigar,
+                       anchor.core.n_cigar, 
+		       anchor.core.pos);
+  if (is_new_region)
+    search_region_type.ResetRegionTypeList();
+  else
+    search_region_type.RewindRegionTypeList();
 
 }
 
