@@ -51,7 +51,10 @@ struct MainVars{
 
 // Prototype of functions
 void Deconstruct(MainFiles* files, MainVars* vars);
-void PrepareFiles(MainFiles* files, MainVars* vars);
+void PrepareFiles(const ParameterParser& parameter_parser, MainFiles* files);
+void PrepareVariablesOrDie(
+    const ParameterParser& parameter_parser, 
+    const MainFiles& files, MainVars* vars);
 void CheckFileOrDie(
     const ParameterParser& parameter_parser,
     const MainFiles& files);
@@ -70,78 +73,22 @@ int main ( int argc, char** argv ) {
   // Files Preparation
   // =================
   MainFiles files;
-	
-  // Initialize bam input reader
-  // The program will be terminated with printing error message
-  //     if the input file cannot be opened.
-  files.bam_reader = SR_BamInStreamAlloc(
-      parameter_parser.input_bam.c_str(), 
-      parameter_parser.fragment_length * parameter_parser.mate_window_size, 
-      parameter_parser.allowed_clip );
-  // Initialize bam output writer
-  files.bam_writer = bam_open( parameter_parser.output_bam.c_str(), "w" );
-
-  // Initialize reference input reader
-  files.ref_reader = fopen( parameter_parser.reference_filename.c_str(), "rb");
-  files.hash_reader = fopen( parameter_parser.hash_filename.c_str(), "rb");
-
-  // Check files statuses
-  CheckFileOrDie( parameter_parser, files );
+  PrepareFiles(parameter_parser, &files);
+  CheckFileOrDie(parameter_parser, files);
 
 
   // =====================
   // Variables Preparation
   // =====================
   MainVars vars;
-
-  // Load bam header	
-  vars.bam_header = SR_BamHeaderAlloc();
-  vars.bam_header = SR_BamInStreamLoadHeader(files.bam_reader);
-  if( !parameter_parser.is_input_sorted && !BamUtilities::IsFileSorted( vars.bam_header->pOrigHeader ) ) {
-    // The input bam is unsorted, exit
-    cout << "ERROR: The input bam seems unsorted. "
-         << "Please use bamtools sort to sort the bam" << endl
-	 << "       or type -s to ignore this checker." << endl;
-	 exit(1);
-  }
+  PrepareVariablesOrDie(parameter_parser, files, &vars);
 
   // Write bam header
   ResetHeader( vars.bam_header->pOrigHeader );
   bam_header_write( files.bam_writer, vars.bam_header->pOrigHeader );
 
 
-  // =====================
-  // Variables Preparation
-  // =====================
-
-  // bam reference
-  vars.bam_reference.num_reference = 
-    SR_BamHeaderGetRefNum(vars.bam_header);
-  vars.bam_reference.reference_names = 
-    SR_BamHeaderGetRefNames(vars.bam_header);
-  vars.bam_reference.reference_lengths = 
-    SR_BamHeaderGetRefLens(vars.bam_header);
-
-  // bam records are in SR_QueryRegion structure
-  vars.query_region = SR_QueryRegionAlloc();
-
-  // Load header of reference file
-  vars.reference_header  = SR_RefHeaderAlloc();
-  int64_t reference_seal = SR_RefHeaderRead(vars.reference_header, files.ref_reader);
-  //SR_ReferenceRead( vars.reference, files.ref_reader );
-	
-  // Load header of hash file
-  unsigned char hash_size = 0;
-  int64_t hash_seal = SR_InHashTableReadStart(&hash_size, files.hash_reader);
-
-  if (reference_seal != hash_seal) {
-    printf("ERROR: The reference file is not compatible with the hash table file.\n");
-    exit(1);
-  }
-
   // Load first reference and its hash table
-  vars.reference  = SR_ReferenceAlloc();
-  vars.hash_table = SR_InHashTableAlloc(hash_size);
   SR_ReferenceRead(vars.reference, files.ref_reader);
   SR_InHashTableRead(vars.hash_table, files.hash_reader);
 
@@ -194,6 +141,65 @@ void Deconstruct(MainFiles* files, MainVars* vars) {
 
 }
 
+void PrepareFiles(const ParameterParser& parameter_parser, MainFiles* files) {
+  // Initialize bam input reader
+  // The program will be terminated with printing error message
+  //     if the given bam cannot be opened.
+  files->bam_reader = SR_BamInStreamAlloc(
+      parameter_parser.input_bam.c_str(), 
+      parameter_parser.fragment_length * parameter_parser.mate_window_size, 
+      parameter_parser.allowed_clip );
+  // Initialize bam output writer
+  files->bam_writer = bam_open( parameter_parser.output_bam.c_str(), "w" );
+
+  // Initialize reference input reader
+  files->ref_reader  = fopen( parameter_parser.reference_filename.c_str(), "rb");
+  files->hash_reader = fopen( parameter_parser.hash_filename.c_str(), "rb");
+
+}
+
+void PrepareVariablesOrDie(const ParameterParser& parameter_parser, 
+    const MainFiles& files,
+    MainVars* vars) {
+  // Load bam header	
+  vars->bam_header = SR_BamHeaderAlloc();
+  vars->bam_header = SR_BamInStreamLoadHeader(files.bam_reader);
+  if( !parameter_parser.is_input_sorted && !BamUtilities::IsFileSorted( vars->bam_header->pOrigHeader ) ) {
+    // The input bam is unsorted, exit
+    cout << "ERROR: The input bam seems unsorted. "
+         << "Please use bamtools sort to sort the bam" << endl
+	 << "       or type -s to ignore this checker." << endl;
+	 exit(1);
+  }
+
+  // bam reference
+  vars->bam_reference.num_reference = 
+    SR_BamHeaderGetRefNum(vars->bam_header);
+  vars->bam_reference.reference_names = 
+    SR_BamHeaderGetRefNames(vars->bam_header);
+  vars->bam_reference.reference_lengths = 
+    SR_BamHeaderGetRefLens(vars->bam_header);
+
+  // Note: bam records are in SR_QueryRegion structure
+  vars->query_region = SR_QueryRegionAlloc();
+
+  // Load header of reference file
+  vars->reference_header  = SR_RefHeaderAlloc();
+  int64_t reference_seal  = SR_RefHeaderRead(vars->reference_header, files.ref_reader);
+
+  // Load header of hash file
+  unsigned char hash_size = 0;
+  int64_t hash_seal = SR_InHashTableReadStart(&hash_size, files.hash_reader);
+
+  if (reference_seal != hash_seal) {
+    printf("ERROR: The reference file is not compatible with the hash table file.\n");
+    exit(1);
+  }
+
+  // init reference and hash table
+  vars->reference  = SR_ReferenceAlloc();
+  vars->hash_table = SR_InHashTableAlloc(hash_size);
+}
 
 void CheckFileOrDie( 
 		const ParameterParser& parameter_parser,
