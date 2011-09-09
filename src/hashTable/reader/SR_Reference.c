@@ -10,7 +10,7 @@
  *       Revision:  none
  *       Compiler:  gcc
  *
- *         Author:  YOUR NAME (), 
+ *         Author:  Jiantao Wu (), 
  *        Company:  
  *
  * =====================================================================================
@@ -22,8 +22,36 @@
 #include <ctype.h>
 
 #include "utilities/md5.h"
+#include "samtools/khash.h"
 #include "hashTable/common/SR_Error.h"
 #include "SR_Reference.h"
+
+
+//===============================
+// Type and constant definition
+//===============================
+
+// maximum number of character will be load in a line from the fasta file
+#define MAX_REF_LINE 1024
+
+// number of characters can be held in a reference object
+// this value assure that the largest chromosome in the human reference, chromsome 1, can be
+// load into the object without any reallocation.
+#define DEFAULT_REF_CAP 300000000
+
+// the default start chromosome ID
+#define DEFAULT_START_CHR 1
+
+// the default number of chromosomes
+#define DEFAULT_NUM_CHR 100
+
+// initialize the hash table for reference name
+KHASH_MAP_INIT_STR(refName, int32_t);
+
+
+//===================
+// Static methods
+//===================
 
 // process a line of reference sequence
 static const char* ProcessRefLine(unsigned short* len, char* buff)
@@ -55,115 +83,271 @@ static const char* ProcessRefLine(unsigned short* len, char* buff)
 }
 
 // process the header line in the fasta file to get the ID for the next chromosome
-static unsigned char ProcessHeaderLine(const char* buff)
+static void SR_RefHeaderSetName(SR_RefHeader* pRefHeader, const char* buff)
 {
     // we only accept two formats of header
     // 1) the chromosome ID should closely followed by the '>' character.
     // 2) the chromosome ID should closely followed by the ">chr" string.
     // the end of chromosome ID is either detected with a space character, a tab character, a new line character or a null character.
 
+
+    // skip the '>' character
     const char* header = buff + 1;
-    if (strncmp(header, "chr", 3) == 0)
-        header = buff + 4;
-
-    // the ID of a chromosome should be less than 4 characters
-    char chrBuff[4];
-
-    for(unsigned int i = 0; i != 3; ++i)
+    while (*header != ' ' && *header != '\t' 
+           && *header != '\n' && *header != '\0')
     {
-        if (header[i] == ' ' || header[i] == '\t' || header[i] == '\n' || header[i] == '\0')
-        {
-            chrBuff[i] = '\0';
-            break;
-        }
-
-        chrBuff[i] = header[i];
+        ++header;
     }
 
-    chrBuff[3] = '\0';
+    unsigned int headerLen = header - buff - 1;
+    if (headerLen != 0)
+    {
+        pRefHeader->names[pRefHeader->numRefs] = (char*) malloc((headerLen + 1) * sizeof(char));
+        if (pRefHeader->names[pRefHeader->numRefs] == NULL)
+            SR_ErrQuit("ERROR: Not enough memory for the reference name.\n");
 
-    // by default chrX is denoted as 23
-    // chrY is denoted as 24
-    // chrMT is denoted as 25
-    // the rest chromosome will use a arabic number as its ID
-    // 0 IS NOT ALLOWED TO BE USED AS A CHROMOSOME ID. 0 IS USED AS AN ERROR FLAG.
-
-    if (strcmp(chrBuff, "X") == 0)
-        return X;
-    else if (strcmp(chrBuff, "Y") == 0)
-        return Y;
-    else if (strcmp(chrBuff, "MT") == 0)
-        return MT;
+        pRefHeader->names[pRefHeader->numRefs][headerLen] = '\0';
+        strncpy(pRefHeader->names[pRefHeader->numRefs], buff + 1, headerLen);
+    }
     else
-        return (unsigned char) atoi(chrBuff);
+        pRefHeader->names[pRefHeader->numRefs] = NULL;
 }
 
-// calculate the md5 sum value of a reference sequence
-// and store the result in a reference object
-static void SetMd5(SR_Reference* reference)
+static void SR_RefHeaderSetMd5(SR_RefHeader* pRefHeader, SR_Reference* pRef)
 {
-    unsigned char MD5[MD5_CHECKSUM_LEN];
+    pRef->id = pRefHeader->numRefs;
 
+    unsigned char MD5[MD5_CHECKSUM_LEN];
     memset(MD5, 0, MD5_CHECKSUM_LEN);
 
     MD5_CTX context;
     MD5Init(&context);
-    MD5Update(&context, (unsigned char*) reference->sequence, reference->length);
+    MD5Update(&context, (unsigned char*) pRef->sequence, pRef->seqLen);
     MD5Final(MD5, &context);
 
-    char* md5String = reference->md5;
+    char* md5String = pRefHeader->md5s + MD5_STR_LEN * pRefHeader->numRefs;
     for (unsigned int i = 0; i != MD5_CHECKSUM_LEN; ++i)
     {
-        sprintf(md5String, "%02x", MD5[i]);
+        sprintf(md5String, "%02X", MD5[i]);
         md5String += 2;
     }
+
+    ++(pRefHeader->numRefs);
 }
 
 
+//===============================
+// Constructors and Destructors
+//===============================
+
 // create a new reference object
-SR_Reference* SR_ReferenceAlloc(uint32_t capacity)
+SR_Reference* SR_ReferenceAlloc(void)
 {
     SR_Reference* newRef = (SR_Reference*) malloc(sizeof(SR_Reference));
     if (newRef == NULL)
-        SR_ErrSys("ERROR: Not enough memory for a reference object.\n");
+        SR_ErrQuit("ERROR: Not enough memory for a reference object.\n");
 
-    if (capacity == 0)
-    {
-        SR_ErrMsg("WARNING: Capacity of reference sequence should be greater than zero. A default value %d will be used.\n", DEFAULT_REF_CAPACITY);
-        capacity = DEFAULT_REF_CAPACITY;
-    }
-
-    newRef->sequence = (char*) malloc(sizeof(char) * capacity);
+    newRef->sequence = (char*) malloc(sizeof(char) * DEFAULT_REF_CAP);
     if (newRef->sequence == NULL)
-        SR_ErrSys("ERROR: Not enough memory for the storage of sequence in a reference object.\n");
+        SR_ErrQuit("ERROR: Not enough memory for the storage of sequence in a reference object.\n");
 
-    newRef->chr = 0;
-    newRef->length = 0;
-    newRef->capacity = capacity;
-    newRef->md5[MD5_STR_LEN] = '\0';
+    newRef->id = 0;
+    newRef->seqLen = 0;
+    newRef->seqCap = DEFAULT_REF_CAP;
 
     return newRef;
 }
 
 // free an existing reference object
-void SR_ReferenceFree(SR_Reference* reference)
+void SR_ReferenceFree(SR_Reference* pRef)
 {
-    if (reference != NULL)
+    if (pRef != NULL)
     {
-        free(reference->sequence);
-
-        free(reference);
+        free(pRef->sequence);
+        free(pRef);
     }
 }
 
+SR_RefHeader* SR_RefHeaderAlloc(void)
+{
+    SR_RefHeader* pRefHeader = (SR_RefHeader*) calloc(1, sizeof(SR_RefHeader));
+    if (pRefHeader == NULL)
+        SR_ErrQuit("ERROR: Not enough memory for a reference header object.\n");
+
+    pRefHeader->names = (char**) calloc(DEFAULT_NUM_CHR, sizeof(char*));
+    if (pRefHeader->names == NULL)
+        SR_ErrQuit("ERROR: Not enough memory for reference names in a reference header object.\n");
+
+    pRefHeader->dict = (void*) kh_init(refName);
+
+    pRefHeader->md5s = (char*) calloc(DEFAULT_NUM_CHR * MD5_STR_LEN, sizeof(char));
+    if (pRefHeader->md5s == NULL)
+        SR_ErrQuit("ERROR: Not enough memory for MD5 strings in a reference header object.\n");
+
+    pRefHeader->refFilePos = (int64_t*) calloc(DEFAULT_NUM_CHR, sizeof(int64_t));
+    if (pRefHeader->refFilePos == NULL)
+        SR_ErrQuit("ERROR: Not enough memory for reference file positions in a reference header object.\n");
+
+    pRefHeader->htFilePos = (int64_t*) calloc(DEFAULT_NUM_CHR, sizeof(int64_t));
+    if (pRefHeader->htFilePos == NULL)
+        SR_ErrQuit("ERROR: Not enough memory for hash table file positions in a reference header object.\n");
+
+    pRefHeader->numRefs = 0;
+
+    return pRefHeader;
+}
+
+void SR_RefHeaderFree(SR_RefHeader* pRefHeader)
+{
+    if (pRefHeader != NULL)
+    {
+        kh_destroy(refName, pRefHeader->dict);
+
+        if (pRefHeader->names != NULL)
+        {
+            for (unsigned int i = 0; i != pRefHeader->numRefs; ++i)
+                free(pRefHeader->names[i]);
+
+            free(pRefHeader->names);
+        }
+
+        free(pRefHeader->md5s);
+        free(pRefHeader->refFilePos);
+        free(pRefHeader->htFilePos);
+
+        free(pRefHeader);
+    }
+}
+
+
+//==========================================
+// Interface functions related with input
+//==========================================
+
+// read the reference header from the reference file
+int64_t SR_RefHeaderRead(SR_RefHeader* pRefHeader, FILE* refInput)
+{
+    size_t readSize = 0;
+    int64_t refHeaderPos = 0;
+    int64_t refStart = 0;
+
+    readSize = fread(&refHeaderPos, sizeof(int64_t), 1, refInput);
+    if (readSize != 1)
+        SR_ErrQuit("ERROR: Cannot read the reference header position from the reference file.\n");
+
+    if ((refStart = ftello(refInput)) < 0)
+        SR_ErrQuit("ERROR: Cannot get the offset of current file.\n");
+
+    if (fseeko(refInput, refHeaderPos, SEEK_SET) != 0)
+        SR_ErrQuit("ERROR: Cannot seek in the reference file.\n");
+
+    readSize = fread(&(pRefHeader->numRefs), sizeof(uint32_t), 1, refInput);
+    if (readSize != 1)
+        SR_ErrQuit("ERROR: Cannot read the number of chromosomes from the reference file.\n");
+
+    int khRet = 0;
+    khiter_t iter;
+    khash_t(refName)* hash = pRefHeader->dict;
+    for (unsigned int i = 0; i != pRefHeader->numRefs; ++i)
+    {
+        uint32_t nameLen = 0;
+        readSize = fread(&nameLen, sizeof(uint32_t), 1, refInput);
+        if (readSize != 1)
+            SR_ErrQuit("ERROR: Cannot read the reference name length from the reference file.\n");
+
+        pRefHeader->names[i] = (char*) malloc(sizeof(char) * (nameLen + 1));
+        if (pRefHeader->names[i] == NULL)
+            SR_ErrQuit("ERROR: Not enough memory for the reference name.\n");
+
+        pRefHeader->names[i][nameLen] = '\0';
+        readSize = fread(pRefHeader->names[i], sizeof(char), nameLen, refInput);
+        if (readSize != nameLen)
+            SR_ErrQuit("ERROR: Cannot read the reference name from the reference file.\n");
+
+        iter = kh_put(refName, hash, pRefHeader->names[i], &khRet);
+        kh_value(hash, iter) = i;
+    }
+
+    readSize = fread(pRefHeader->md5s, sizeof(char), MD5_STR_LEN * pRefHeader->numRefs, refInput);
+    if (readSize != MD5_STR_LEN * pRefHeader->numRefs)
+        SR_ErrQuit("ERROR: Cannot read the md5 strings from the reference file.\n");
+
+    readSize = fread(pRefHeader->refFilePos, sizeof(int64_t), pRefHeader->numRefs, refInput);
+    if (readSize !=  pRefHeader->numRefs)
+        SR_ErrQuit("ERROR: Cannot read the offset of chromosomes from the reference file.\n");
+
+    readSize = fread(pRefHeader->htFilePos, sizeof(int64_t), pRefHeader->numRefs, refInput);
+    if (readSize != pRefHeader->numRefs)
+        SR_ErrQuit("ERROR: Cannot read the offset of hash table from the reference file.\n");
+
+    if (fseeko(refInput, refStart, SEEK_SET) != 0)
+        SR_ErrQuit("ERROR: Cannot seek in the reference file.\n");
+
+    return refHeaderPos;
+}
+
+// get the reference ID given the reference name
+int32_t SR_RefHeaderGetRefID(const SR_RefHeader* pRefHeader, const char* refName)
+{
+    khiter_t iter;
+    khash_t(refName)* hash = (khash_t(refName)*) pRefHeader->dict;
+    iter = kh_get(refName, hash, refName);
+
+    return iter == kh_end(hash)? -1 : kh_value(hash, iter);
+}
+
+// jump to a certain chromosome given the reference ID
+SR_Status SR_ReferenceJump(FILE* refInput, const SR_RefHeader* pRefHeader, int32_t refID)
+{
+    int64_t jumpPos = pRefHeader->refFilePos[refID];
+
+    if (fseeko(refInput, jumpPos, SEEK_SET) != 0)
+        return SR_ERR;
+
+    return SR_OK;
+}
+
+// read the reference sequence from the input reference file 
+void SR_ReferenceRead(SR_Reference* pRef, FILE* refInput)
+{
+    size_t readSize = 0;
+
+    readSize = fread(&(pRef->id), sizeof(int32_t), 1, refInput);
+    if (readSize != 1)
+        SR_ErrQuit("ERROR: Cannot read the pRef input file due to an error.\n");
+
+    readSize = fread(&(pRef->seqLen), sizeof(uint32_t), 1, refInput);
+    if (readSize != 1)
+        SR_ErrQuit("ERROR: Cannot read chromosome length from the reference file.\n");
+
+    if (pRef->seqLen > pRef->seqCap)
+    {
+        pRef->seqCap = pRef->seqLen;
+
+        free(pRef->sequence);
+        pRef->sequence = (char*) malloc(sizeof(char) * pRef->seqCap);
+        if (pRef->sequence == NULL)
+            SR_ErrQuit("ERROR: Not enough memory for reference sequence.\n");
+    }
+
+    readSize = fread(pRef->sequence, sizeof(char), pRef->seqLen, refInput);
+    if (readSize != pRef->seqLen)
+        SR_ErrQuit("ERROR: Cannot read chromosome sequence from the reference file.\n");
+}
+
+
+//==========================================
+// Interface functions related with output
+//==========================================
+
 // read the reference sequence in the fasta file line by line, one chromosome at each time
-SR_Bool SR_ReferenceLoad(SR_Reference* reference, unsigned char* nextChr, FILE* faInput)
+SR_Status SR_ReferenceLoad(SR_Reference* pRef, SR_RefHeader* pRefHeader, FILE* faInput)
 {
     char buff[MAX_REF_LINE];
 
     while (fgets(buff, MAX_REF_LINE, faInput) != NULL && buff[0] != '>')
     {
-        // actual length of the reference line
+        // actual length of the pRef line
         // excluding the starting and trailing space and the new line character
         unsigned short length = 0;
         const char* refLine = ProcessRefLine(&length, buff);
@@ -172,119 +356,148 @@ SR_Bool SR_ReferenceLoad(SR_Reference* reference, unsigned char* nextChr, FILE* 
         if (refLine == NULL)
             continue;
 
-        // we shouldn't get this step if we are handling human reference
+        // we shouldn't get this step if we are handling human pRef
         // the default capacity(300Mbp) should be enough even for the largest chromosome in human genome
-        if (length + reference->length > reference->capacity)
+        if (length + pRef->seqLen > pRef->seqCap)
         {
-            reference->capacity *= 2;
-            reference->sequence = (char*) realloc(reference->sequence, sizeof(char) * reference->capacity);
-            if (reference->sequence == NULL) 
-                SR_ErrQuit("ERROR: Not enough memory for the storage of sequence in the reference object.\n");
+            pRef->seqCap *= 2;
+            pRef->sequence = (char*) realloc(pRef->sequence, sizeof(char) * pRef->seqCap);
+            if (pRef->sequence == NULL) 
+                SR_ErrQuit("ERROR: Not enough memory for the storage of sequence in the pRef object.\n");
         }
 
-        // copy the current line into the reference object
-        char* cpAddr= reference->sequence + reference->length;
+        // copy the current line into the pRef object
+        char* cpAddr= pRef->sequence + pRef->seqLen;
         strncpy(cpAddr, refLine, length);
-        reference->length += length;
+        pRef->seqLen += length;
     }
 
-    if (reference->length > 0)
-        SetMd5(reference);
+    if (pRef->seqLen > 0)
+        SR_RefHeaderSetMd5(pRefHeader, pRef);
+    else
+    {
+        free(pRefHeader->names[pRefHeader->numRefs]);
+        pRefHeader->names[pRefHeader->numRefs] = NULL;
+    }
 
     if (buff[0] == '>')
-        *nextChr = ProcessHeaderLine(buff);
+        SR_RefHeaderSetName(pRefHeader, buff);
     else if (feof(faInput))
-        return FALSE;
+        return SR_EOF;
     else
-        SR_ErrSys("ERROR: Found an error when reading the fasta file.");
+        return SR_ERR;
 
-    return TRUE;
+    return SR_OK;
 }
 
 // skip the reference sequence with unknown chromosome ID
-SR_Bool SR_ReferenceSkip(unsigned char* nextChr, FILE* faInput)
+SR_Status SR_ReferenceSkip(SR_RefHeader* pRefHeader, FILE* faInput)
 {
-
     char buff[MAX_REF_LINE];
 
     while (fgets(buff, MAX_REF_LINE, faInput) != NULL && buff[0] != '>')
         continue;
 
     if (buff[0] == '>')
-        *nextChr = ProcessHeaderLine(buff);
+        SR_RefHeaderSetName(pRefHeader, buff);
     else if (feof(faInput))
-        return FALSE;
+        return SR_EOF;
     else
-        SR_ErrSys("ERROR: Found an error when reading the fasta file.");
+        return SR_ERR;
 
-    return TRUE;
+    return SR_OK;
 }
 
-// write the reference sequence into a output file in the binary format
-off_t SR_ReferenceWrite(FILE* refOutput, const SR_Reference* reference)
+// leave enough space at the beginning of the output reference
+// output file to store the reference header position
+void SR_ReferenceLeaveStart(FILE* refOutput)
 {
-    off_t fileOffset = ftello(refOutput);
-    if (fileOffset == -1)
-        SR_ErrSys("ERROR: Cannot get the offset of current file.\n");
+    int64_t emptyOffset = 0;
+    size_t writeSize = 0;
+
+    writeSize = fwrite(&emptyOffset, sizeof(int64_t), 1, refOutput);
+    if (writeSize != 1)
+        SR_ErrQuit("ERROR: Cannot write the offset of the reference header into the reference file.\n");
+}
+
+// set the reference header position
+void SR_ReferenceSetStart(int64_t refHeaderPos, FILE* refOutput)
+{
+    if (fseeko(refOutput, 0, SEEK_SET) != 0)
+        SR_ErrSys("ERROR: Cannot seek in the reference output file\n");
 
     size_t writeSize = 0;
 
-    writeSize = fwrite(&(reference->chr), sizeof(unsigned char), 1, refOutput);
+    writeSize = fwrite(&refHeaderPos, sizeof(int64_t), 1, refOutput);
     if (writeSize != 1)
-        SR_ErrSys("ERROR: Cannot write chromosome ID into the reference file.\n");
+        SR_ErrQuit("ERROR: Cannot write the offset of the reference header into the reference file.\n");
+}
 
-    writeSize = fwrite(reference->md5, sizeof(char), MD5_STR_LEN, refOutput);
-    if (writeSize != MD5_STR_LEN)
-        SR_ErrSys("ERROR: Cannot write md5 string into the reference file.\n");
+// write a reference sequence into the reference output file
+int64_t SR_ReferenceWrite(const SR_Reference* pRef, FILE* refOutput)
+{
+    int64_t offset = ftello(refOutput);
+    if (offset < 0)
+        SR_ErrQuit("ERROR: Cannot get the offset of current file.\n");
 
-    writeSize = fwrite(&(reference->length), sizeof(uint32_t), 1, refOutput);
+    size_t writeSize = 0;
+
+    writeSize = fwrite(&(pRef->id), sizeof(int32_t), 1, refOutput);
     if (writeSize != 1)
-        SR_ErrSys("ERROR: Cannot write chromosome length into the reference file.\n");
+        SR_ErrQuit("ERROR: Cannot write chromosome ID into the reference file.\n");
 
-    writeSize = fwrite(reference->sequence, sizeof(char), reference->length, refOutput);
-    if (writeSize != reference->length)
-        SR_ErrSys("ERROR: Cannot write chromosome sequence into the reference file.\n");
+    writeSize = fwrite(&(pRef->seqLen), sizeof(uint32_t), 1, refOutput);
+    if (writeSize != 1)
+        SR_ErrQuit("ERROR: Cannot write chromosome length into the reference file.\n");
+
+    writeSize = fwrite(pRef->sequence, sizeof(char), pRef->seqLen, refOutput);
+    if (writeSize != pRef->seqLen)
+        SR_ErrQuit("ERROR: Cannot write chromosome sequence into the reference file.\n");
 
     fflush(refOutput);
 
-    return fileOffset;
+    return offset;
 }
 
-// read the reference sequence from an input file in the binary format
-SR_Bool SR_ReferenceRead(SR_Reference* reference, FILE* refInput)
+// write the reference header into the output reference file
+int64_t SR_RefHeaderWrite(const SR_RefHeader* pRefHeader, FILE* refOutput)
 {
-    size_t readSize = 0;
+    int64_t offset = ftello(refOutput);
+    if (offset < 0)
+        SR_ErrQuit("ERROR: Cannot get the offset of current file.\n");
 
-    readSize = fread(&(reference->chr), sizeof(unsigned char), 1, refInput);
-    if (readSize != 1)
+    size_t writeSize = 0;
+
+    writeSize = fwrite(&(pRefHeader->numRefs), sizeof(uint32_t), 1, refOutput);
+    if (writeSize != 1)
+        SR_ErrQuit("ERROR: Cannot write the total number of chromosomes into the reference file.\n");
+
+    for (unsigned int i = 0; i != pRefHeader->numRefs; ++i)
     {
-        if (feof(refInput))
-            return FALSE;
-        else
-            SR_ErrQuit("ERROR: Cannot read the reference input file due to an error.\n");
+        uint32_t nameLen = strlen(pRefHeader->names[i]);
+        writeSize = fwrite(&nameLen, sizeof(uint32_t), 1, refOutput);
+        if (writeSize != 1)
+            SR_ErrQuit("ERROR: Cannot write the length of reference name into the reference file.\n");
+
+        writeSize = fwrite(pRefHeader->names[i], sizeof(char),  nameLen, refOutput);
+        if (writeSize != nameLen)
+            SR_ErrQuit("ERROR: Cannot write the reference name into the reference file.\n");
     }
 
-    readSize = fread(reference->md5, sizeof(char), MD5_STR_LEN, refInput);
-    if (readSize != MD5_STR_LEN)
-        SR_ErrSys("ERROR: Cannot read md5 string from the reference file.\n");
+    writeSize = fwrite(pRefHeader->md5s, sizeof(char), MD5_STR_LEN * pRefHeader->numRefs, refOutput);
+    if (writeSize != MD5_STR_LEN * pRefHeader->numRefs)
+        SR_ErrQuit("ERROR: Cannot write the MD5 strings into the reference file.\n");
 
-    readSize = fread(&(reference->length), sizeof(uint32_t), 1, refInput);
-    if (readSize != 1)
-        SR_ErrSys("ERROR: Cannot read chromosome length from the reference file.\n");
+    writeSize = fwrite(pRefHeader->refFilePos, sizeof(int64_t), pRefHeader->numRefs, refOutput);
+    if (writeSize != pRefHeader->numRefs)
+        SR_ErrQuit("ERROR: Cannot write the file offsets of the reference into the reference file.\n");
 
-    if (reference->length > reference->capacity)
-    {
-        reference->capacity = reference->length;
+    writeSize = fwrite(pRefHeader->htFilePos, sizeof(int64_t), pRefHeader->numRefs, refOutput);
+    if (writeSize != pRefHeader->numRefs)
+        SR_ErrQuit("ERROR: Cannot write the file offsets of the hash table into the reference file.\n");
 
-        free(reference->sequence);
-        reference->sequence = (char*) malloc(sizeof(char) * reference->capacity);
-        if (reference->sequence == NULL)
-            SR_ErrQuit("ERROR: Not enough memory for reference sequence.\n");
-    }
+    fflush(refOutput);
 
-    readSize = fread(reference->sequence, sizeof(char), reference->length, refInput);
-    if (readSize != reference->length)
-        SR_ErrSys("ERROR: Cannot read chromosome sequence from the reference file.\n");
-
-    return TRUE;
+    return offset;
 }
+

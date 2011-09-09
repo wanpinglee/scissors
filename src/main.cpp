@@ -30,14 +30,22 @@ struct MainFiles {
   FILE*           hash_reader; // hash table reader
 };
 
+struct BamReference {
+  int             num_reference;
+  const char**    reference_names;
+  const uint32_t* reference_lengths;
+};
+
 struct MainVars{
   SR_QueryRegion*  query_region;
   SR_BamHeader*    bam_header;
   SR_Reference*    reference;
+  SR_RefHeader*    reference_header;
   SR_InHashTable*  hash_table;
   AnchorRegion     anchor_region;
   SearchRegionType search_region_type;
   RegionType       region_type;
+  BamReference     bam_reference;
 };
 
 
@@ -85,11 +93,9 @@ int main ( int argc, char** argv ) {
   // =====================
   MainVars vars;
 
-  // Load bam header
-	
+  // Load bam header	
   vars.bam_header = SR_BamHeaderAlloc();
-  vars.bam_header = SR_BamInStreamLoadHeader( files.bam_reader );
-	
+  vars.bam_header = SR_BamInStreamLoadHeader(files.bam_reader);
   if( !parameter_parser.is_input_sorted && !BamUtilities::IsFileSorted( vars.bam_header->pOrigHeader ) ) {
     // The input bam is unsorted, exit
     cout << "ERROR: The input bam seems unsorted. "
@@ -97,8 +103,7 @@ int main ( int argc, char** argv ) {
 	 << "       or type -s to ignore this checker." << endl;
 	 exit(1);
   }
-	
-	
+
   // Write bam header
   ResetHeader( vars.bam_header->pOrigHeader );
   bam_header_write( files.bam_writer, vars.bam_header->pOrigHeader );
@@ -107,19 +112,38 @@ int main ( int argc, char** argv ) {
   // =====================
   // Variables Preparation
   // =====================
-	
+
+  // bam reference
+  vars.bam_reference.num_reference = 
+    SR_BamHeaderGetRefNum(vars.bam_header);
+  vars.bam_reference.reference_names = 
+    SR_BamHeaderGetRefNames(vars.bam_header);
+  vars.bam_reference.reference_lengths = 
+    SR_BamHeaderGetRefLens(vars.bam_header);
+
   // bam records are in SR_QueryRegion structure
   vars.query_region = SR_QueryRegionAlloc();
 
-  // Load first reference
-  uint32_t buffer_size = 1000000;
-  vars.reference = SR_ReferenceAlloc( buffer_size );
-  SR_ReferenceRead( vars.reference, files.ref_reader );
+  // Load header of reference file
+  vars.reference_header  = SR_RefHeaderAlloc();
+  int64_t reference_seal = SR_RefHeaderRead(vars.reference_header, files.ref_reader);
+  //SR_ReferenceRead( vars.reference, files.ref_reader );
 	
-  // Load first hash table
-  uint32_t hash_size = 0;
-  READ_HASH_SIZE( hash_size, files.hash_reader );
+  // Load header of hash file
+  unsigned char hash_size = 0;
+  int64_t hash_seal = SR_InHashTableReadStart(&hash_size, files.hash_reader);
+
+  if (reference_seal != hash_seal) {
+    printf("ERROR: The reference file is not compatible with the hash table file.\n");
+    exit(1);
+  }
+
+  // Load first reference and its hash table
+  vars.reference  = SR_ReferenceAlloc();
   vars.hash_table = SR_InHashTableAlloc(hash_size);
+  SR_ReferenceRead(vars.reference, files.ref_reader);
+  SR_InHashTableRead(vars.hash_table, files.hash_reader);
+
 
   // =========
   // Algorithm

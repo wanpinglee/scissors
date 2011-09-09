@@ -10,7 +10,7 @@
  *       Revision:  none
  *       Compiler:  gcc
  *
- *         Author:  YOUR NAME (), 
+ *         Author:  Jiantao Wu (), 
  *        Company:  
  *
  * =====================================================================================
@@ -25,60 +25,212 @@
 
 #include "hashTable/common/SR_Types.h"
 
-// maximum number of character will be load in a line from the fasta file
-static const uint32_t MAX_REF_LINE = 1024;
 
-// number of characters can be held in a reference object
-// this value assure that the largest chromosome in the human reference, chromsome 1, can be
-// load into the object without any reallocation.
-static const uint32_t DEFAULT_REF_CAPACITY = 300000000;
-
-// the default start chromosome ID
-static const uint32_t DEFAULT_START_CHR = 1;
+//===============================
+// Type and constant definition
+//===============================
 
 // reset the reference object for next reading
-#define SR_ReferenceReset(reference, nextChr) \
-    do                                     \
-    {                                      \
-        (reference)->chr = (nextChr);      \
-        (reference)->length = 0;           \
+#define SR_ReferenceReset(pRef)               \
+    do                                        \
+    {                                         \
+        (pRef)->seqLen = 0;                   \
+                                              \
     }while(0) 
 
+
+// reference header strcture
+typedef struct SR_RefHeader
+{
+    char** names;             // an array contains the name of each chromosome
+
+    void* dict;               // a hash table of reference name and reference ID
+
+    char* md5s;               // an array contains the md5 string of each chromosome
+
+    int64_t* refFilePos;      // an array contains the file offset poisition of each chromosomes in the reference file
+
+    int64_t* htFilePos;       // an array contains the file offset poisition of each chromosomes in the hash table file
+
+    uint32_t numRefs;         // total number of chromosomes 
+
+}SR_RefHeader;
 
 // an object hold the reference sequence of a chromosome
 typedef struct SR_Reference
 {
     char* sequence;               // reference sequence
 
-    char  md5[MD5_STR_LEN + 1];   // md5 checksum string
+    int32_t  id;                  // id of the chromosome
 
-    unsigned char chr;            // chromsome ID
+    uint32_t seqLen;              // length of the chromosome
 
-    uint32_t length;              // length of the chromosome
-
-    uint32_t capacity;            // total number of characters allocated
+    uint32_t seqCap;              // capacity of reference sequence
 
 }SR_Reference;
 
+// get the reference name given the reference ID
+#define SR_RefHeaderGetName(pRefHeader, refID) ((pRefHeader)->names[(refID)])
+
+// get the md5 string (not null terminated) given the reference ID
+#define SR_RefHeaderGetMD5(pRefHeader, refID) ((pRefHeader)->md5s + (refID) * MD5_STR_LEN)
+
+//===============================
+// Constructors and Destructors
+//===============================
 
 // create a new reference object
-SR_Reference* SR_ReferenceAlloc(uint32_t capacity);
+SR_Reference* SR_ReferenceAlloc(void);
 
 // free an existing reference object
-void SR_ReferenceFree(SR_Reference* reference);
+void SR_ReferenceFree(SR_Reference* pRef);
 
-// read the reference sequence in the fasta file line by line, one chromosome at each time
-SR_Bool SR_ReferenceLoad(SR_Reference* reference, unsigned char* nextChr, FILE* faInput);
+SR_RefHeader* SR_RefHeaderAlloc(void);
 
-// skip the reference sequence with unknown chromosome ID
-SR_Bool SR_ReferenceSkip(unsigned char* nextChr, FILE* faInput);
+void SR_RefHeaderFree(SR_RefHeader* pRefHeader);
 
-// write the reference sequence into a output file in the binary format
-off_t SR_ReferenceWrite(FILE* refOutput, const SR_Reference* reference);
 
-// read the reference sequence from an input file in the binary format
-SR_Bool SR_ReferenceRead(SR_Reference* reference, FILE* refInput);
+//==========================================
+// Interface functions related with input
+//==========================================
 
+//====================================================================
+// function:
+//      read the reference header from the reference file
+//
+// args:
+//      1. pRefHeader: a pointer to the reference header structure
+//      2. refInput: a file pointer to the input reference file
+// 
+// return:
+//      the file offset of the reference header structure in the 
+//      reference file. It is used to check the compatibility between
+//      the reference file and the hash table file
+//====================================================================
+int64_t SR_RefHeaderRead(SR_RefHeader* pRefHeader, FILE* refInput);
+
+//===================================================================
+// function:
+//      get the reference ID given the reference name
+//
+// args:
+//      1. pRefHeader: a pointer to the reference header structure
+//      2. refName: a reference name
+// 
+// return:
+//      if the reference name is found, return the corresponding
+//      reference ID. Otherwise, return -1
+//===================================================================
+int32_t SR_RefHeaderGetRefID(const SR_RefHeader* pRefHeader, const char* refName);
+
+//====================================================================
+// function:
+//      jump to a certain chromosome given the reference ID
+//
+// args:
+//      1. refInput: a file pointer to the input reference file
+//      2. pRefHeader: a pointer to the reference header structure
+//      3. refID: the ID of the reference we want to jump to
+// 
+// return:
+//      SR_OK: successfully jumped
+//      SR_ERR: jump failed
+//====================================================================
+SR_Status SR_ReferenceJump(FILE* refInput, const SR_RefHeader* pRefHeader, int32_t refID);
+
+//====================================================================
+// function:
+//      read the reference sequence from the input reference file 
+//
+// args:
+//      1. pRef: a pointer to the reference sequence structure
+//      2. refInput: a file pointer to the input reference file
+// 
+//====================================================================
+void SR_ReferenceRead(SR_Reference* pRef, FILE* refInput);
+
+
+//==========================================
+// Interface functions related with output
+//==========================================
+
+//===================================================================
+// function:
+//      read the reference sequence in the fasta file line by line, 
+//      one chromosome at each time
+//
+// args:
+//      1. pRef: a pointer to the reference structure
+//      2. pRefHeader: a pointer to the reference header structure
+//      3. faInput: a file pointer to the input fasta file
+// 
+// return:
+//      SR_OK: successfully load the chromosome sequence
+//      SR_EOF: reach the end of the fasta file
+//      SR_ERR: find an error during loading
+//===================================================================
+SR_Status SR_ReferenceLoad(SR_Reference* pRef, SR_RefHeader* pRefHeader, FILE* faInput);
+
+//===================================================================
+// function:
+//      skip the reference sequence with unknown chromosome
+//
+// args:
+//      1. pRefHeader: a pointer to the reference header structure
+//      2. faInput: a file pointer to the input fasta file
+// 
+// return:
+//      SR_OK: successfully skipped a chromosome sequence
+//      SR_EOF: reach the end of the fasta file
+//      SR_ERR: find an error during skipping
+//===================================================================
+SR_Status SR_ReferenceSkip(SR_RefHeader* pRefHeader, FILE* faInput);
+
+//===================================================================
+// function:
+//      leave enough space at the beginning of the output reference
+//      output file to store the reference header position
+//
+// args:
+//      1. refOutput: a file pointer to the output reference file
+//===================================================================
+void SR_ReferenceLeaveStart(FILE* refOutput);
+
+//===================================================================
+// function:
+//      set the reference header position
+//
+// args:
+//      1. refHeaderPos: the reference header position
+//      2. refOutput: a file pointer to the output reference file
+//===================================================================
+void SR_ReferenceSetStart(int64_t refHeaderPos, FILE* refOutput);
+
+//===================================================================
+// function:
+//      write a reference sequence into the reference output file
+//
+// args:
+//      1. pRef: a pointer to the reference sequence structure
+//      2. refOutput: a file pointer to the output reference file
+//
+// return:
+//      the file offset of the current reference sequence
+//===================================================================
+int64_t SR_ReferenceWrite(const SR_Reference* pRef, FILE* refOutput);
+
+//====================================================================
+// function:
+//      write the reference header into the output reference file
+//
+// args:
+//      1. pRefHeader: a pointer to the reference sequence structure
+//      2. refOutput: a file pointer to the output reference file
+//
+// return:
+//      the file offset of the reference header
+//====================================================================
+int64_t SR_RefHeaderWrite(const SR_RefHeader* pRefHeader, FILE* refOutput);
 
 
 #endif  /*SR_REFERENCE_H*/

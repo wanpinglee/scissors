@@ -10,7 +10,7 @@
  *       Revision:  none
  *       Compiler:  gcc
  *
- *         Author:  YOUR NAME (), 
+ *         Author:  Jianao Wu (), 
  *        Company:  
  *
  * =====================================================================================
@@ -27,9 +27,8 @@ SR_InHashTable* SR_InHashTableAlloc(unsigned char hashSize)
     if (pNewTable == NULL)
         SR_ErrSys("ERROR: Not enough memory for a reference hash table object.\n");
     
-    pNewTable->chr = 0;
+    pNewTable->id = 0;
     pNewTable->hashSize = hashSize;
-    pNewTable->md5[MD5_STR_LEN] = '\0';
 
     pNewTable->highEndMask = GET_HIGH_END_MASK(hashSize);
     pNewTable->numHashes = (uint32_t) 1 << (2 * hashSize);
@@ -54,43 +53,67 @@ void SR_InHashTableFree(SR_InHashTable* pHashTable)
     }
 }
 
-SR_Bool SR_InHashTableRead(SR_InHashTable* pHashTable, FILE* hashTableInput)
+int64_t SR_InHashTableReadStart(unsigned char* pHashSize, FILE* htInput)
+{
+    size_t readSize = 0;
+    int64_t refHeaderPos = 0;
+
+    readSize = fread(&refHeaderPos, sizeof(refHeaderPos), 1, htInput);
+    if (readSize != 1)
+        SR_ErrSys("ERROR: Cannot read the reference header position from the hash table file.\n");
+
+    readSize = fread(pHashSize, sizeof(*pHashSize), 1, htInput);
+    if (readSize != 1)
+        SR_ErrSys("ERROR: Cannot read the hash size from the hash table file.\n");
+
+    return refHeaderPos;
+}
+
+SR_Status SR_InHashTableJump(FILE* htInput, const SR_RefHeader* pRefHeader, int32_t refID)
+{
+    int64_t jumpPos = pRefHeader->htFilePos[refID];
+
+    if (fseeko(htInput, jumpPos, SEEK_SET) != 0)
+        return SR_ERR;
+
+    return SR_OK;
+}
+
+SR_Status SR_InHashTableRead(SR_InHashTable* pHashTable, FILE* htInput)
 {
     size_t readSize = 0;
 
-    readSize = fread(&(pHashTable->chr), sizeof(unsigned char), 1, hashTableInput);
+    readSize = fread(&(pHashTable->id), sizeof(pHashTable->id), 1, htInput);
     if (readSize != 1)
     {
-        if (feof(hashTableInput))
-            return FALSE;
+        if (feof(htInput))
+            return SR_EOF;
         else
-            SR_ErrSys("ERROR: Cannot read the chromsome number from the hash table file.\n");
+            return SR_ERR;
     }
 
-    readSize = fread(pHashTable->md5, sizeof(char), MD5_STR_LEN, hashTableInput);
-    if (readSize != MD5_STR_LEN)
-        SR_ErrSys("ERROR: Cannot read the md5 checksum string from the hash table file.\n");
-
-    readSize = fread(pHashTable->indices, sizeof(uint32_t), pHashTable->numHashes, hashTableInput);
+    readSize = fread(pHashTable->indices, sizeof(uint32_t), pHashTable->numHashes, htInput);
     if (readSize != pHashTable->numHashes)
         SR_ErrSys("ERROR: Cannot read the indices from the hash table file.\n");
 
-    readSize = fread(&(pHashTable->numPos), sizeof(uint32_t), 1, hashTableInput);
+    readSize = fread(&(pHashTable->numPos), sizeof(uint32_t), 1, htInput);
     if (readSize != 1)
         SR_ErrSys("ERROR: Cannot read the total number of hash positions from the hash table file.\n");
 
     free(pHashTable->hashPos);
     pHashTable->hashPos = (uint32_t*) malloc(sizeof(uint32_t) * pHashTable->numPos);
+    if (pHashTable->hashPos == NULL)
+        SR_ErrQuit("ERROR: Not enough memory for the storage of hash positions in the hash table object.\n");
 
-    readSize = fread(pHashTable->hashPos, sizeof(uint32_t), pHashTable->numPos, hashTableInput);
+    readSize = fread(pHashTable->hashPos, sizeof(uint32_t), pHashTable->numPos, htInput);
     if (readSize != pHashTable->numPos)
         SR_ErrSys("ERROR: Cannot read the hash positions from the hash table.\n");
 
-    return TRUE;
+    return SR_OK;
 }
 
 
-SR_Bool SR_InHashTableSearch(HashPosView* hashPosView, const SR_InHashTable* pHashTable, uint32_t hashKey)
+SR_Bool SR_InHashTableSearch(HashPosView* pHashPosView, const SR_InHashTable* pHashTable, uint32_t hashKey)
 {
     if(hashKey >= pHashTable->numHashes)
         SR_ErrSys("ERROR: Invalid hash key.\n");
@@ -101,8 +124,8 @@ SR_Bool SR_InHashTableSearch(HashPosView* hashPosView, const SR_InHashTable* pHa
     if (index == nextIndex)
         return FALSE;
     
-    hashPosView->size = nextIndex - index;
-    hashPosView->data = pHashTable->hashPos + index;
+    pHashPosView->size = nextIndex - index;
+    pHashPosView->data = pHashTable->hashPos + index;
 
     return TRUE;
 }
