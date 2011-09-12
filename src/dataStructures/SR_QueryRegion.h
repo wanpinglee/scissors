@@ -138,6 +138,7 @@ void SR_QueryRegionLoadSeq(SR_QueryRegion* pQueryRegion);
 // args:
 //      1. pQueryRegion: a pointer to an query region structure
 //      2. action      : action applied on the DNA sequence
+//           SR_INVERSE, SR_REVERSE_COMP, and SR_COMP
 //
 // discussion:
 //      the strand of the orphan mate will not be set.

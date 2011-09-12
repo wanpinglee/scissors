@@ -64,6 +64,8 @@ void ResetHeader( bam_header_t* const bam_header );
 void LoadRegionType(const bam1_t& anchor,
     AnchorRegion& anchor_region,
     SearchRegionType& search_region_type);
+void SetTargetSequence(const RegionType& region_type,
+    SR_QueryRegion* query_region);
 
 int main ( int argc, char** argv ) {
 	
@@ -102,9 +104,12 @@ int main ( int argc, char** argv ) {
     LoadRegionType(*vars.query_region->pAnchor, vars.anchor_region, vars.search_region_type);
 
     const bool is_anchor_forward = bam1_strand(vars.query_region->pAnchor);
-    while (vars.search_region_type.GetNextRegionType(is_anchor_forward, &vars.region_type))
+    while (vars.search_region_type.GetNextRegionType(is_anchor_forward, &vars.region_type)) {
       printf("-");
-    cout << "Got a pair of alignments" << endl;
+      SR_QueryRegionLoadSeq(vars.query_region);
+      SetTargetSequence(vars.region_type, vars.query_region);
+      
+    }
 		
     //bam_write1( files.bam_writer, vars.query_region->pAnchor );
     //bam_write1( files.bam_writer, vars.query_region->pOrphan );
@@ -117,6 +122,16 @@ int main ( int argc, char** argv ) {
 
   return 0;
 
+}
+
+void SetTargetSequence(const RegionType& region_type, 
+    SR_QueryRegion* query_region){
+  if (region_type.sequence_reverse && region_type.sequence_complement)
+    SR_QueryRegionSetSeq(query_region, SR_REVERSE_COMP);
+  else if (region_type.sequence_reverse)
+    SR_QueryRegionSetSeq(query_region, SR_INVERSE);
+  else if (region_type.sequence_complement)
+    SR_QueryRegionSetSeq(query_region, SR_COMP);
 }
 
 void LoadRegionType(const bam1_t& anchor, 
