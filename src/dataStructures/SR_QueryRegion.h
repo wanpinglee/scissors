@@ -122,18 +122,26 @@ static inline void SR_SetStrand(bam1_t* pAlignment, SR_Strand strand)
 
 //==============================================================
 // function:
-//      transfer the DNA sequence in bam structure from 
-//      4-bits representation to ascii representation and
-//      applied certain change to the sequence according to
-//      the action argument
+//      transfer the DNA sequence in bam structure from the
+//      4-bits representation to the ascii representation and
+//
+// args:
+//      1. pQueryRegion: a pointer to an query region structure
+//==============================================================
+void SR_QueryRegionLoadSeq(SR_QueryRegion* pQueryRegion);
+
+//==============================================================
+// function:
+//      change the orphan sequence according to the action 
+//      argument
 //
 // args:
 //      1. pQueryRegion: a pointer to an query region structure
 //      2. action      : action applied on the DNA sequence
 //
-//return:
-//      no return but it will change the orphan sequence in the
-//      query region structure according to the action code
+// discussion:
+//      the strand of the orphan mate will not be set.
+//      you have to set it through the "SR_SetStrand"
 //==============================================================
 void SR_QueryRegionSetSeq(SR_QueryRegion* pQueryRegion, SR_SeqAction action);
 

@@ -25,6 +25,8 @@
 #include "hashTable/common/SR_Utilities.h"
 #include "SR_QueryRegion.h"
 
+// map used to transfer the 4-bit representation of a nucleotide into the ascii representation
+static const char SR_BASE_MAP[16] = {'N', 'A', 'C', 'N', 'G','N','N','N','T','N','N','N','N','N','N','N'};
 
 SR_QueryRegion* SR_QueryRegionAlloc(void)
 {
@@ -58,7 +60,8 @@ void SR_QueryRegionFree(SR_QueryRegion* pQueryRegion)
     }
 }
 
-void SR_QueryRegionSetSeq(SR_QueryRegion* pQueryRegion, SR_SeqAction action)
+
+void SR_QueryRegionLoadSeq(SR_QueryRegion* pQueryRegion)
 {
     // if we don't have enough space for the orphan sequence, we need to expand current storage space
     if (pQueryRegion->capacity < pQueryRegion->pOrphan->core.l_qseq)
@@ -71,39 +74,45 @@ void SR_QueryRegionSetSeq(SR_QueryRegion* pQueryRegion, SR_SeqAction action)
             SR_ErrQuit("ERROR: Not enough memory for a orphanSeq string.");
     }
 
-    if (action == SR_INVERSE)
-        pQueryRegion->isOrphanInversed = TRUE;
-    else if (action == SR_REVERSE_COMP)
-        SR_SetStrand(pQueryRegion->pOrphan, SR_REVERSE_COMP);
-    else
-        SR_SetStrand(pQueryRegion->pOrphan, SR_FORWARD);
-
+    uint8_t* seq = bam1_seq(pQueryRegion->pOrphan);
     for (unsigned int i = 0; i != pQueryRegion->pOrphan->core.l_qseq; ++i)
     {
-        // if the action is forward, then we read from the beginning of the query sequence in
-        // bam alignment; if the action is inverse or reverse complement, we read from the end
-        // of the bam alignment.
-        unsigned int j = action == SR_FORWARD ? i : pQueryRegion->pOrphan->core.l_qseq - i - 1;
+        pQueryRegion->orphanSeq[i] = SR_BASE_MAP[bam1_seqi(seq, i)];
+    }
+}
 
-        // read the 4-bit base one by one
-        uint8_t* seq = bam1_seq(pQueryRegion->pOrphan);
-        switch (bam1_seqi(seq, j))
+void SR_QueryRegionSetSeq(SR_QueryRegion* pQueryRegion, SR_SeqAction action)
+{
+    if (action == SR_INVERSE || action == SR_REVERSE_COMP)
+    {
+        for (unsigned int i = 0, j = pQueryRegion->pOrphan->core.l_qseq - 1; i < j; ++i, --j)
         {
-            case SR_A:
-                pQueryRegion->orphanSeq[i] = action == SR_REVERSE_COMP ? 'T' : 'A';
-                break;
-            case SR_C:
-                pQueryRegion->orphanSeq[i] = action == SR_REVERSE_COMP ? 'G' : 'C';
-                break;
-            case SR_G:
-                pQueryRegion->orphanSeq[i] = action == SR_REVERSE_COMP ? 'C' : 'G';
-                break;
-            case SR_T:
-                pQueryRegion->orphanSeq[i] = action == SR_REVERSE_COMP ? 'A' : 'T';
-                break;
-            default:
-                pQueryRegion->orphanSeq[i] = 'N';
-                break;
+            SR_SWAP(pQueryRegion->orphanSeq[i], pQueryRegion->orphanSeq[j], char);
+        }
+    }
+
+    if (action == SR_COMP || action == SR_REVERSE_COMP)
+    {
+        for (unsigned int i = 0; i != pQueryRegion->pOrphan->core.l_qseq; ++i)
+        {
+            switch(pQueryRegion->orphanSeq[i])
+            {
+                case 'A':
+                    pQueryRegion->orphanSeq[i] = 'T';
+                    break;
+                case 'C':
+                    pQueryRegion->orphanSeq[i] = 'G';
+                    break;
+                case 'G':
+                    pQueryRegion->orphanSeq[i] = 'C';
+                    break;
+                case 'T':
+                    pQueryRegion->orphanSeq[i] = 'A';
+                    break;
+                default:
+                    pQueryRegion->orphanSeq[i] = 'N';
+                    break;
+            }
         }
     }
 }

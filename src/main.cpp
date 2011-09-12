@@ -134,17 +134,17 @@ void LoadRegionType(const bam1_t& anchor,
 }
 
 void Deconstruct(MainFiles* files, MainVars* vars) {
-	// close files
-	SR_BamInStreamFree(files->bam_reader);
-	bam_close(files->bam_writer);
-	fclose(files->ref_reader);
-	fclose(files->hash_reader);
+  // close files
+  SR_BamInStreamFree(files->bam_reader);
+  bam_close(files->bam_writer);
+  fclose(files->ref_reader);
+  fclose(files->hash_reader);
 
-	// free variables
-	SR_QueryRegionFree(vars->query_region);
-	SR_BamHeaderFree(vars->bam_header);
-	SR_ReferenceFree(vars->reference);
-	SR_InHashTableFree(vars->hash_table);
+  // free variables
+  SR_QueryRegionFree(vars->query_region);
+  SR_BamHeaderFree(vars->bam_header);
+  SR_ReferenceFree(vars->reference);
+  SR_InHashTableFree(vars->hash_table);
 
 }
 
