@@ -87,7 +87,7 @@ void SR_QueryRegionSetSeq(SR_QueryRegion* pQueryRegion, SR_SeqAction action)
     {
         for (unsigned int i = 0, j = pQueryRegion->pOrphan->core.l_qseq - 1; i < j; ++i, --j)
         {
-            SR_SWAP(pQueryRegion->orphanSeq[i], pQueryRegion->orphanSeq[j], char);
+	    SR_SWAP(pQueryRegion->orphanSeq[i], pQueryRegion->orphanSeq[j], char);
         }
     }
 
