@@ -8,9 +8,12 @@
 using std::vector;
 
 struct RegionType {
-  bool upstream;
-  bool sequence_reverse;
-  bool sequence_complement;
+  bool upstream; // the reference coordinate of the target region 
+                 //   is greater than the anchor
+  bool sequence_inverse;    // the sequence in the target region
+                            //   is inverse of the reference
+  bool sequence_complement; // the sequence in the target region
+                            //  is complement of the reference
 };
 
 class SearchRegionType {

@@ -83,7 +83,7 @@ void SR_QueryRegionFree(SR_QueryRegion* pQueryRegion);
 
 //=========================================================
 // function:
-//      reset variables in SR_QueryRegion
+//      initialize the variables in SR_QueryRegion
 // args:
 //      1. region: a pointer to a SR_QueryRegion 
 //=========================================================

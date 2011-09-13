@@ -102,13 +102,14 @@ int main ( int argc, char** argv ) {
     LoadReferenceOrDie(*vars.query_region->pAnchor, &files, &vars);
     LoadRegionType(*vars.query_region->pAnchor, vars.anchor_region, vars.search_region_type);
 
-    const bool is_anchor_forward = bam1_strand(vars.query_region->pAnchor);
+    const bool is_anchor_forward = !bam1_strand(vars.query_region->pAnchor);
     SR_InitQueryRegion(vars.query_region);
     // Convert 4-bit representive sequence into chars
     SR_QueryRegionLoadSeq(vars.query_region);
     printf("%s\n", vars.query_region->orphanSeq);
+    printf("%d %d\n", vars.query_region->pAnchor->core.flag, vars.query_region->pOrphan->core.flag);
     while (vars.search_region_type.GetNextRegionType(is_anchor_forward, &vars.region_type)) {
-      printf("-%c%c-", vars.region_type.sequence_reverse?'T':'F', vars.region_type.sequence_complement?'T':'F');
+      printf("-%c%c-", vars.region_type.sequence_inverse?'T':'F', vars.region_type.sequence_complement?'T':'F');
       // Reverse or complement the sequence if necesary
       SetTargetSequence(vars.region_type, vars.query_region);
       printf("%s\n", vars.query_region->orphanSeq);
@@ -130,26 +131,48 @@ int main ( int argc, char** argv ) {
 
 void SetTargetSequence(const RegionType& region_type, 
     SR_QueryRegion* query_region){
-  /*
-  if (region_type.sequence_reverse && region_type.sequence_complement) {
-    if (SR_GetStrand(query_region->pOrphan) != SR_REVERSE_COMP) {
-      SR_QueryRegionSetSeq(query_region, SR_REVERSE_COMP);
-      SR_SetStrand(query_region->pOrphan, SR_REVERSE_COMP);
-      query_region->isOrphanInversed   = TRUE;
-      query_region->isOrphanComplement = TRUE;
-    }
-  } else if (region_type.sequence_reverse) {
-    if (!query_region->isOrphanInversed) {
+  const bool forward    = !bam1_strand(query_region->pOrphan);
+  const bool inverse    = (forward && (query_region->isOrphanInversed == TRUE))
+                        ||(!forward && (query_region->isOrphanInversed == FALSE));
+  const bool complement = !forward;
+  
+  if (region_type.sequence_inverse && region_type.sequence_complement) {
+    if (!inverse)
       SR_QueryRegionSetSeq(query_region, SR_INVERSE);
-      query_region->isOrphanInversed = TRUE;
-    }
-  } else if (region_type.sequence_complement) {
-    if (!query_region->isOrphanComplement) {
+    if (!complement)
       SR_QueryRegionSetSeq(query_region, SR_COMP);
-      query_region->isOrphanComplement = TRUE;
-    }
+
+    SR_SetStrand(query_region->pOrphan, SR_REVERSE_COMP);
+    query_region->isOrphanInversed = FALSE;
+    
+  } else if (region_type.sequence_inverse && !region_type.sequence_complement) {
+    if (!inverse)
+      SR_QueryRegionSetSeq(query_region, SR_INVERSE);
+    if (complement)
+      SR_QueryRegionSetSeq(query_region, SR_COMP);
+      
+    SR_SetStrand(query_region->pOrphan, SR_INVERSE);
+    query_region->isOrphanInversed = TRUE;
+  
+  } else if (!region_type.sequence_inverse && region_type.sequence_complement) {
+    if (inverse)
+      SR_QueryRegionSetSeq(query_region, SR_INVERSE);
+    if (!complement)
+      SR_QueryRegionSetSeq(query_region, SR_COMP);
+
+    SR_SetStrand(query_region->pOrphan, SR_REVERSE_COMP);
+    query_region->isOrphanInversed = TRUE;
+  
+  } else {
+    if (inverse)
+      SR_QueryRegionSetSeq(query_region, SR_INVERSE);
+    if (complement)
+      SR_QueryRegionSetSeq(query_region, SR_COMP);
+
+    SR_SetStrand(query_region->pOrphan, SR_FORWARD);
+    query_region->isOrphanInversed = FALSE;
   }
-  */
+  
 }
 
 void LoadRegionType(const bam1_t& anchor, 
