@@ -82,6 +82,22 @@ void SR_QueryRegionFree(SR_QueryRegion* pQueryRegion);
 #define SR_SetQueryLen(pAlignment, queryLen) ((pAlignment)->core.l_qseq = queryLen)
 
 //=========================================================
+// function:
+//      reset variables in SR_QueryRegion
+// args:
+//      1. region: a pointer to a SR_QueryRegion 
+//=========================================================
+static inline void SR_InitQueryRegion(SR_QueryRegion* region)
+{
+    if (region == NULL) return;
+    region->isOrphanInversed = FALSE;
+    region->closeRefBegin    = 0;
+    region->closeRefEnd      = 0;
+    region->farRefBegin      = 0;
+    region->farRefEnd        = 0;
+}
+
+//=========================================================
 // function: 
 //      get the strand direction of an alignment
 //
@@ -138,7 +154,6 @@ void SR_QueryRegionLoadSeq(SR_QueryRegion* pQueryRegion);
 // args:
 //      1. pQueryRegion: a pointer to an query region structure
 //      2. action      : action applied on the DNA sequence
-//           SR_INVERSE, SR_REVERSE_COMP, and SR_COMP
 //
 // discussion:
 //      the strand of the orphan mate will not be set.
