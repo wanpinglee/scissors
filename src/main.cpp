@@ -17,6 +17,7 @@ extern "C" {
 #include "dataStructures/search_region_type.h"
 #include "dataStructures/technology.h"
 #include "utilities/bam_utilities.h"
+#include "utilities/hash_region_collection.h"
 #include "utilities/parameter_parser.h"
 
 using std::string;
@@ -47,6 +48,8 @@ struct MainVars{
   RegionType       region_type;
   BamReference     bam_reference;
   HashRegionTable* hash_region_table;
+
+  HashRegionCollection hr_collection;
 };
 
 
@@ -114,6 +117,12 @@ int main ( int argc, char** argv ) {
       SetTargetSequence(vars.region_type, vars.query_region);
       HashRegionTableInit(vars.hash_region_table, read_length);
       HashRegionTableLoad(vars.hash_region_table, vars.hash_table, vars.query_region);
+      BestRegion* ptr = vars.hash_region_table->pBestCloseRegions->data;
+      printf("%u\n", (ptr+1)->queryBegin);
+      vars.hr_collection.Init(*(vars.hash_region_table->pBestCloseRegions));
+      //vars.hr_collection.Print();
+      //vars.hr_collection.SortByLength();
+      //vars.hr_collection.Print();
     }
 		
     //bam_write1( files.bam_writer, vars.query_region->pAnchor );

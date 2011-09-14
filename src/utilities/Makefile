@@ -1,8 +1,9 @@
 OBJ_DIR = ../../obj
 
 # C++
-SOURCES = parameter_parser.cpp \
-		bam_utilities.cpp
+SOURCES = bam_utilities.cpp \
+		hash_region_collection.cpp \
+		parameter_parser.cpp
 
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES) )
 LIBS = -lz
