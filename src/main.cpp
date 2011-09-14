@@ -46,6 +46,7 @@ struct MainVars{
   SearchRegionType search_region_type;
   RegionType       region_type;
   BamReference     bam_reference;
+  HashRegionTable* hash_region_table;
 };
 
 
@@ -96,19 +97,23 @@ int main ( int argc, char** argv ) {
   // =========
   // Algorithm
   // =========
+  int read_length = 0;
   while(SR_BamInStreamGetPair( &(vars.query_region->pAnchor), &(vars.query_region->pOrphan), files.bam_reader ) == SR_OK) {
     // Load new reference and hash table if necessary
-    //LoadReferenceOrDie(*vars.query_region->pAnchor, &files, &vars);
-    //LoadRegionType(*vars.query_region->pAnchor, vars.anchor_region, vars.search_region_type);
+    LoadReferenceOrDie(*vars.query_region->pAnchor, &files, &vars);
+    LoadRegionType(*vars.query_region->pAnchor, vars.anchor_region, vars.search_region_type);
 
     const bool is_anchor_forward = !bam1_strand(vars.query_region->pAnchor);
     SR_InitQueryRegion(vars.query_region);
     // Convert 4-bit representive sequence into chars
     SR_QueryRegionLoadSeq(vars.query_region);
+    read_length = vars.query_region->pOrphan->core.l_qseq;
     LoadRegionType(*vars.query_region->pAnchor, vars.anchor_region, vars.search_region_type);
     while (vars.search_region_type.GetNextRegionType(is_anchor_forward, &vars.region_type)) {
       // Reverse or complement the sequence if necesary
       SetTargetSequence(vars.region_type, vars.query_region);
+      HashRegionTableInit(vars.hash_region_table, read_length);
+      HashRegionTableLoad(vars.hash_region_table, vars.hash_table, vars.query_region);
     }
 		
     //bam_write1( files.bam_writer, vars.query_region->pAnchor );
@@ -203,6 +208,7 @@ void Deconstruct(MainFiles* files, MainVars* vars) {
   SR_BamHeaderFree(vars->bam_header);
   SR_ReferenceFree(vars->reference);
   SR_InHashTableFree(vars->hash_table);
+  HashRegionTableFree(vars->hash_region_table);
 
 }
 
@@ -264,6 +270,8 @@ void PrepareVariablesOrDie(const ParameterParser& parameter_parser,
   // init reference and hash table
   vars->reference  = SR_ReferenceAlloc();
   vars->hash_table = SR_InHashTableAlloc(hash_size);
+
+  vars->hash_region_table = HashRegionTableAlloc();
 }
 
 
