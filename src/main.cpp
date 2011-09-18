@@ -48,6 +48,7 @@ struct MainVars{
   RegionType       region_type;
   BamReference     bam_reference;
   HashRegionTable* hash_region_table;
+  SR_SearchArgs    search_window;
 
   HashRegionCollection hr_collection;
 };
@@ -116,13 +117,17 @@ int main ( int argc, char** argv ) {
       // Reverse or complement the sequence if necesary
       SetTargetSequence(vars.region_type, vars.query_region);
       HashRegionTableInit(vars.hash_region_table, read_length);
+      SR_QueryRegionSetRange(vars.query_region, &vars.search_window, vars.reference->seqLen,
+          vars.region_type.upstream ? SR_UPSTREAM : SR_DOWNSTREAM);
       HashRegionTableLoad(vars.hash_region_table, vars.hash_table, vars.query_region);
-      BestRegion* ptr = vars.hash_region_table->pBestCloseRegions->data;
-      printf("%u\n", (ptr+1)->queryBegin);
+      //BestRegion* ptr = vars.hash_region_table->pBestCloseRegions->data;
+      //printf("%u\n", (ptr+1)->queryBegin);
       vars.hr_collection.Init(*(vars.hash_region_table->pBestCloseRegions));
-      //vars.hr_collection.Print();
-      //vars.hr_collection.SortByLength();
-      //vars.hr_collection.Print();
+      printf("Before sorting...\n");
+      vars.hr_collection.Print();
+      printf("after sorting...\n");
+      vars.hr_collection.SortByLength();
+      vars.hr_collection.Print();
     }
 		
     //bam_write1( files.bam_writer, vars.query_region->pAnchor );
@@ -281,6 +286,10 @@ void PrepareVariablesOrDie(const ParameterParser& parameter_parser,
   vars->hash_table = SR_InHashTableAlloc(hash_size);
 
   vars->hash_region_table = HashRegionTableAlloc();
+
+  vars->search_window.fragLen    = 1000;
+  vars->search_window.closeRange = 2000;
+  vars->search_window.farRange   = 100000;
 }
 
 
