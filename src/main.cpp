@@ -151,44 +151,44 @@ void SetTargetSequence(const RegionType& region_type,
   
   if (region_type.sequence_inverse && region_type.sequence_complement) {
     if (!inverse && !complement)
-      SR_QueryRegionSetSeq(query_region, SR_REVERSE_COMP);
+      SR_QueryRegionChangeSeq(query_region, SR_REVERSE_COMP);
     else if (!inverse)
-      SR_QueryRegionSetSeq(query_region, SR_INVERSE);
+      SR_QueryRegionChangeSeq(query_region, SR_INVERSE);
     else if (!complement)
-      SR_QueryRegionSetSeq(query_region, SR_COMP);
+      SR_QueryRegionChangeSeq(query_region, SR_COMP);
 
     SR_SetStrand(query_region->pOrphan, SR_REVERSE_COMP);
     query_region->isOrphanInversed = FALSE;
     
   } else if (region_type.sequence_inverse && !region_type.sequence_complement) {
     if (!inverse && complement)
-      SR_QueryRegionSetSeq(query_region, SR_REVERSE_COMP);
+      SR_QueryRegionChangeSeq(query_region, SR_REVERSE_COMP);
     else if (!inverse)
-      SR_QueryRegionSetSeq(query_region, SR_INVERSE);
+      SR_QueryRegionChangeSeq(query_region, SR_INVERSE);
     else if (complement)
-      SR_QueryRegionSetSeq(query_region, SR_COMP);
+      SR_QueryRegionChangeSeq(query_region, SR_COMP);
       
     SR_SetStrand(query_region->pOrphan, SR_INVERSE);
     query_region->isOrphanInversed = TRUE;
   
   } else if (!region_type.sequence_inverse && region_type.sequence_complement) {
     if (inverse && !complement)
-      SR_QueryRegionSetSeq(query_region, SR_REVERSE_COMP);
+      SR_QueryRegionChangeSeq(query_region, SR_REVERSE_COMP);
     else if (inverse)
-      SR_QueryRegionSetSeq(query_region, SR_INVERSE);
+      SR_QueryRegionChangeSeq(query_region, SR_INVERSE);
     else if (!complement)
-      SR_QueryRegionSetSeq(query_region, SR_COMP);
+      SR_QueryRegionChangeSeq(query_region, SR_COMP);
 
     SR_SetStrand(query_region->pOrphan, SR_REVERSE_COMP);
     query_region->isOrphanInversed = TRUE;
   
   } else {
     if (inverse && complement)
-      SR_QueryRegionSetSeq(query_region, SR_REVERSE_COMP);
+      SR_QueryRegionChangeSeq(query_region, SR_REVERSE_COMP);
     else if (inverse)
-      SR_QueryRegionSetSeq(query_region, SR_INVERSE);
+      SR_QueryRegionChangeSeq(query_region, SR_INVERSE);
     else if (complement)
-      SR_QueryRegionSetSeq(query_region, SR_COMP);
+      SR_QueryRegionChangeSeq(query_region, SR_COMP);
 
     SR_SetStrand(query_region->pOrphan, SR_FORWARD);
     query_region->isOrphanInversed = FALSE;

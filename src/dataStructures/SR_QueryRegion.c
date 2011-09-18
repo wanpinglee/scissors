@@ -25,8 +25,18 @@
 #include "hashTable/common/SR_Utilities.h"
 #include "SR_QueryRegion.h"
 
+
+//===============================
+// Type and constant definition
+//===============================
+
 // map used to transfer the 4-bit representation of a nucleotide into the ascii representation
 static const char SR_BASE_MAP[16] = {'N', 'A', 'C', 'N', 'G','N','N','N','T','N','N','N','N','N','N','N'};
+
+
+//===============================
+// Constructors and Destructors
+//===============================
 
 SR_QueryRegion* SR_QueryRegionAlloc(void)
 {
@@ -61,6 +71,26 @@ void SR_QueryRegionFree(SR_QueryRegion* pQueryRegion)
 }
 
 
+//======================
+// Interface functions
+//======================
+
+SR_Status SR_QueryRegionLoadPair(SR_QueryRegion* pQuerRegion, SR_BamListIter* pIter)
+{
+    if ((*pIter) == NULL)
+        return SR_OUT_OF_RANGE;
+
+    pQuerRegion->pAnchor = &((*pIter)->alignment);
+    (*pIter) = (*pIter)->next;
+    if ((*pIter) == NULL)
+        return SR_ERR;
+
+    pQuerRegion->pOrphan = &((*pIter)->alignment);
+    (*pIter) = (*pIter)->next;
+
+    return SR_OK;
+}
+
 void SR_QueryRegionLoadSeq(SR_QueryRegion* pQueryRegion)
 {
     // if we don't have enough space for the orphan sequence, we need to expand current storage space
@@ -81,13 +111,13 @@ void SR_QueryRegionLoadSeq(SR_QueryRegion* pQueryRegion)
     }
 }
 
-void SR_QueryRegionSetSeq(SR_QueryRegion* pQueryRegion, SR_SeqAction action)
+void SR_QueryRegionChangeSeq(SR_QueryRegion* pQueryRegion, SR_SeqAction action)
 {
     if (action == SR_INVERSE || action == SR_REVERSE_COMP)
     {
         for (unsigned int i = 0, j = pQueryRegion->pOrphan->core.l_qseq - 1; i < j; ++i, --j)
         {
-	    SR_SWAP(pQueryRegion->orphanSeq[i], pQueryRegion->orphanSeq[j], char);
+            SR_SWAP(pQueryRegion->orphanSeq[i], pQueryRegion->orphanSeq[j], char);
         }
     }
 
