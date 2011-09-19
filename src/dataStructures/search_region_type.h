@@ -7,20 +7,20 @@
 
 using std::vector;
 
-struct RegionType {
-  bool upstream; // the reference coordinate of the target region 
-                 //   is greater than the anchor
-  bool sequence_inverse;    // the sequence in the target region
-                            //   is inverse of the reference
-  bool sequence_complement; // the sequence in the target region
-                            //  is complement of the reference
-};
-
 class SearchRegionType {
  public:
+  struct RegionType {
+    bool upstream; // the reference coordinate of the target region 
+                   //   is greater than the anchor
+    bool sequence_inverse;    // the sequence in the target region
+                              //   is inverse of the reference
+    bool sequence_complement; // the sequence in the target region
+                              //  is complement of the reference
+  };
+
   // Constructor
   SearchRegionType();
-  explicit SearchRegionType( const Technology& technology );
+  explicit SearchRegionType(const Technology& technology);
 
   // Destructor
   //~SearchRegionType();
@@ -57,6 +57,7 @@ class SearchRegionType {
 
   bool has_gotten_forward_type_;
   bool has_gotten_reverse_type_;
+
 };
 
 #endif // DATASTRUCTURES_SEARCH_REGION_TYPE_H_
