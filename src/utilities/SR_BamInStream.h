@@ -2,9 +2,7 @@
  * =====================================================================================
  *
  *       Filename:  SR_BamInStream.h
- *
- *    Description:  
- *
+ * *    Description:  *
  *        Version:  1.0
  *        Created:  08/18/2011 05:39:37 PM
  *       Revision:  none
@@ -19,89 +17,62 @@
 #ifndef  SR_BAMINSTREAM_H
 #define  SR_BAMINSTREAM_H
 
-#include <stdlib.h>
 
 #include "samtools/bam.h"
 #include "hashTable/common/SR_Types.h"
-
+#include "dataStructures/SR_BamHeader.h"
+#include "SR_BamMemPool.h"
 
 //===============================
 // Type and constant definition
 //===============================
 
-// structure holding related bam input variables
-typedef struct SR_BamInStreamPrvt SR_BamInStream;
-
-// stucture holding header information
-typedef struct SR_BamHeader
+// private data structure that holds all bam-input-related information
+typedef struct SR_BamInStream
 {
-    bam_header_t* pOrigHeader;
+    bamFile fpBamInput;                        // file pointer to a input bam file
 
-    const char** pMD5s;
+    bam_index_t* pBamIndex;                    // file pointer to a input bam index file
 
-}SR_BamHeader;
+    SR_BamMemPool* pMemPool;                   // memory pool used to allocate and recycle the bam alignments
+
+    void* pNameHashes[2];                      // two hashes used to get a pair of alignments
+
+    SR_BamList* pRetLists;                     // when we find any unique-orphan pairs we push them into these lists
+
+    SR_BamNode* pNewNode;                      // the just read-in bam alignment
+
+    SR_BamList pAlgnLists[2];                  // lists used to store those incoming alignments. each thread has their own lists.
+
+    unsigned int numThreads;                   // number of threads will be used
+
+    unsigned int reportSize;                   // number of alignments should be loaded before report
+
+    int32_t currRefID;                         // the reference ID of the current read-in alignment
+
+    int32_t currBinPos;                        // the start position of current bin (0-based)
+
+    uint32_t binLen;                           // the length of bin
+
+}SR_BamInStream;
+
 
 //===============================
 // Constructors and Destructors
 //===============================
 
-SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename, uint32_t binLen, double scTolerance);
+SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename,        // name of input bam file
+        
+                                    uint32_t binLen,                // search range of a pair
+                                    
+                                    unsigned int numThreads,        // number of threads
+                                     
+                                    unsigned int buffCapacity,      // the number of alignments can be stored in each chunk of the memory pool
+                                    
+                                    unsigned int reportSize);       // number of alignments should be cached before report
+                                    
 
 void SR_BamInStreamFree(SR_BamInStream* pBamInStream);
-
-SR_BamHeader* SR_BamHeaderAlloc(void);
-
-void SR_BamHeaderFree(SR_BamHeader* pBamHeader);
-
-
-//======================
-// Inline functions
-//======================
-
-//===============================================================
-// function:
-//      get the number of references stored in the bam header
-//
-// args:
-//      1. pBamHeader: a pointer to the header structure
-// 
-// return:
-//      number of references (chromosomes)
-//=============================================================== 
-inline int32_t SR_BamHeaderGetRefNum(const SR_BamHeader* pBamHeader)
-{
-    return (pBamHeader->pOrigHeader->n_targets);
-}
-
-//===============================================================
-// function:
-//      get the reference ID to reference name dictionary
-//
-// args:
-//      1. pBamHeader: a pointer to the header structure
-// 
-// return:
-//      the dictionary of reference ID to reference name
-//=============================================================== 
-inline const char** SR_BamHeaderGetRefNames(const SR_BamHeader* pBamHeader)
-{
-    return (const char**) pBamHeader->pOrigHeader->target_name;
-}
-
-//===============================================================
-// function:
-//      get the array of reference length
-//
-// args:
-//      1. pBamHeader: a pointer to the header structure
-// 
-// return:
-//      an array contains the length of each chromosome
-//=============================================================== 
-inline const uint32_t* SR_BamHeaderGetRefLens(const SR_BamHeader* pBamHeader)
-{
-    return pBamHeader->pOrigHeader->target_len;
-}
 
 
 //======================
@@ -157,7 +128,17 @@ SR_BamHeader* SR_BamInStreamLoadHeader(SR_BamInStream* pBamInStream);
 //      beginning of an alignment. Upon success, the position 
 //      indicator will be set at the start of the next alignment
 //================================================================ 
-SR_Status SR_BamInStreamRead(bam1_t* pAlignment, SR_BamInStream* pBamInStream);
+inline SR_Status SR_BamInStreamRead(bam1_t* pAlignment, SR_BamInStream* pBamInStream)
+{
+    int ret = bam_read1(pBamInStream->fpBamInput, pAlignment);
+
+    if (ret > 0)
+        return SR_OK;
+    else if (ret == -1)
+        return SR_EOF;
+    else
+        return SR_ERR;
+}
 
 //================================================================
 // function:
@@ -169,23 +150,116 @@ SR_Status SR_BamInStreamRead(bam1_t* pAlignment, SR_BamInStream* pBamInStream);
 // return:
 //      reference ID
 //================================================================ 
-int32_t SR_BamInStreamGetRefID(const SR_BamInStream* pBamInStream);
+#define SR_BamInStreamGetRefID(pBamInStream) ((pBamInStream)->currRefID)
 
-//================================================================
+//==================================================================
 // function:
-//      load a unique-orphan pair from the bam file
+//      load a pair of bam alignments
 //
 // args:
-//      1. ppAnchor: a pointer of pointer to the anchor mate
-//      2. ppOrphan: a pointer of pointer to the orphan mate
+//      1. ppAlgnOne: a pointer to the pointer of an alignment
+//      2. ppAlgnTwo: a pointer to the pointer of an alignment
 //      3. pBamInStream : a pointer to an bam instream structure
 //
 // return:
-//      if we get a unique-orphan pair, return SR_OK; if we reach
-//      the end of file, return SR_EOF; if we finish the current
-//      chromosome, return SR_OUT_OF_RANGE; else, return SR_ERR
-//================================================================
-SR_Status SR_BamInStreamGetPair(bam1_t** ppAnchor, bam1_t** ppOrphan, SR_BamInStream* pBamInStream);
+//      if we get enough unique-orphan pair, return SR_OK; 
+//      if we reach the end of file, return SR_EOF; if we finish 
+//      the current chromosome, return SR_OUT_OF_RANGE; 
+//      else, return SR_ERR
+//==================================================================
+SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppAlgnOne, SR_BamNode** ppAlgnTwo, SR_BamInStream* pBamInStream);
 
+//================================================================
+// function:
+//      get the size of the memory pool in the bam in stream
+//      structure
+//
+// args:
+//      1. pBamInStream: a pointer to an bam instream structure
+// 
+// return:
+//      the size of memory pool in the bam in stream object
+//================================================================ 
+#define SR_BamInStreamGetPoolSize(pBamInStream) ((pBamInStream)->pMemPool->numBuffs)
+
+//================================================================
+// function:
+//      get a iterator to a certain buffer of a thread
+//
+// args:
+//      1. pBamInStream: a pointer to an bam instream structure
+//      2. threadID: ID of a thread
+// 
+// return:
+//      iterator to the buffer of a thread
+//================================================================ 
+#define SR_BamInStreamGetIter(pBamInStream, threadID) SR_BamListGetIter((pBamInStream)->pRetLists + (threadID))
+
+//================================================================
+// function:
+//      push the qualified alignment into a given thread buffer
+//
+// args:
+//      1. pBamInStream: a pointer to an bam instream structure
+//      2. pAlignment: a pointer to a qualified alignment
+//      2. threadID: ID of a thread
+// 
+// return:
+//      status of the thread buffer. if the thread buffer is full
+//      then return SR_FULL else return SR_OK
+//================================================================ 
+inline SR_Status SR_BamInStreamPush(SR_BamInStream* pBamInStream, SR_BamNode* pAlignment, unsigned int threadID)
+{
+    SR_BamListPushBack(pBamInStream->pRetLists + threadID, pAlignment);
+
+    if (pBamInStream->pRetLists[threadID].numNode == pBamInStream->reportSize)
+        return SR_FULL;
+
+    return SR_OK;
+}
+
+//================================================================
+// function:
+//      recycle an unwanted bam node
+//
+// args:
+//      1. pBamInStream: a pointer to an bam instream structure
+//      2. pBamNode: a pointer to a bam node 
+//================================================================ 
+#define SR_BamInStreamRecycle(pBamInStream, pBamNode) SR_BamListPushHead(&((pBamInStream)->pMemPool->avlNodeList), (pBamNode))
+
+//================================================================
+// function:
+//      clear the buffer associated with a certain thread
+//
+// args:
+//      1. pBamInStream: a pointer to an bam instream structure
+//      2. threadID: the id of the thread that needs to be clear
+//================================================================ 
+#define SR_BamInStreamClearBuff(pBamInStream, threadID) SR_BamListReset((pBamInStream)->pRetLists + (threadID), (pBamInStream)->pMemPool)
+
+//================================================================
+// function:
+//      decrease the size of memory pool inside the bam in stream
+//      object to save memory
+//
+// args:
+//      1. pBamInStream : a pointer to an bam instream structure
+//      2. newSize: the new size of the memory pool that user 
+//                  want to set (which can be only smaller than
+//                  current size otherwise nothing will be done)
+//
+// return:
+//      the actual size of the memory pool after shrinking
+//
+// discussion:
+//      this function should be called after the processing of 
+//      a certain chromosome. The memory allocated for the 
+//      return lists should be freed before you can call this
+//      function. the desired size may not be achieved since
+//      there may not be enough empty buffer chunks. check the
+//      return value for the actual size of the memory pool
+//================================================================
+unsigned int SR_BamInStreamShrinkPool(SR_BamInStream* pBamInStream, unsigned int newSize);
 
 #endif  /*SR_BAMINSTREAM_H*/

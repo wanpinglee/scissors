@@ -21,7 +21,7 @@
 
 #include "samtools/bam.h"
 #include "hashTable/common/SR_Types.h"
-#include "SR_BamMemPool.h"
+#include "utilities/SR_BamMemPool.h"
 
 //===============================
 // Type and constant definition

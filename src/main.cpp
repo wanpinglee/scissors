@@ -4,6 +4,7 @@
 #include <string>
 
 extern "C" {
+#include "dataStructures/SR_BamHeader.h"
 #include "dataStructures/SR_QueryRegion.h"
 #include "hashTable/common/SR_Types.h"
 #include "hashTable/reader/SR_HashRegionTable.h"
