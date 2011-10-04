@@ -21,11 +21,18 @@
 #include "samtools/bam.h"
 #include "hashTable/common/SR_Types.h"
 #include "dataStructures/SR_BamHeader.h"
-#include "SR_BamMemPool.h"
+#include "utilities/SR_BamMemPool.h"
 
 //===============================
 // Type and constant definition
 //===============================
+
+enum BamIndexFlag
+{
+    NOT_USE_BAM_INDEX   = 0,
+
+    USE_BAM_INDEX       = 1
+};
 
 // private data structure that holds all bam-input-related information
 typedef struct SR_BamInStream
@@ -69,8 +76,10 @@ SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename,        // name of i
                                      
                                     unsigned int buffCapacity,      // the number of alignments can be stored in each chunk of the memory pool
                                     
-                                    unsigned int reportSize);       // number of alignments should be cached before report
+                                    unsigned int reportSize,        // number of alignments should be cached before report
                                     
+                                    unsigned char bamIndexFlag);    // flag used to indicate that if we want to use the bam index file or not
+                                                                    // valid value: USE_BAM_INDEX, NOT_USE_BAM_INDEX
 
 void SR_BamInStreamFree(SR_BamInStream* pBamInStream);
 
@@ -261,5 +270,6 @@ inline SR_Status SR_BamInStreamPush(SR_BamInStream* pBamInStream, SR_BamNode* pA
 //      return value for the actual size of the memory pool
 //================================================================
 unsigned int SR_BamInStreamShrinkPool(SR_BamInStream* pBamInStream, unsigned int newSize);
+
 
 #endif  /*SR_BAMINSTREAM_H*/

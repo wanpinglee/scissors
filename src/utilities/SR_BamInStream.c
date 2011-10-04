@@ -39,7 +39,7 @@
 
 // a mask used to filter out those unwanted reads for split alignments
 // it includes proper paired reads, secondar reads, qc-failed reads and duplicated reads
-#define SR_BAM_FMASK (BAM_FPROPER_PAIR | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP)
+#define SR_BAM_FMASK (BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP)
 
 // bin number of buffers
 #define PREV_BIN 0
@@ -119,7 +119,7 @@ static void SR_BamInStreamReset(SR_BamInStream* pBamInStream)
 // Constructors and Destructors
 //===============================
 
-SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename, uint32_t binLen, unsigned int numThreads, unsigned int buffCapacity, unsigned int reportSize)
+SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename, uint32_t binLen, unsigned int numThreads, unsigned int buffCapacity, unsigned int reportSize, unsigned char bamIndexFlag)
 {
     SR_BamInStream* pBamInStream = (SR_BamInStream*) calloc(1, sizeof(SR_BamInStream));
     if (pBamInStream == NULL)
@@ -129,9 +129,12 @@ SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename, uint32_t binLen, un
     if (pBamInStream->fpBamInput == NULL)
         SR_ErrQuit("ERROR: Cannot open bam file %s for reading.\n", bamFilename);
 
-    pBamInStream->pBamIndex = bam_index_load(bamFilename);
-    if (pBamInStream->pBamIndex == NULL)
-        SR_ErrMsg("WARNING: Cannot open bam index file for reading. No jump allowed.\n");
+    if (bamIndexFlag == USE_BAM_INDEX)
+    {
+        pBamInStream->pBamIndex = bam_index_load(bamFilename);
+        if (pBamInStream->pBamIndex == NULL)
+            SR_ErrMsg("WARNING: Cannot open bam index file for reading. No jump allowed.\n");
+    }
 
     pBamInStream->numThreads = numThreads;
     pBamInStream->reportSize = reportSize;
@@ -140,9 +143,14 @@ SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename, uint32_t binLen, un
     pBamInStream->binLen = binLen;
     pBamInStream->pNewNode = NULL;
 
-    pBamInStream->pRetLists = (SR_BamList*) calloc(numThreads, sizeof(SR_BamList));
-    if (pBamInStream->pRetLists == NULL)
-        SR_ErrQuit("ERROR: Not enough memory for the storage of retrun alignment lists in the bam input stream object.\n");
+    if (numThreads > 0)
+    {
+        pBamInStream->pRetLists = (SR_BamList*) calloc(numThreads, sizeof(SR_BamList));
+        if (pBamInStream->pRetLists == NULL)
+            SR_ErrQuit("ERROR: Not enough memory for the storage of retrun alignment lists in the bam input stream object.\n");
+    }
+    else
+        pBamInStream->pRetLists = NULL;
 
     pBamInStream->pNameHashes[PREV_BIN] = kh_init(queryName);
     kh_resize(queryName, pBamInStream->pNameHashes[PREV_BIN], reportSize);
@@ -294,6 +302,7 @@ SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppAlgnOne, SR_BamNode** ppAlgnTwo,
             SR_BamNodeFree(pBamInStream->pNewNode, pBamInStream->pMemPool);
             pBamInStream->pNewNode = NULL;
             continue;
+
         }
 
         // update the current ref ID or position if the incoming alignment has a 
@@ -381,6 +390,7 @@ SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppAlgnOne, SR_BamNode** ppAlgnTwo,
 
     return ret;
 }
+
 
 unsigned int SR_BamInStreamShrinkPool(SR_BamInStream* pBamInStream, unsigned int newSize)
 {

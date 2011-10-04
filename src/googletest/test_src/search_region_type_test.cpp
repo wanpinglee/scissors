@@ -5,16 +5,16 @@
 namespace {
 
 // for illumina forward anchors
-const static RegionType kRegionType1 = {true, true, true};
-const static RegionType kRegionType2 = {false, true, true};
-const static RegionType kRegionType3 = {true, false, true};
-const static RegionType kRegionType4 = {false, false, true};
+const static SearchRegionType::RegionType kRegionType1 = {true, true, true};
+const static SearchRegionType::RegionType kRegionType2 = {false, true, true};
+const static SearchRegionType::RegionType kRegionType3 = {true, false, true};
+const static SearchRegionType::RegionType kRegionType4 = {false, false, true};
 
 // for illumina reversed complement anchors
-const static RegionType kRegionType5 = {false, false, false};
-const static RegionType kRegionType6 = {true, false, false};
-const static RegionType kRegionType7 = {false, true, false};
-const static RegionType kRegionType8 = {true, true, false};
+const static SearchRegionType::RegionType kRegionType5 = {false, false, false};
+const static SearchRegionType::RegionType kRegionType6 = {true, false, false};
+const static SearchRegionType::RegionType kRegionType7 = {false, true, false};
+const static SearchRegionType::RegionType kRegionType8 = {true, true, false};
 
 void Validate( const RegionType& expect, const RegionType& actual) {
   EXPECT_EQ(expect.upstream, actual.upstream);
@@ -23,7 +23,7 @@ void Validate( const RegionType& expect, const RegionType& actual) {
 }
 
 void TestLoading(const bool strand) {
-  RegionType region_type;
+  SearchRegionType::RegionType region_type;
   SearchRegionType search_region_type;  // the default tech is ILLUMINA
   bool region_type_obtained = false;
   
@@ -95,7 +95,7 @@ TEST(SearchRegionTypeTest, Loading){
 
 
 void TestSetting(const bool strand) { 
-  RegionType region_type;
+  SearchRegionType::RegionType region_type;
   SearchRegionType search_region_type;  // the default tech is ILLUMINA
 
   bool is_set = search_region_type.SetCurrentTypeSuccess(strand);

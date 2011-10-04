@@ -46,10 +46,10 @@ struct MainVars{
   SR_InHashTable*  hash_table;
   AnchorRegion     anchor_region;
   SearchRegionType search_region_type;
-  RegionType       region_type;
   BamReference     bam_reference;
   HashRegionTable* hash_region_table;
   SR_SearchArgs    search_window;
+  SearchRegionType::RegionType       region_type;
 
   HashRegionCollection hr_collection;
 };
@@ -70,7 +70,7 @@ void ResetHeader( bam_header_t* const bam_header );
 void LoadRegionType(const bam1_t& anchor,
     AnchorRegion& anchor_region,
     SearchRegionType& search_region_type);
-void SetTargetSequence(const RegionType& region_type,
+void SetTargetSequence(const SearchRegionType::RegionType& region_type,
     SR_QueryRegion* query_region);
 
 int main ( int argc, char** argv ) {
@@ -103,13 +103,13 @@ int main ( int argc, char** argv ) {
   // Algorithm
   // =========
   int read_length = 0;
-  while(SR_BamInStreamGetPair( &(vars.query_region->pAnchor), &(vars.query_region->pOrphan), files.bam_reader ) == SR_OK) {
+  while(SR_BamInStreamLoadPair( &(vars.query_region->pAnchor), &(vars.query_region->pOrphan), files.bam_reader ) == SR_OK) {
     // Load new reference and hash table if necessary
     LoadReferenceOrDie(*vars.query_region->pAnchor, &files, &vars);
     LoadRegionType(*vars.query_region->pAnchor, vars.anchor_region, vars.search_region_type);
 
     const bool is_anchor_forward = !bam1_strand(vars.query_region->pAnchor);
-    SR_InitQueryRegion(vars.query_region);
+    //SR_InitQueryRegion(vars.query_region);
     // Convert 4-bit representive sequence into chars
     SR_QueryRegionLoadSeq(vars.query_region);
     read_length = vars.query_region->pOrphan->core.l_qseq;
@@ -143,7 +143,7 @@ int main ( int argc, char** argv ) {
 
 }
 
-void SetTargetSequence(const RegionType& region_type, 
+void SetTargetSequence(const SearchRegionType::RegionType& region_type, 
     SR_QueryRegion* query_region){
   const bool forward    = !bam1_strand(query_region->pOrphan);
   const bool inverse    = (forward && (query_region->isOrphanInversed == TRUE))
@@ -233,8 +233,12 @@ void PrepareFiles(const ParameterParser& parameter_parser, MainFiles* files) {
   //     if the given bam cannot be opened.
   files->bam_reader = SR_BamInStreamAlloc(
       parameter_parser.input_bam.c_str(), 
-      parameter_parser.fragment_length * parameter_parser.mate_window_size, 
-      parameter_parser.allowed_clip );
+      parameter_parser.fragment_length * parameter_parser.mate_window_size,
+      1,  // number of threads
+      20, // the number of alignments can be stored in each chunk of the memory pool
+      200, // number of alignments should be cached before report
+      true); // flag used to indicate that if we want to use the bam index file or not
+
   // Initialize bam output writer
   files->bam_writer = bam_open( parameter_parser.output_bam.c_str(), "w" );
 
