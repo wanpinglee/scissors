@@ -8,6 +8,7 @@ extern "C" {
 #include "outsources/samtools/bam.h"
 #include "utilities/bam/SR_BamHeader.h"
 #include "utilities/bam/SR_BamInStream.h"
+#include "utilities/bam/SR_BamPairAux.h"
 #include "utilities/common/SR_Types.h"
 #include "utilities/hashTable/SR_HashRegionTable.h"
 #include "utilities/hashTable/SR_InHashTable.h"
@@ -44,7 +45,6 @@ struct MainVars{
   SR_StreamMode    bam_record_mode;
   BamReference     bam_reference;
 
-
   SR_QueryRegion*  query_region;
   SR_Reference*    reference;
   SR_RefHeader*    reference_header;
@@ -57,6 +57,8 @@ struct MainVars{
   SearchRegionType::RegionType       region_type;
 
   HashRegionCollection hr_collection;
+
+  float soft_clip_tolerance;
 };
 
 
@@ -76,9 +78,9 @@ void LoadRegionType(const bam1_t& anchor,
                     SearchRegionType& search_region_type);
 void SetTargetSequence(const SearchRegionType::RegionType& region_type,
                        SR_QueryRegion* query_region);
-void InitBamReference(const SR_BamHeader& bam_header,
-                      BamReference* bam_reference);
-
+void AlignCandidate(const SR_BamListIter& al_ite,
+                    MainFiles* files,
+                    MainVars* vars); 
 
 
 int main ( int argc, char** argv ) {
@@ -110,38 +112,25 @@ int main ( int argc, char** argv ) {
   // =========
   // Algorithm
   // =========
-  int read_length = 0;
-  while(SR_BamInStreamLoadPair( &(vars.query_region->pAnchor), &(vars.query_region->pOrphan), files.bam_reader ) == SR_OK) {
-    // Load new reference and hash table if necessary
-    LoadReferenceOrDie(*vars.query_region->pAnchor, &files, &vars);
-    LoadRegionType(*vars.query_region->pAnchor, vars.anchor_region, vars.search_region_type);
+  SR_Status bam_status;
+  const int threads = 2;
+  vector<SR_BamListIter> iters;
+  iters.resize(threads);
 
-    const bool is_anchor_forward = !bam1_strand(vars.query_region->pAnchor);
-    //SR_InitQueryRegion(vars.query_region);
-    // Convert 4-bit representive sequence into chars
-    SR_QueryRegionLoadSeq(vars.query_region);
-    read_length = vars.query_region->pOrphan->core.l_qseq;
-    LoadRegionType(*vars.query_region->pAnchor, vars.anchor_region, vars.search_region_type);
-    while (vars.search_region_type.GetNextRegionType(is_anchor_forward, &vars.region_type)) {
-      // Reverse or complement the sequence if necesary
-      SetTargetSequence(vars.region_type, vars.query_region);
-      HashRegionTableInit(vars.hash_region_table, read_length);
-      SR_QueryRegionSetRange(vars.query_region, &vars.search_window, vars.reference->seqLen,
-          vars.region_type.upstream ? SR_UPSTREAM : SR_DOWNSTREAM);
-      HashRegionTableLoad(vars.hash_region_table, vars.hash_table, vars.query_region);
-      //BestRegion* ptr = vars.hash_region_table->pBestCloseRegions->data;
-      //printf("%u\n", (ptr+1)->queryBegin);
-      vars.hr_collection.Init(*(vars.hash_region_table->pBestCloseRegions));
-      printf("Before sorting...\n");
-      vars.hr_collection.Print();
-      printf("after sorting...\n");
-      vars.hr_collection.SortByLength();
-      vars.hr_collection.Print();
-    }
-		
-    //bam_write1( files.bam_writer, vars.query_region->pAnchor );
-    //bam_write1( files.bam_writer, vars.query_region->pOrphan );
+  for (int i = 0; i < threads; ++i) {
+    // try to load the first chunk of alignments
+    bam_status = SR_LoadUniquOrphanPairs(files.bam_reader, i, vars.soft_clip_tolerance);
   }
+
+  if (bam_status != SR_ERR) {
+    for (int threadId = 0; threadId < threads; ++threadId) {
+      iters[threadId] = SR_BamInStreamGetIter(files.bam_reader, threadId);
+    }
+  } else {
+    cout << "Not thing is loaded." << endl;
+  } // end if-else
+
+		
   // free memory and close files
   Deconstruct(&files, &vars);
 
@@ -150,7 +139,45 @@ int main ( int argc, char** argv ) {
   return 0;
 
 }
+/*
+void AlignCandidate(const SR_BamListIter& al_ite,
+                    MainFiles* files,
+                    MainVars* vars) {
+    while (SR_QueryRegionLoadPair(vars.query_region, &al_iter) == SR_OK) {
+      // Load new reference and hash table if necessary
+      LoadReferenceOrDie(*(vars.query_region->pAnchor), &files, &vars);
+      LoadRegionType(*(vars.query_region->pAnchor), vars.anchor_region, 
+          vars.search_region_type);
 
+      const bool is_anchor_forward = !bam1_strand(vars.query_region->pAnchor);
+      // Convert 4-bit representive sequence into chars
+      SR_QueryRegionLoadSeq(vars.query_region);
+      read_length = vars.query_region->pOrphan->core.l_qseq;
+
+      LoadRegionType(*vars.query_region->pAnchor, vars.anchor_region, 
+          vars.search_region_type);
+      while (vars.search_region_type.GetNextRegionType(is_anchor_forward, 
+                                                       &vars.region_type)) {
+        // Reverse or complement the sequence if necesary
+        SetTargetSequence(vars.region_type, vars.query_region);
+        HashRegionTableInit(vars.hash_region_table, read_length);
+        SR_QueryRegionSetRange(vars.query_region, &vars.search_window, vars.reference->seqLen,
+            vars.region_type.upstream ? SR_UPSTREAM : SR_DOWNSTREAM);
+        HashRegionTableLoad(vars.hash_region_table, vars.hash_table, vars.query_region);
+	vars.hr_collection.Init(*(vars.hash_region_table->pBestCloseRegions));
+	printf("Before sorting...\n");
+	vars.hr_collection.Print();
+	printf("after sorting...\n");
+	vars.hr_collection.SortByLength();
+	vars.hr_collection.Print();
+
+	//bam_write1( files.bam_writer, vars.query_region->pAnchor );
+	//bam_write1( files.bam_writer, vars.query_region->pOrphan );
+	//
+      } // end while
+    } // end while
+}
+*/
 void SetTargetSequence(const SearchRegionType::RegionType& region_type, 
     SR_QueryRegion* query_region){
   const bool forward    = !bam1_strand(query_region->pOrphan);
@@ -236,16 +263,19 @@ void Deconstruct(MainFiles* files, MainVars* vars) {
 }
 
 void InitFiles(const ParameterParser& parameter_parser, MainFiles* files) {
+  // set the stream mode to "UO" (unique orphan)
+  SR_StreamMode streamMode;
+  SR_SetStreamMode(&streamMode, SR_UO_STREAM);
   // Initialize bam input reader
   // The program will be terminated with printing error message
   //     if the given bam cannot be opened.
   files->bam_reader = SR_BamInStreamAlloc(
       parameter_parser.input_bam.c_str(), 
       parameter_parser.fragment_length * parameter_parser.mate_window_size,
-      1,  // number of threads
+      2,  // number of threads
       20, // the number of alignments can be stored in each chunk of the memory pool
       200, // number of alignments should be cached before report
-      true); // flag used to indicate that if we want to use the bam index file or not
+      &streamMode);
 
   // Initialize bam output writer
   files->bam_writer = bam_open( parameter_parser.output_bam.c_str(), "w" );
@@ -258,26 +288,31 @@ void InitFiles(const ParameterParser& parameter_parser, MainFiles* files) {
 
 void InitBamReference(const SR_BamHeader& bam_header,
                       BamReference* bam_reference) {
-  bam_reference->num_reference   = SR_BamHeaderGetRefNum(vars->bam_header);
-  bam_reference->reference_names = SR_BamHeaderGetRefNames(vars->bam_header);
-  bam_reference->reference_lengths = SR_BamHeaderGetRefLens(vars->bam_header);
+  bam_reference->num_reference     = SR_BamHeaderGetRefNum(&bam_header);
+  bam_reference->reference_names   = SR_BamHeaderGetRefNames(&bam_header);
+  bam_reference->reference_lengths = SR_BamHeaderGetRefLens(&bam_header);
 }
 
-void InitVariablesOrDie(const ParameterParser& parameter_parser, 
-    const MainFiles& files,
-    MainVars* vars) {
-  // Load bam header	
-  vars->bam_header = SR_BamHeaderAlloc();
-  vars->bam_header = SR_BamInStreamLoadHeader(files.bam_reader);
-
-  if (!parameter_parser.is_input_sorted && 
-      !BamUtilities::IsFileSorted(vars->bam_header->pOrigHeader)) {
+void IsInputBamSortedOrDie(const ParameterParser& parameter_parser,
+                           const SR_BamHeader& bam_header) {
+  if (!parameter_parser.is_input_sorted &&
+      !BamUtilities::IsFileSorted(bam_header.pOrigHeader)) {
     // The input bam is unsorted, exit
     cout << "ERROR: The input bam seems unsorted. "
          << "Please use bamtools sort to sort the bam" << endl
 	 << "       or type -s to ignore this checker." << endl;
 	 exit(1);
   }
+}
+
+void InitVariablesOrDie(const ParameterParser& parameter_parser, 
+                        const MainFiles& files,
+                        MainVars* vars) {
+  // Load bam header	
+  vars->bam_header = SR_BamHeaderAlloc();
+  vars->bam_header = SR_BamInStreamLoadHeader(files.bam_reader);
+
+  IsInputBamSortedOrDie(parameter_parser, *(vars->bam_header));
 
   // bam reference
   InitBamReference(*vars->bam_header, &vars->bam_reference);
@@ -310,11 +345,12 @@ void InitVariablesOrDie(const ParameterParser& parameter_parser,
   vars->search_window.fragLen    = 1000;
   vars->search_window.closeRange = 2000;
   vars->search_window.farRange   = 100000;
+  vars->soft_clip_tolerance      = 0.2;
 }
 
 
 void LoadReferenceOrDie(const bam1_t& anchor,
-    MainFiles* files, MainVars* vars) {
+                        MainFiles* files, MainVars* vars) {
   // Unknown reference id
   if (anchor.core.tid > vars->bam_reference.num_reference) {
     printf("ERROR: The reference id of the anchor, %s, is invalid.\n", bam1_qname(&anchor));
@@ -340,9 +376,8 @@ void LoadReferenceOrDie(const bam1_t& anchor,
 
 }
 
-void CheckFileOrDie( 
-    const ParameterParser& parameter_parser,
-    const MainFiles& files){
+void CheckFileOrDie(const ParameterParser& parameter_parser,
+                    const MainFiles& files){
 
 	bool error_found = false;
 

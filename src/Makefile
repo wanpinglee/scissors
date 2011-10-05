@@ -5,14 +5,14 @@ BIN_DIR = ../bin
 export CXX = g++
 export CC = gcc
 export MAKE = make
-export CFLAGS = -Wall -O2 -std=gnu99
-export CXXFLAGS = -Wall -O2
+export CFLAGS = -Wall -std=gnu99 -g
+export CXXFLAGS = -Wall -g
 
 # define our sources
 SOURCES = main.cpp
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES) )
 LIBS = -lz -lbam
-LIBS_DIR = -Lsamtools
+LIBS_DIR = -Loutsources/samtools
 INCLUDE = -I.
 
 
@@ -28,7 +28,7 @@ all: $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS) | $(BIN_DIR)
 	@echo "  * linking $(EXECUTABLE)"
-	@$(CXX) $(CXXFLAGS) -o $(BIN_DIR)/$@ $(OBJ_DIR)/*.o $(LIBS_DIR) $(LIBS)
+	@$(CXX) $(CXXFLAGS) -o $(BIN_DIR)/$@ $(OBJ_DIR)/*.o $(LIBS_DIR) $(LIBS) 
 
 test: $(OBJECTS)
 	@cd googletest && $(MAKE) --no-print-directory

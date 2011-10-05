@@ -8,7 +8,9 @@ LIBS = -lz
 INCLUDE = -I../..
 
 # C
-CSOURCES = SR_BamMemPool.c \
+CSOURCES = SR_BamHeader.c \
+		SR_BamMemPool.c \
+		SR_BamPairAux.c \
 		SR_BamInStream.c
 
 COBJECTS = $(patsubst %.c, $(OBJ_DIR)/%.o, $(CSOURCES) )

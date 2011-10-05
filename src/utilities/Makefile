@@ -1,5 +1,6 @@
 # define our build subdirectories
-SUB_DIRS = bam \
+SUB_DIRS = common \
+		bam \
 		hashTable \
 		smithwaterman \
 		miscellaneous

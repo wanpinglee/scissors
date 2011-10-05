@@ -21,6 +21,7 @@
 
 #include "outsources/samtools/bam.h"
 
+
 //===============================
 // Type and constant definition
 //===============================
@@ -92,6 +93,5 @@ inline const uint32_t* SR_BamHeaderGetRefLens(const SR_BamHeader* pBamHeader)
 {
     return pBamHeader->pOrigHeader->target_len;
 }
-
 
 #endif  /*SR_BAMHEADER_H*/
