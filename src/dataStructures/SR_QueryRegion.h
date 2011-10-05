@@ -19,9 +19,9 @@
 #ifndef  SR_QUERYREGION_H
 #define  SR_QUERYREGION_H
 
-#include "samtools/bam.h"
-#include "hashTable/common/SR_Types.h"
-#include "utilities/SR_BamMemPool.h"
+#include "outsources/samtools/bam.h"
+#include "utilities/common/SR_Types.h"
+#include "utilities/bam/SR_BamMemPool.h"
 
 //===============================
 // Type and constant definition

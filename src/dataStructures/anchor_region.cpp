@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include "dataStructures/bam_alignment.h"
+#include "utilities/bam/bam_alignment.h"
 
 const static uint32_t kBamCigarMask = 0x000f;
 

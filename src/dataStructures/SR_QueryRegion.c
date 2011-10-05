@@ -21,8 +21,8 @@
 #include <assert.h>
 #include <limits.h>
 
-#include "hashTable/common/SR_Error.h"
-#include "hashTable/common/SR_Utilities.h"
+#include "utilities/common/SR_Error.h"
+#include "utilities/common/SR_Utilities.h"
 #include "SR_QueryRegion.h"
 
 

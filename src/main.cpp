@@ -4,22 +4,22 @@
 #include <string>
 
 extern "C" {
-#include "dataStructures/SR_BamHeader.h"
 #include "dataStructures/SR_QueryRegion.h"
-#include "hashTable/common/SR_Types.h"
-#include "hashTable/reader/SR_HashRegionTable.h"
-#include "hashTable/reader/SR_InHashTable.h"
-#include "hashTable/reader/SR_Reference.h"
-#include "samtools/bam.h"
-#include "utilities/SR_BamInStream.h"
+#include "outsources/samtools/bam.h"
+#include "utilities/bam/SR_BamHeader.h"
+#include "utilities/bam/SR_BamInStream.h"
+#include "utilities/common/SR_Types.h"
+#include "utilities/hashTable/SR_HashRegionTable.h"
+#include "utilities/hashTable/SR_InHashTable.h"
+#include "utilities/hashTable/SR_Reference.h"
 }
 
 #include "dataStructures/anchor_region.h"
 #include "dataStructures/search_region_type.h"
 #include "dataStructures/technology.h"
-#include "utilities/bam_utilities.h"
-#include "utilities/hash_region_collection.h"
-#include "utilities/parameter_parser.h"
+#include "utilities/bam/bam_utilities.h"
+#include "utilities/miscellaneous/hash_region_collection.h"
+#include "utilities/miscellaneous/parameter_parser.h"
 
 using std::string;
 using std::cout;
@@ -39,14 +39,19 @@ struct BamReference {
 };
 
 struct MainVars{
-  SR_QueryRegion*  query_region;
+  // for bam
   SR_BamHeader*    bam_header;
+  SR_StreamMode    bam_record_mode;
+  BamReference     bam_reference;
+
+
+  SR_QueryRegion*  query_region;
   SR_Reference*    reference;
   SR_RefHeader*    reference_header;
   SR_InHashTable*  hash_table;
+
   AnchorRegion     anchor_region;
   SearchRegionType search_region_type;
-  BamReference     bam_reference;
   HashRegionTable* hash_region_table;
   SR_SearchArgs    search_window;
   SearchRegionType::RegionType       region_type;
@@ -57,21 +62,24 @@ struct MainVars{
 
 // Prototype of functions
 void Deconstruct(MainFiles* files, MainVars* vars);
-void PrepareFiles(const ParameterParser& parameter_parser, MainFiles* files);
-void PrepareVariablesOrDie(
-    const ParameterParser& parameter_parser, 
-    const MainFiles& files, MainVars* vars);
+void InitFiles(const ParameterParser& parameter_parser, MainFiles* files);
+void InitVariablesOrDie(const ParameterParser& parameter_parser, 
+                        const MainFiles& files, 
+			MainVars* vars);
 void LoadReferenceOrDie(const bam1_t& anchor,
-    MainFiles* files, MainVars* vars);
-void CheckFileOrDie(
-    const ParameterParser& parameter_parser,
-    const MainFiles& files);
-void ResetHeader( bam_header_t* const bam_header );
+                        MainFiles* files, MainVars* vars);
+void CheckFileOrDie(const ParameterParser& parameter_parser,
+                    const MainFiles& files);
+void ResetHeader(bam_header_t* const bam_header);
 void LoadRegionType(const bam1_t& anchor,
-    AnchorRegion& anchor_region,
-    SearchRegionType& search_region_type);
+                    AnchorRegion& anchor_region,
+                    SearchRegionType& search_region_type);
 void SetTargetSequence(const SearchRegionType::RegionType& region_type,
-    SR_QueryRegion* query_region);
+                       SR_QueryRegion* query_region);
+void InitBamReference(const SR_BamHeader& bam_header,
+                      BamReference* bam_reference);
+
+
 
 int main ( int argc, char** argv ) {
 	
@@ -85,7 +93,7 @@ int main ( int argc, char** argv ) {
   // Files Preparation
   // =================
   MainFiles files;
-  PrepareFiles(parameter_parser, &files);
+  InitFiles(parameter_parser, &files);
   CheckFileOrDie(parameter_parser, files);
 
 
@@ -93,7 +101,7 @@ int main ( int argc, char** argv ) {
   // Variables Preparation
   // =====================
   MainVars vars;
-  PrepareVariablesOrDie(parameter_parser, files, &vars);
+  InitVariablesOrDie(parameter_parser, files, &vars);
 
   // Write bam header
   ResetHeader( vars.bam_header->pOrigHeader );
@@ -227,7 +235,7 @@ void Deconstruct(MainFiles* files, MainVars* vars) {
 
 }
 
-void PrepareFiles(const ParameterParser& parameter_parser, MainFiles* files) {
+void InitFiles(const ParameterParser& parameter_parser, MainFiles* files) {
   // Initialize bam input reader
   // The program will be terminated with printing error message
   //     if the given bam cannot be opened.
@@ -248,13 +256,22 @@ void PrepareFiles(const ParameterParser& parameter_parser, MainFiles* files) {
 
 }
 
-void PrepareVariablesOrDie(const ParameterParser& parameter_parser, 
+void InitBamReference(const SR_BamHeader& bam_header,
+                      BamReference* bam_reference) {
+  bam_reference->num_reference   = SR_BamHeaderGetRefNum(vars->bam_header);
+  bam_reference->reference_names = SR_BamHeaderGetRefNames(vars->bam_header);
+  bam_reference->reference_lengths = SR_BamHeaderGetRefLens(vars->bam_header);
+}
+
+void InitVariablesOrDie(const ParameterParser& parameter_parser, 
     const MainFiles& files,
     MainVars* vars) {
   // Load bam header	
   vars->bam_header = SR_BamHeaderAlloc();
   vars->bam_header = SR_BamInStreamLoadHeader(files.bam_reader);
-  if( !parameter_parser.is_input_sorted && !BamUtilities::IsFileSorted( vars->bam_header->pOrigHeader ) ) {
+
+  if (!parameter_parser.is_input_sorted && 
+      !BamUtilities::IsFileSorted(vars->bam_header->pOrigHeader)) {
     // The input bam is unsorted, exit
     cout << "ERROR: The input bam seems unsorted. "
          << "Please use bamtools sort to sort the bam" << endl
@@ -263,19 +280,17 @@ void PrepareVariablesOrDie(const ParameterParser& parameter_parser,
   }
 
   // bam reference
-  vars->bam_reference.num_reference = 
-    SR_BamHeaderGetRefNum(vars->bam_header);
-  vars->bam_reference.reference_names = 
-    SR_BamHeaderGetRefNames(vars->bam_header);
-  vars->bam_reference.reference_lengths = 
-    SR_BamHeaderGetRefLens(vars->bam_header);
+  InitBamReference(*vars->bam_header, &vars->bam_reference);
 
   // Note: bam records are in SR_QueryRegion structure
   vars->query_region = SR_QueryRegionAlloc();
 
   // Load header of reference file
   vars->reference_header  = SR_RefHeaderAlloc();
-  int64_t reference_seal  = SR_RefHeaderRead(vars->reference_header, files.ref_reader);
+  
+  int64_t reference_seal  = 
+    SR_RefHeaderRead(vars->reference_header, files.ref_reader);
+
 
   // Load header of hash file
   unsigned char hash_size = 0;
@@ -326,30 +341,41 @@ void LoadReferenceOrDie(const bam1_t& anchor,
 }
 
 void CheckFileOrDie( 
-		const ParameterParser& parameter_parser,
-		const MainFiles& files){
+    const ParameterParser& parameter_parser,
+    const MainFiles& files){
 
 	bool error_found = false;
 
-	if ( files.bam_writer == NULL ) {
-		cout << "ERROR: Cannot open " << parameter_parser.output_bam << " for writing." << endl
-		     << "       Please check -o option." << endl;
+	if (files.bam_writer == NULL) {
+		cout << "ERROR: Cannot open " 
+		     << parameter_parser.output_bam 
+		     << " for writing." 
+		     << endl
+		     << "       Please check -o option." 
+		     << endl;
 		error_found = true;
 	}
 
-	if ( files.ref_reader == NULL ) {
-		cout << "ERROR: Cannot open " << parameter_parser.reference_filename << " for reading." << endl
+	if (files.ref_reader == NULL) {
+		cout << "ERROR: Cannot open " 
+		     << parameter_parser.reference_filename 
+		     << " for reading." 
+		     << endl
 		     << "       Please check -r option." << endl;
 		error_found = true;
 	}
 
-	if ( files.hash_reader == NULL ) {
-		cout << "ERROR: Cannot open " << parameter_parser.hash_filename << " for reading." << endl
-		     << "       Please check -r option." << endl;
+	if (files.hash_reader == NULL) {
+		cout << "ERROR: Cannot open " 
+		     << parameter_parser.hash_filename 
+		     << " for reading." 
+		     << endl
+		     << "       Please check -r option." 
+		     << endl;
 		error_found = true;
 	}
 
-	if ( error_found )
+	if (error_found)
 		exit(1);
 
 }
