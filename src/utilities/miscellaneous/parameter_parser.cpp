@@ -12,34 +12,25 @@ using std::cout;
 using std::endl;
 using std::string;
 
-ParameterParser::ParameterParser(const int argc, char* const * argv) 
-		: fragment_length(0)
-		, mate_window_size(2)
-		, allowed_clip(0.2)
-		, is_input_sorted(false){
-	// parse the arguments and save the parameters
-	ParseArgumentsOrDie( argc, argv );
-	
-	// check that all required parameters are set
-	if ( !CheckParameters() )
+bool CheckParameters(Parameters* param);
+void PrintHelp(const string& program);
+
+void ParseArgumentsOrDie(const int argc, char* const * argv, 
+    Parameters* param) {
+
+	if (argc == 1) { // no argument
+		PrintHelp(argv[0]);
 		exit(1);
-}
-
-void ParameterParser::ParseArgumentsOrDie(const int argc, char* const * argv) {
-
-	if ( argc == 1 ) { // no argument
-		PrintHelp( argv );
-		exit( 1 );
 	}
 
 	// record command line
-	command_line = argv[0];
+	param->command_line = argv[0];
 	for ( int i = 1; i < argc; ++i ) {
-		command_line += " ";
-		command_line += argv[i];
+		param->command_line += " ";
+		param->command_line += argv[i];
 	}
 
-	const char *short_option = "hi:r:o:l:w:c:s";
+	const char *short_option = "hi:r:o:l:w:c:sp:";
 
 	const struct option long_option[] = {
 		{ "help", no_argument, NULL, 'h' },
@@ -51,13 +42,14 @@ void ParameterParser::ParseArgumentsOrDie(const int argc, char* const * argv) {
 		{ "window-size", required_argument, NULL, 'w' },
 		{ "allowed-clip", required_argument, NULL, 'c' },
 		{ "is-input-sorted", no_argument, NULL, 's'},
+		{ "processors", required_argument, NULL, 'p'},
 
 		{ 0, 0, 0, 0 }
 	};
 
 	int c = 0;
 	bool help = false;
-	while ( true ) {
+	while (true) {
 		int optionIndex = 0;
 		c = getopt_long( argc, argv, short_option, long_option, &optionIndex );
 		
@@ -71,87 +63,95 @@ void ParameterParser::ParseArgumentsOrDie(const int argc, char* const * argv) {
 				break;
 			// i/o parameters
 			case 'i':
-				input_bam =  optarg;
+				param->input_bam =  optarg;
 				break;
 			case 'o':
-				output_bam = optarg;
+				param->output_bam = optarg;
 				break;
 			case 'r':
-				input_reference_hash = optarg;
-				reference_filename   = input_reference_hash + ".ref"; 
-				hash_filename        = input_reference_hash + ".ht";
+				param->input_reference_hash = optarg;
+				param->reference_filename   = 
+				  param->input_reference_hash + ".ref"; 
+				param->hash_filename        = 
+				  param->input_reference_hash + ".ht";
 				break;
 			// operation parameters
 			case 'l':
-				if ( !convert_from_string( optarg, fragment_length ) )
-					cout << "WARNING: Cannot parse --fragment-length." << endl;
+				if (!convert_from_string( optarg, param->fragment_length))
+					cout << "WARNING: Cannot parse -l --fragment-length." << endl;
 				break;
 			case 'w':
-				if ( !convert_from_string( optarg, mate_window_size ) )
-					cout << "WARNING: Cannot parse --window-size." << endl;
+				if (!convert_from_string( optarg, param->mate_window_size))
+					cout << "WARNING: Cannot parse -w --window-size." << endl;
 				break;
 			case 'c':
-				if ( !convert_from_string( optarg, allowed_clip) )
-					cout << "WARNING: Cannot parse --allowed-clip." << endl;
+				if (!convert_from_string( optarg, param->allowed_clip))
+					cout << "WARNING: Cannot parse -c --allowed-clip." << endl;
 				break;
 			case 's':
-				is_input_sorted = true;
+				param->is_input_sorted = true;
+			case 'p':
+				if (!convert_from_string( optarg, param->processors))
+					cout << "WARNING: Cannot parse -p --processors." << endl;
+				break;
 			default:
 				break;
 		}
 
 	}
 
-	if ( help ) {
-		PrintHelp( argv );
-		exit( 1 );
+	if (help) {
+		PrintHelp(argv[0]);
+		exit(1);
 	}
+
+	CheckParameters(param);
 }
 
 // true: passing the checker
-bool ParameterParser::CheckParameters(void) {
+bool CheckParameters(Parameters* param) {
 	
 	bool errorFound = false;
 	// necessary parameters
-	if ( input_bam.empty() ) {
+	if ( param->input_bam.empty() ) {
 		cout << "ERROR: Please specific an input file, -i." << endl;
 		errorFound = true;
 	}
 	
-	if ( output_bam.empty() ) {
+	if ( param->output_bam.empty() ) {
 		cout << "ERROR: Please specific an output file, -o." << endl;
 		errorFound = true;
 	}
 	
-	if ( input_reference_hash.empty() ) {
+	if ( param->input_reference_hash.empty() ) {
 		cout << "ERROR: Please specific a reference hash table, -r." << endl;
 		errorFound = true;
 	}
 
-	if ( fragment_length == 0 ) {
+	if ( param->fragment_length == 0 ) {
 		cout << "ERROR: Please specific fragment length, -l." << endl;
 		errorFound = true;
 	}
 
 	// unnecessary parameters
-	if ( ( allowed_clip < 0.0 ) || ( allowed_clip > 1.0 ) ) {
+	if ( ( param->allowed_clip < 0.0 ) || ( param->allowed_clip > 1.0 ) ) {
 		cout << "WARNING: -c should be in [0.0 - 1.0]. Set it to default, 0.2." << endl;
-		allowed_clip = 0.2;
+		param->allowed_clip = 0.2;
 	}
 
-	if ( mate_window_size == 0 ) {
+	if ( param->mate_window_size == 0 ) {
 		cout << "WARNING: -w should not be zero. Set it to default, 2." << endl;
-		mate_window_size = 2;
+		param->mate_window_size = 2;
 	}
 
 	return !errorFound;
 
 }
 
-void ParameterParser::PrintHelp(const char* const * argv) {
+void PrintHelp(const string& program) {
 	cout
 		<< endl
-		<< "usage: " << argv[0] << " [OPTIONS] -i <FILE> -o <FILE> -r <FILE>"
+		<< "usage: " << program << " [OPTIONS] -i <FILE> -o <FILE> -r <FILE>"
 		<< endl
 		<< endl
 		<< "Help:" << endl
