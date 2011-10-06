@@ -11,7 +11,7 @@ export CXXFLAGS = -Wall -g
 # define our sources
 SOURCES = main.cpp
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES) )
-LIBS = -lz -lbam
+LIBS = -lz -lbam -lpthread
 LIBS_DIR = -Loutsources/samtools
 INCLUDE = -I.
 

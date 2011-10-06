@@ -1,3 +1,4 @@
+#include <pthread.h>
 #include <stdlib.h>
 
 #include <iostream>
@@ -18,6 +19,7 @@ extern "C" {
 #include "dataStructures/anchor_region.h"
 #include "dataStructures/search_region_type.h"
 #include "dataStructures/technology.h"
+#include "dataStructures/thread_data.h"
 #include "utilities/bam/bam_utilities.h"
 #include "utilities/miscellaneous/hash_region_collection.h"
 #include "utilities/miscellaneous/parameter_parser.h"
@@ -25,6 +27,9 @@ extern "C" {
 using std::string;
 using std::cout;
 using std::endl;
+
+pthread_mutex_t bam_in_mutex;
+pthread_mutex_t bam_out_mutex;
 
 struct MainFiles {
   SR_BamInStream* bam_reader;  // bam reader
@@ -45,32 +50,23 @@ struct MainVars{
   SR_StreamMode    bam_record_mode;
   BamReference     bam_reference;
 
-  SR_QueryRegion*  query_region;
   SR_Reference*    reference;
   SR_RefHeader*    reference_header;
   SR_InHashTable*  hash_table;
 
-  AnchorRegion     anchor_region;
-  SearchRegionType search_region_type;
   HashRegionTable* hash_region_table;
-  SR_SearchArgs    search_window;
-  SearchRegionType::RegionType       region_type;
-
-  HashRegionCollection hr_collection;
-
-  float soft_clip_tolerance;
 };
 
 
 // Prototype of functions
 void Deconstruct(MainFiles* files, MainVars* vars);
-void InitFiles(const ParameterParser& parameter_parser, MainFiles* files);
-void InitVariablesOrDie(const ParameterParser& parameter_parser, 
+void InitFiles(const Parameters& parameters, MainFiles* files);
+void InitVariablesOrDie(const Parameters& parameter_parser, 
                         const MainFiles& files, 
 			MainVars* vars);
 void LoadReferenceOrDie(const bam1_t& anchor,
                         MainFiles* files, MainVars* vars);
-void CheckFileOrDie(const ParameterParser& parameter_parser,
+void CheckFileOrDie(const Parameters& parameters,
                     const MainFiles& files);
 void ResetHeader(bam_header_t* const bam_header);
 void LoadRegionType(const bam1_t& anchor,
@@ -81,29 +77,29 @@ void SetTargetSequence(const SearchRegionType::RegionType& region_type,
 void AlignCandidate(const SR_BamListIter& al_ite,
                     MainFiles* files,
                     MainVars* vars); 
-
+void StartThreadOrDie (const int& thread_count, const MainFiles& files);
 
 int main ( int argc, char** argv ) {
 	
   // Parse the arguments and store them
   // The program will exit(1) with printing error message 
   //     if any errors or missing required parameters are found
-  Parameters param;
-  ParseArgumentsOrDie(argc, argv, &param);
+  Parameters parameters;
+  ParseArgumentsOrDie(argc, argv, &parameters);
 
   // =================
   // Files Preparation
   // =================
   MainFiles files;
-  InitFiles(parameter_parser, &files);
-  CheckFileOrDie(parameter_parser, files);
+  InitFiles(parameters, &files);
+  CheckFileOrDie(parameters, files);
 
 
   // =====================
   // Variables Preparation
   // =====================
   MainVars vars;
-  InitVariablesOrDie(parameter_parser, files, &vars);
+  InitVariablesOrDie(parameters, files, &vars);
 
   // Write bam header
   ResetHeader( vars.bam_header->pOrigHeader );
@@ -113,24 +109,22 @@ int main ( int argc, char** argv ) {
   // Algorithm
   // =========
   SR_Status bam_status;
-  const int threads = 2;
-  vector<SR_BamListIter> iters;
-  iters.resize(threads);
 
-  for (int i = 0; i < threads; ++i) {
-    // try to load the first chunk of alignments
-    bam_status = SR_LoadUniquOrphanPairs(files.bam_reader, i, vars.soft_clip_tolerance);
-  }
+  while (true) { // eof or error of bam will terminate the loop
+    int thread_count = 0;
+    for (int i = 0; i < parameters.processors; ++i) {
+      // try to load the first chunk of alignments
+      bam_status = SR_LoadUniquOrphanPairs(files.bam_reader, i, parameters.allowed_clip);
+      if (bam_status == SR_OK) {
+        ++thread_count;
+      } else if (bam_status == SR_OUT_OF_RANGE){
+        // TODO: create threads
+      } else {
+        break;
+      }
+    } // end for
+  } // end while
 
-  if (bam_status != SR_ERR) {
-    for (int threadId = 0; threadId < threads; ++threadId) {
-      iters[threadId] = SR_BamInStreamGetIter(files.bam_reader, threadId);
-    }
-  } else {
-    cout << "Not thing is loaded." << endl;
-  } // end if-else
-
-		
   // free memory and close files
   Deconstruct(&files, &vars);
 
@@ -140,9 +134,58 @@ int main ( int argc, char** argv ) {
 
 }
 
+void* RunThread (void* thread_data) {
+  ThreadData *td = (ThreadData*) thread_data;
+  int thread_id = 0;
+  pthread_mutex_lock(&bam_in_mutex);
+  thread_id = td->id;
+  ++(td->id);
+  pthread_mutex_unlock(&bam_in_mutex);
+
+  pthread_exit(NULL);
+}
+
+void StartThreadOrDie (const int& thread_count,
+                       const MainFiles& files) {
+  vector<pthread_t> threads;
+  threads.resize(thread_count);
+
+  // prepare thread attr
+  pthread_attr_t  attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+  // register mutex
+  pthread_mutex_init(&bam_in_mutex, NULL);
+  pthread_mutex_init(&bam_out_mutex, NULL);
+
+  ThreadData td;
+  td.id = 0;
+  td.bam_reader = files.bam_reader;
+
+  // run threads
+  for (int i = 0; i < thread_count; ++i) {
+    int rc = pthread_create(&threads[i], &attr, RunThread, (void*)&td);
+    if (rc) {
+      cout << "ERROR: Return code from pthread_create is " << rc << endl;
+      exit(1);
+    } // end if
+  } // end for
+
+  // join threads
+  for (int i = 0; i < thread_count; ++i) {
+    void* status;
+    int rc = pthread_join(threads[i], &status);
+    if (rc) {
+      cout << "ERROR: Return code from pthread_join is " << rc << endl;
+      exit(1);
+    }
+  } // end for
+}
+
 void LoadRegionType(const bam1_t& anchor, 
-    AnchorRegion& anchor_region,
-    SearchRegionType& search_region_type) {
+                    AnchorRegion& anchor_region,
+                    SearchRegionType& search_region_type) {
   uint32_t* cigar = bam1_cigar(&anchor);
   bool is_new_region = anchor_region.IsNewRegion(cigar,
                        anchor.core.n_cigar, 
@@ -162,7 +205,6 @@ void Deconstruct(MainFiles* files, MainVars* vars) {
   fclose(files->hash_reader);
 
   // free variables
-  SR_QueryRegionFree(vars->query_region);
   SR_BamHeaderFree(vars->bam_header);
   SR_ReferenceFree(vars->reference);
   SR_InHashTableFree(vars->hash_table);
@@ -170,7 +212,7 @@ void Deconstruct(MainFiles* files, MainVars* vars) {
 
 }
 
-void InitFiles(const ParameterParser& parameter_parser, MainFiles* files) {
+void InitFiles(const Parameters& parameters, MainFiles* files) {
   // set the stream mode to "UO" (unique orphan)
   SR_StreamMode streamMode;
   SR_SetStreamMode(&streamMode, SR_UO_STREAM);
@@ -178,19 +220,19 @@ void InitFiles(const ParameterParser& parameter_parser, MainFiles* files) {
   // The program will be terminated with printing error message
   //     if the given bam cannot be opened.
   files->bam_reader = SR_BamInStreamAlloc(
-      parameter_parser.input_bam.c_str(), 
-      parameter_parser.fragment_length * parameter_parser.mate_window_size,
-      2,  // number of threads
+      parameters.input_bam.c_str(), 
+      parameters.fragment_length * parameters.mate_window_size,
+      parameters.processors,  // number of processors
       20, // the number of alignments can be stored in each chunk of the memory pool
       200, // number of alignments should be cached before report
       &streamMode);
 
   // Initialize bam output writer
-  files->bam_writer = bam_open( parameter_parser.output_bam.c_str(), "w" );
+  files->bam_writer = bam_open( parameters.output_bam.c_str(), "w" );
 
   // Initialize reference input reader
-  files->ref_reader  = fopen( parameter_parser.reference_filename.c_str(), "rb");
-  files->hash_reader = fopen( parameter_parser.hash_filename.c_str(), "rb");
+  files->ref_reader  = fopen( parameters.reference_filename.c_str(), "rb");
+  files->hash_reader = fopen( parameters.hash_filename.c_str(), "rb");
 
 }
 
@@ -201,9 +243,9 @@ void InitBamReference(const SR_BamHeader& bam_header,
   bam_reference->reference_lengths = SR_BamHeaderGetRefLens(&bam_header);
 }
 
-void IsInputBamSortedOrDie(const ParameterParser& parameter_parser,
+void IsInputBamSortedOrDie(const Parameters& parameters,
                            const SR_BamHeader& bam_header) {
-  if (!parameter_parser.is_input_sorted &&
+  if (!parameters.is_input_sorted &&
       !BamUtilities::IsFileSorted(bam_header.pOrigHeader)) {
     // The input bam is unsorted, exit
     cout << "ERROR: The input bam seems unsorted. "
@@ -213,20 +255,20 @@ void IsInputBamSortedOrDie(const ParameterParser& parameter_parser,
   }
 }
 
-void InitVariablesOrDie(const ParameterParser& parameter_parser, 
+void InitVariablesOrDie(const Parameters& parameters, 
                         const MainFiles& files,
                         MainVars* vars) {
   // Load bam header	
   vars->bam_header = SR_BamHeaderAlloc();
   vars->bam_header = SR_BamInStreamLoadHeader(files.bam_reader);
 
-  IsInputBamSortedOrDie(parameter_parser, *(vars->bam_header));
+  IsInputBamSortedOrDie(parameters, *(vars->bam_header));
 
   // bam reference
   InitBamReference(*vars->bam_header, &vars->bam_reference);
 
   // Note: bam records are in SR_QueryRegion structure
-  vars->query_region = SR_QueryRegionAlloc();
+  //vars->query_region = SR_QueryRegionAlloc();
 
   // Load header of reference file
   vars->reference_header  = SR_RefHeaderAlloc();
@@ -250,10 +292,9 @@ void InitVariablesOrDie(const ParameterParser& parameter_parser,
 
   vars->hash_region_table = HashRegionTableAlloc();
 
-  vars->search_window.fragLen    = 1000;
-  vars->search_window.closeRange = 2000;
-  vars->search_window.farRange   = 100000;
-  vars->soft_clip_tolerance      = 0.2;
+  //vars->search_window.fragLen    = 1000;
+  //vars->search_window.closeRange = 2000;
+  //vars->search_window.farRange   = 100000;
 }
 
 
@@ -284,14 +325,14 @@ void LoadReferenceOrDie(const bam1_t& anchor,
 
 }
 
-void CheckFileOrDie(const ParameterParser& parameter_parser,
+void CheckFileOrDie(const Parameters& parameters,
                     const MainFiles& files){
 
 	bool error_found = false;
 
 	if (files.bam_writer == NULL) {
 		cout << "ERROR: Cannot open " 
-		     << parameter_parser.output_bam 
+		     << parameters.output_bam 
 		     << " for writing." 
 		     << endl
 		     << "       Please check -o option." 
@@ -301,7 +342,7 @@ void CheckFileOrDie(const ParameterParser& parameter_parser,
 
 	if (files.ref_reader == NULL) {
 		cout << "ERROR: Cannot open " 
-		     << parameter_parser.reference_filename 
+		     << parameters.reference_filename 
 		     << " for reading." 
 		     << endl
 		     << "       Please check -r option." << endl;
@@ -310,7 +351,7 @@ void CheckFileOrDie(const ParameterParser& parameter_parser,
 
 	if (files.hash_reader == NULL) {
 		cout << "ERROR: Cannot open " 
-		     << parameter_parser.hash_filename 
+		     << parameters.hash_filename 
 		     << " for reading." 
 		     << endl
 		     << "       Please check -r option." 
