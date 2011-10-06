@@ -1,4 +1,3 @@
-#include <pthread.h>
 #include <stdlib.h>
 
 #include <iostream>
@@ -19,17 +18,14 @@ extern "C" {
 #include "dataStructures/anchor_region.h"
 #include "dataStructures/search_region_type.h"
 #include "dataStructures/technology.h"
-#include "dataStructures/thread_data.h"
 #include "utilities/bam/bam_utilities.h"
 #include "utilities/miscellaneous/hash_region_collection.h"
 #include "utilities/miscellaneous/parameter_parser.h"
+#include "utilities/miscellaneous/thread.h"
 
 using std::string;
 using std::cout;
 using std::endl;
-
-pthread_mutex_t bam_in_mutex;
-pthread_mutex_t bam_out_mutex;
 
 struct MainFiles {
   SR_BamInStream* bam_reader;  // bam reader
@@ -77,7 +73,6 @@ void SetTargetSequence(const SearchRegionType::RegionType& region_type,
 void AlignCandidate(const SR_BamListIter& al_ite,
                     MainFiles* files,
                     MainVars* vars); 
-void StartThreadOrDie (const int& thread_count, const MainFiles& files);
 
 int main ( int argc, char** argv ) {
 	
@@ -108,22 +103,25 @@ int main ( int argc, char** argv ) {
   // =========
   // Algorithm
   // =========
-  SR_Status bam_status;
 
-  while (true) { // eof or error of bam will terminate the loop
-    int thread_count = 0;
+  //while (true) { // eof or error of bam will terminate the loop
+  //  int thread_count = 0;
+    StartThreadOrDie(parameters.processors, files.bam_reader);
+    /*
     for (int i = 0; i < parameters.processors; ++i) {
       // try to load the first chunk of alignments
       bam_status = SR_LoadUniquOrphanPairs(files.bam_reader, i, parameters.allowed_clip);
       if (bam_status == SR_OK) {
         ++thread_count;
       } else if (bam_status == SR_OUT_OF_RANGE){
-        // TODO: create threads
+        StartThreadOrDie(thread_count, files);
+	// TODO: create threads
       } else {
         break;
       }
     } // end for
-  } // end while
+    */
+  //} // end while
 
   // free memory and close files
   Deconstruct(&files, &vars);
@@ -132,55 +130,6 @@ int main ( int argc, char** argv ) {
 
   return 0;
 
-}
-
-void* RunThread (void* thread_data) {
-  ThreadData *td = (ThreadData*) thread_data;
-  int thread_id = 0;
-  pthread_mutex_lock(&bam_in_mutex);
-  thread_id = td->id;
-  ++(td->id);
-  pthread_mutex_unlock(&bam_in_mutex);
-
-  pthread_exit(NULL);
-}
-
-void StartThreadOrDie (const int& thread_count,
-                       const MainFiles& files) {
-  vector<pthread_t> threads;
-  threads.resize(thread_count);
-
-  // prepare thread attr
-  pthread_attr_t  attr;
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
-  // register mutex
-  pthread_mutex_init(&bam_in_mutex, NULL);
-  pthread_mutex_init(&bam_out_mutex, NULL);
-
-  ThreadData td;
-  td.id = 0;
-  td.bam_reader = files.bam_reader;
-
-  // run threads
-  for (int i = 0; i < thread_count; ++i) {
-    int rc = pthread_create(&threads[i], &attr, RunThread, (void*)&td);
-    if (rc) {
-      cout << "ERROR: Return code from pthread_create is " << rc << endl;
-      exit(1);
-    } // end if
-  } // end for
-
-  // join threads
-  for (int i = 0; i < thread_count; ++i) {
-    void* status;
-    int rc = pthread_join(threads[i], &status);
-    if (rc) {
-      cout << "ERROR: Return code from pthread_join is " << rc << endl;
-      exit(1);
-    }
-  } // end for
 }
 
 void LoadRegionType(const bam1_t& anchor, 

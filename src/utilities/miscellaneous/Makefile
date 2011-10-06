@@ -2,7 +2,8 @@ OBJ_DIR = ../../../obj
 
 # C++
 SOURCES = hash_region_collection.cpp \
-		parameter_parser.cpp
+		parameter_parser.cpp \
+		thread.cpp
 
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES) )
 LIBS = -lz
