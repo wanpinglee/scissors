@@ -97,6 +97,7 @@ SR_Status SR_LoadUniquOrphanPairs(SR_BamInStream* pBamInStream, unsigned int thr
     SR_Status bufferStatus = SR_OK;
     while ((readerStatus = SR_BamInStreamLoadPair(&pAnchor, &pOrphan, NULL, pBamInStream)) == SR_OK)
     {
+    printf("loading\n");
         if (SR_IsUniqueOrphanPair(&pAnchor, &pOrphan, scTolerance))
         {
             SR_BamInStreamPush(pBamInStream, pAnchor, threadID);

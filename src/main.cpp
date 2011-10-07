@@ -4,19 +4,14 @@
 #include <string>
 
 extern "C" {
-#include "dataStructures/SR_QueryRegion.h"
 #include "outsources/samtools/bam.h"
 #include "utilities/bam/SR_BamInStream.h"
 #include "utilities/bam/SR_BamPairAux.h"
 #include "utilities/common/SR_Types.h"
 }
 
-#include "dataStructures/anchor_region.h"
-#include "dataStructures/search_region_type.h"
-#include "dataStructures/technology.h"
 #include "utilities/bam/bam_reference.h"
 #include "utilities/bam/bam_utilities.h"
-#include "utilities/miscellaneous/hash_region_collection.h"
 #include "utilities/miscellaneous/parameter_parser.h"
 #include "utilities/miscellaneous/thread.h"
 
@@ -86,7 +81,9 @@ int main ( int argc, char** argv ) {
 		files.ref_reader,
 		files.hash_reader,
 		files.bam_reader);
-  thread.Start();
+  bool thread_status = thread.Start();
+  if (!thread_status)
+    cout << "threads fail" << endl;
   //StartThreadOrDie(parameters.processors, files.bam_reader);
 
   // free memory and close files
@@ -98,6 +95,7 @@ int main ( int argc, char** argv ) {
 
 }
 
+/*
 void LoadRegionType(const bam1_t& anchor, 
                     AnchorRegion& anchor_region,
                     SearchRegionType& search_region_type) {
@@ -111,6 +109,7 @@ void LoadRegionType(const bam1_t& anchor,
     search_region_type.RewindRegionTypeList();
 
 }
+*/
 
 void Deconstruct(MainFiles* files, MainVars* vars) {
   // close files

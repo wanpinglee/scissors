@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <stdio.h>
 
+#include <iostream>
 #include <vector>
 
 extern "C" {
@@ -10,6 +11,8 @@ extern "C" {
 }
 
 using std::vector;
+using std::cout;
+using std::endl;
 
 pthread_mutex_t bam_in_mutex;
 pthread_mutex_t bam_out_mutex;
@@ -45,6 +48,7 @@ void* RunThread (void* thread_data_) {
                                              td->id, 
                                              td->allowed_clip);
         *(td->bam_status) = bam_status;
+	cout << td->id << endl;
       }
       pthread_mutex_unlock(&bam_in_mutex);
     } // end if-else
@@ -117,21 +121,27 @@ void Thread::InitThreadData() {
 bool Thread::LoadReference() {
   int thread_id = 0;
   bam_status_ = SR_LoadUniquOrphanPairs(bam_reader_,
-                                          thread_id,
-					  allowed_clip_);
-  if (bam_status_ != SR_OK) // cannot load alignments from bam
+                                        thread_id,
+				        allowed_clip_);
+  if (bam_status_ != SR_OK) { // cannot load alignments from bam
+    cout << "ERROR: Cannot load alignments from the input bam." << endl;
     return false;
+  }
   
   thread_data_[0].alignment_list = SR_BamInStreamGetIter(bam_reader_, 
                                                          thread_id);
   int chromosome_id;
-  if (!GetChromosomeId(thread_data_[0].alignment_list, &chromosome_id)) 
+  if (!GetChromosomeId(thread_data_[0].alignment_list, &chromosome_id)) {
   // cannot get chr id
+    cout << "ERROR: Unknown reference id" << chromosome_id << endl;
     return false;
+  }
 
-  if (chromosome_id > bam_reference_->GetCount()) 
+  if (chromosome_id > bam_reference_->GetCount()) {
   // the obtained chr id is invalid
+    cout << "ERROR: Reference id is larger than total references." << endl;
     return false;
+  }
   
   const char* ref_name = bam_reference_->GetName(chromosome_id);
   int32_t ref_id = SR_RefHeaderGetRefID(reference_header_, ref_name);
@@ -154,10 +164,8 @@ bool Thread::Start() {
 
   pthread_attr_t attr;
 
-  InitThreadData();
-
-
   while (true) { // break when bam_status != SR_OUT_OF_RANGE
+    InitThreadData();
     if (!LoadReference()) // load the next first chunk of alignments
       return false;       // and based on the chr id in alignments
 		          // load reference and hash table

@@ -303,7 +303,7 @@ SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppAlgnOne, SR_BamNode** ppAlgnTwo,
 
     khash_t(queryName)* pNameHashPrev = pBamInStream->pNameHashes[PREV_BIN];
     khash_t(queryName)* pNameHashCurr = pBamInStream->pNameHashes[CURR_BIN];
-
+printf("1load\n");
     int ret = 1;
     while(ret > 0 && (ret = SR_BamInStreamLoadNext(pBamInStream)) > 0)
     {
