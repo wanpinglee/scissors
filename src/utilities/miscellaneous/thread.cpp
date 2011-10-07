@@ -7,6 +7,7 @@
 #include <vector>
 
 extern "C" {
+#include "dataStructures/SR_QueryRegion.h"
 #include "utilities/bam/SR_BamPairAux.h"
 }
 
@@ -20,14 +21,9 @@ pthread_mutex_t bam_out_mutex;
 // Given a SR_BamListIter containing alignments,
 //  reports the chromosome id of the alignments.
 // Note: Alignments in the list should be located in the same chromosome
-bool GetChromosomeId(const SR_BamListIter& alignment_list,
+inline void GetChromosomeId(const SR_BamListIter& alignment_list,
                      int* chromosome_id) {
-  if (alignment_list == NULL) {
-    return false;
-  } else {
-    *chromosome_id = alignment_list->alignment.core.tid;
-    return true;
-  }
+  *chromosome_id = alignment_list->alignment.core.tid;
 }
 
 void* RunThread (void* thread_data_) {
@@ -123,19 +119,19 @@ bool Thread::LoadReference() {
   bam_status_ = SR_LoadUniquOrphanPairs(bam_reader_,
                                         thread_id,
 				        allowed_clip_);
-  if (bam_status_ != SR_OK) { // cannot load alignments from bam
+  if (bam_status_ == SR_ERR) { // cannot load alignments from bam
     cout << "ERROR: Cannot load alignments from the input bam." << endl;
     return false;
   }
-  
+
   thread_data_[0].alignment_list = SR_BamInStreamGetIter(bam_reader_, 
                                                          thread_id);
-  int chromosome_id;
-  if (!GetChromosomeId(thread_data_[0].alignment_list, &chromosome_id)) {
-  // cannot get chr id
-    cout << "ERROR: Unknown reference id" << chromosome_id << endl;
-    return false;
+  if (thread_data_[0].alignment_list == NULL) {
+    cout << "ERROR: The bam buffer list is NULL." << endl;
   }
+
+  int chromosome_id;
+  GetChromosomeId(thread_data_[0].alignment_list, &chromosome_id);
 
   if (chromosome_id > bam_reference_->GetCount()) {
   // the obtained chr id is invalid
