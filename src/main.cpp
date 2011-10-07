@@ -6,18 +6,15 @@
 extern "C" {
 #include "dataStructures/SR_QueryRegion.h"
 #include "outsources/samtools/bam.h"
-#include "utilities/bam/SR_BamHeader.h"
 #include "utilities/bam/SR_BamInStream.h"
 #include "utilities/bam/SR_BamPairAux.h"
 #include "utilities/common/SR_Types.h"
-#include "utilities/hashTable/SR_HashRegionTable.h"
-#include "utilities/hashTable/SR_InHashTable.h"
-#include "utilities/hashTable/SR_Reference.h"
 }
 
 #include "dataStructures/anchor_region.h"
 #include "dataStructures/search_region_type.h"
 #include "dataStructures/technology.h"
+#include "utilities/bam/bam_reference.h"
 #include "utilities/bam/bam_utilities.h"
 #include "utilities/miscellaneous/hash_region_collection.h"
 #include "utilities/miscellaneous/parameter_parser.h"
@@ -34,23 +31,10 @@ struct MainFiles {
   FILE*           hash_reader; // hash table reader
 };
 
-struct BamReference {
-  int             num_reference;
-  const char**    reference_names;
-  const uint32_t* reference_lengths;
-};
-
 struct MainVars{
   // for bam
   SR_BamHeader*    bam_header;
   SR_StreamMode    bam_record_mode;
-  BamReference     bam_reference;
-
-  SR_Reference*    reference;
-  SR_RefHeader*    reference_header;
-  SR_InHashTable*  hash_table;
-
-  HashRegionTable* hash_region_table;
 };
 
 
@@ -60,19 +44,10 @@ void InitFiles(const Parameters& parameters, MainFiles* files);
 void InitVariablesOrDie(const Parameters& parameter_parser, 
                         const MainFiles& files, 
 			MainVars* vars);
-void LoadReferenceOrDie(const bam1_t& anchor,
-                        MainFiles* files, MainVars* vars);
 void CheckFileOrDie(const Parameters& parameters,
                     const MainFiles& files);
 void ResetHeader(bam_header_t* const bam_header);
-void LoadRegionType(const bam1_t& anchor,
-                    AnchorRegion& anchor_region,
-                    SearchRegionType& search_region_type);
-void SetTargetSequence(const SearchRegionType::RegionType& region_type,
-                       SR_QueryRegion* query_region);
-void AlignCandidate(const SR_BamListIter& al_ite,
-                    MainFiles* files,
-                    MainVars* vars); 
+
 
 int main ( int argc, char** argv ) {
 	
@@ -97,31 +72,22 @@ int main ( int argc, char** argv ) {
   InitVariablesOrDie(parameters, files, &vars);
 
   // Write bam header
-  ResetHeader( vars.bam_header->pOrigHeader );
+  ResetHeader(vars.bam_header->pOrigHeader);
   bam_header_write( files.bam_writer, vars.bam_header->pOrigHeader );
 
   // =========
   // Algorithm
   // =========
-
-  //while (true) { // eof or error of bam will terminate the loop
-  //  int thread_count = 0;
-    StartThreadOrDie(parameters.processors, files.bam_reader);
-    /*
-    for (int i = 0; i < parameters.processors; ++i) {
-      // try to load the first chunk of alignments
-      bam_status = SR_LoadUniquOrphanPairs(files.bam_reader, i, parameters.allowed_clip);
-      if (bam_status == SR_OK) {
-        ++thread_count;
-      } else if (bam_status == SR_OUT_OF_RANGE){
-        StartThreadOrDie(thread_count, files);
-	// TODO: create threads
-      } else {
-        break;
-      }
-    } // end for
-    */
-  //} // end while
+  BamReference bam_reference;
+  bam_reference.Init(*vars.bam_header);
+  Thread thread(&bam_reference,
+		parameters.allowed_clip,
+		parameters.processors,
+		files.ref_reader,
+		files.hash_reader,
+		files.bam_reader);
+  thread.Start();
+  //StartThreadOrDie(parameters.processors, files.bam_reader);
 
   // free memory and close files
   Deconstruct(&files, &vars);
@@ -155,10 +121,6 @@ void Deconstruct(MainFiles* files, MainVars* vars) {
 
   // free variables
   SR_BamHeaderFree(vars->bam_header);
-  SR_ReferenceFree(vars->reference);
-  SR_InHashTableFree(vars->hash_table);
-  HashRegionTableFree(vars->hash_region_table);
-
 }
 
 void InitFiles(const Parameters& parameters, MainFiles* files) {
@@ -185,13 +147,6 @@ void InitFiles(const Parameters& parameters, MainFiles* files) {
 
 }
 
-void InitBamReference(const SR_BamHeader& bam_header,
-                      BamReference* bam_reference) {
-  bam_reference->num_reference     = SR_BamHeaderGetRefNum(&bam_header);
-  bam_reference->reference_names   = SR_BamHeaderGetRefNames(&bam_header);
-  bam_reference->reference_lengths = SR_BamHeaderGetRefLens(&bam_header);
-}
-
 void IsInputBamSortedOrDie(const Parameters& parameters,
                            const SR_BamHeader& bam_header) {
   if (!parameters.is_input_sorted &&
@@ -213,65 +168,9 @@ void InitVariablesOrDie(const Parameters& parameters,
 
   IsInputBamSortedOrDie(parameters, *(vars->bam_header));
 
-  // bam reference
-  InitBamReference(*vars->bam_header, &vars->bam_reference);
-
-  // Note: bam records are in SR_QueryRegion structure
-  //vars->query_region = SR_QueryRegionAlloc();
-
-  // Load header of reference file
-  vars->reference_header  = SR_RefHeaderAlloc();
-  
-  int64_t reference_seal  = 
-    SR_RefHeaderRead(vars->reference_header, files.ref_reader);
-
-
-  // Load header of hash file
-  unsigned char hash_size = 0;
-  int64_t hash_seal = SR_InHashTableReadStart(&hash_size, files.hash_reader);
-
-  if (reference_seal != hash_seal) {
-    printf("ERROR: The reference file is not compatible with the hash table file.\n");
-    exit(1);
-  }
-
-  // init reference and hash table
-  vars->reference  = SR_ReferenceAlloc();
-  vars->hash_table = SR_InHashTableAlloc(hash_size);
-
-  vars->hash_region_table = HashRegionTableAlloc();
-
   //vars->search_window.fragLen    = 1000;
   //vars->search_window.closeRange = 2000;
   //vars->search_window.farRange   = 100000;
-}
-
-
-void LoadReferenceOrDie(const bam1_t& anchor,
-                        MainFiles* files, MainVars* vars) {
-  // Unknown reference id
-  if (anchor.core.tid > vars->bam_reference.num_reference) {
-    printf("ERROR: The reference id of the anchor, %s, is invalid.\n", bam1_qname(&anchor));
-    exit(1);
-  }
-
-  const char* bam_ptr = vars->bam_reference.reference_names[anchor.core.tid];
-  const char* ref_ptr = SR_RefHeaderGetName(vars->reference_header, vars->reference->id);
-  
-  if (strcmp(bam_ptr, ref_ptr) != 0) {  // Loading reference and hash table is necessary
-      int32_t ref_id = SR_RefHeaderGetRefID(vars->reference_header, ref_ptr);
-      
-      if (ref_id < 0) {  // Cannot find the reference
-        printf("ERROR: The reference, %s, is not found in reference file.\n", ref_ptr);
-	exit(1);
-      } else {
-        SR_ReferenceJump(files->ref_reader, vars->reference_header, ref_id);
-        SR_InHashTableJump(files->hash_reader, vars->reference_header, ref_id);
-        SR_ReferenceRead(vars->reference, files->ref_reader);
-        SR_InHashTableRead(vars->hash_table, files->hash_reader);
-      }
-  }
-
 }
 
 void CheckFileOrDie(const Parameters& parameters,
