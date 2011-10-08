@@ -109,6 +109,7 @@ void Thread::InitThreadData() {
     thread_data_[i].bam_reader     = bam_reader_;
     thread_data_[i].alignment_list = NULL;
     thread_data_[i].bam_status     = &bam_status_;
+    SR_BamInStreamClearBuff(bam_reader_, i);
   }
 }
 
@@ -116,22 +117,33 @@ void Thread::InitThreadData() {
 //   hash table that we are gonna load
 bool Thread::LoadReference() {
   int thread_id = 0;
-  bam_status_ = SR_LoadUniquOrphanPairs(bam_reader_,
-                                        thread_id,
-				        allowed_clip_);
-  if (bam_status_ == SR_ERR) { // cannot load alignments from bam
-    cout << "ERROR: Cannot load alignments from the input bam." << endl;
-    return false;
+  
+  while ((thread_data_[0].alignment_list == NULL) &&
+        (bam_status_ != SR_EOF)) {
+    bam_status_ = SR_LoadUniquOrphanPairs(bam_reader_,
+                                          thread_id,
+  				          allowed_clip_);
+    cout << bam_status_ << endl;
+    if (bam_status_ == SR_ERR) { // cannot load alignments from bam
+      cout << "ERROR: Cannot load alignments from the input bam." << endl;
+      return false;
+    }
+
+    thread_data_[0].alignment_list = SR_BamInStreamGetIter(bam_reader_, 
+                                                           thread_id);
+    if (thread_data_[0].alignment_list == NULL)
+      cout << "NULL" << endl;
+    else
+      cout << "Not NULL" << endl;
   }
 
-  thread_data_[0].alignment_list = SR_BamInStreamGetIter(bam_reader_, 
-                                                         thread_id);
-  if (thread_data_[0].alignment_list == NULL) {
-    cout << "ERROR: The bam buffer list is NULL." << endl;
-  }
+  if (thread_data_[0].alignment_list == NULL)
+    return true;
+  // this also means bam_status_ != SR_EOF
 
   int chromosome_id;
   GetChromosomeId(thread_data_[0].alignment_list, &chromosome_id);
+  cout << chromosome_id << endl;
 
   if (chromosome_id > bam_reference_->GetCount()) {
   // the obtained chr id is invalid
