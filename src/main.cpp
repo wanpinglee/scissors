@@ -133,7 +133,7 @@ void InitFiles(const Parameters& parameters, MainFiles* files) {
       parameters.input_bam.c_str(), 
       parameters.fragment_length * parameters.mate_window_size,
       parameters.processors,  // number of processors
-      10, // the number of alignments can be stored in each chunk of the memory pool
+      1, // the number of alignments can be stored in each chunk of the memory pool
       10, // number of alignments should be cached before report
       &streamMode);
 

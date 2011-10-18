@@ -34,7 +34,8 @@ void* RunThread (void* thread_data_) {
 
     // try to get alignments
     pthread_mutex_lock(&bam_in_mutex);
-    if (*(td->bam_status) != SR_OK) {
+    bam_status = *(td->bam_status);
+    if (bam_status != SR_OK) {
       // the bam is not okay for getting other alignments
       pthread_mutex_unlock(&bam_in_mutex);
       break; // break the while loop
@@ -44,7 +45,7 @@ void* RunThread (void* thread_data_) {
                                              td->id, 
                                              td->allowed_clip);
         *(td->bam_status) = bam_status;
-	cout << td->id << endl;
+	cout << "thread id: " << td->id << endl;
       }
       pthread_mutex_unlock(&bam_in_mutex);
     } // end if-else
@@ -138,12 +139,14 @@ bool Thread::LoadReference() {
   }
 
   if (thread_data_[0].alignment_list == NULL)
-    return true;
   // this also means bam_status_ != SR_EOF
+    return true;
 
   int chromosome_id;
   GetChromosomeId(thread_data_[0].alignment_list, &chromosome_id);
   cout << chromosome_id << endl;
+
+  if (chromosome_id == 1) return true;
 
   if (chromosome_id > bam_reference_->GetCount()) {
   // the obtained chr id is invalid
