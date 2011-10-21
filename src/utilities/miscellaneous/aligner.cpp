@@ -88,6 +88,7 @@ void Aligner::LoadRegionType(const bam1_t& anchor) {
 
 void Aligner::AlignCandidate(SR_BamListIter* al_ite) {
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
+      printf("Get a pair\n");
       const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
       // Convert 4-bit representive sequence into chars
       SR_QueryRegionLoadSeq(query_region_);
@@ -104,7 +105,7 @@ void Aligner::AlignCandidate(SR_BamListIter* al_ite) {
         HashRegionTableInit(hashes_, read_length);
         SR_QueryRegionSetRange(query_region_, &hash_length_, reference_->seqLen,
                                region_type.upstream ? SR_UPSTREAM : SR_DOWNSTREAM);
-        HashRegionTableLoad(hashes_, hash_table_, query_region_);
+	HashRegionTableLoad(hashes_, hash_table_, query_region_);
 	hashes_collection.Init(*(hashes_->pBestCloseRegions));
 	printf("Before sorting...\n");
 	hashes_collection.Print();

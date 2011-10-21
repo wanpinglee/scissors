@@ -11,6 +11,8 @@ extern "C" {
 #include "utilities/bam/SR_BamPairAux.h"
 }
 
+#include "utilities/miscellaneous/aligner.h"
+
 using std::vector;
 using std::cout;
 using std::endl;
@@ -28,6 +30,7 @@ inline void GetChromosomeId(const SR_BamListIter& alignment_list,
 
 void* RunThread (void* thread_data_) {
   ThreadData *td = (ThreadData*) thread_data_;
+  Aligner aligner(td->reference, td->hash_table);
 
   while (true) { // until bam != SR_OK
     SR_Status bam_status;
@@ -51,12 +54,12 @@ void* RunThread (void* thread_data_) {
       pthread_mutex_unlock(&bam_in_mutex);
     } // end if-else
 
-    // no alignment is loaded
-    if (bam_status != SR_OK) {
-      break; // break the while loop
+    if (td->alignment_list != NULL) {
+      aligner.AlignCandidate(&td->alignment_list);
     } else {
-      
+      break; // break the while loop
     }
+
   } // end while
 
   pthread_exit(NULL);
@@ -111,6 +114,8 @@ void Thread::InitThreadData() {
     thread_data_[i].bam_reader     = bam_reader_;
     thread_data_[i].alignment_list = NULL;
     thread_data_[i].bam_status     = &bam_status_;
+    thread_data_[i].reference      = reference_;
+    thread_data_[i].hash_table     = hash_table_;
     SR_BamInStreamClearBuff(bam_reader_, i);
   }
 }
@@ -143,16 +148,6 @@ bool Thread::LoadReference() {
   // this also means bam_status_ != SR_EOF
     return true;
  
-  /*
-  SR_QueryRegion* pQueryRegion = SR_QueryRegionAlloc();
-  int count = 0;
-  while (SR_QueryRegionLoadPair(pQueryRegion, &thread_data_[0].alignment_list) == SR_OK) {
-    SR_QueryRegionLoadSeq(pQueryRegion);
-    cout << count << endl;
-    ++count;
-  }
-  */
-
   int chromosome_id;
   GetChromosomeId(thread_data_[0].alignment_list, &chromosome_id);
   cout << chromosome_id << endl;
