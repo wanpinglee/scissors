@@ -7,7 +7,7 @@
 
 using std::vector;
 
-class HashRegionCollection {
+class HashesCollection {
  public:
   void Init(const BestRegionArray& array);
   void SortByLength(void);

@@ -18,8 +18,8 @@ INCLUDE = -I.
 
 # define our source subdirectories
 SUB_DIRS = dataStructures \
-		utilities 
-#		outsources
+		utilities \
+		outsources
 
 EXECUTABLE = aligner
 
@@ -59,5 +59,5 @@ $(BIN_DIR):
 clean:
 	@echo "Cleaning up......"
 	@rm -rf $(OBJ_DIR) $(BIN_DIR)
-#	@cd outsources/samtools && $(MAKE) clean --no-print-directory
+	@cd outsources/samtools && $(MAKE) clean --no-print-directory
 .PHONY: clean
