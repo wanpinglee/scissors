@@ -134,7 +134,7 @@ public:
 	// closes the alignment archive
 	void Close(void);
 	// opens the alignment archive
-	void Open(void);
+	void Open(const string& filename);
 	// write the alignment to the alignment archive
 	void WriteAlignment(const BamAlignment& al);
 	void WriteAlignment(const bam1_t& al);

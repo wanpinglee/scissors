@@ -12,6 +12,7 @@ extern "C" {
 }
 
 #include "utilities/bam/bam_alignment.h"
+#include "utilities/bam/bam_writer.h"
 
 using std::vector;
 
@@ -23,17 +24,19 @@ struct ThreadData{
   SR_Status*      bam_status;
   SR_Reference*   reference;
   SR_InHashTable* hash_table;
+  BamWriter*      bam_writer;
   vector<BamAlignment> alignments;
 };
 
 class Thread {
  public: 
   Thread(const BamReference* bam_reference,
-         const float& allowed_clip,
-         const int&   thread_count,
-	 FILE*  ref_reader,
-         FILE*  hash_reader,
-	 SR_BamInStream* bam_reader);
+         const float&    allowed_clip,
+         const int&      thread_count,
+	 FILE*           ref_reader,
+         FILE*           hash_reader,
+	 SR_BamInStream* bam_reader,
+	 BamWriter*      bam_writer);
   ~Thread();
  bool Start();
  private:
@@ -43,6 +46,7 @@ class Thread {
   FILE*           ref_reader_;
   FILE*           hash_reader_;
   SR_BamInStream* bam_reader_;
+  BamWriter*      bam_writer_;
   SR_Status       bam_status_;
   SR_Reference*   reference_;
   SR_InHashTable* hash_table_;

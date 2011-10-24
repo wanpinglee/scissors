@@ -63,8 +63,8 @@ Aligner::Aligner(const SR_Reference* reference,
   query_region_ = SR_QueryRegionAlloc();
   hashes_       = HashRegionTableAlloc();
 
-  hash_length_.fragLen = 500;
-  hash_length_.closeRange = 1000;
+  hash_length_.fragLen = 1000;
+  hash_length_.closeRange = 2000;
   hash_length_.farRange   = 10000;
 }
 
@@ -108,9 +108,6 @@ void Aligner::AlignCandidate(SR_BamListIter* al_ite,
                                region_type.upstream ? SR_UPSTREAM : SR_DOWNSTREAM);
 	HashRegionTableLoad(hashes_, hash_table_, query_region_);
 	hashes_collection.Init(*(hashes_->pBestCloseRegions));
-	printf("Before sorting...\n");
-	hashes_collection.Print();
-	printf("after sorting...\n");
 	hashes_collection.SortByLength();
 
 	int hashes_count = hashes_collection.GetSize();
@@ -118,6 +115,9 @@ void Aligner::AlignCandidate(SR_BamListIter* al_ite,
 	if ((hashes_collection.Get(hashes_count-1))->numPos != 0) {
 	  BamAlignment al;
 	  al.query_name = bam1_qname(query_region_->pAnchor);
+	  al.reference_index = query_region_->pAnchor->core.tid;
+	  al.reference_begin = (hashes_collection.Get(hashes_count-1))->refBegins[0];
+	  al.reference_end   = (hashes_collection.Get(hashes_count-1))->refBegins[0] + (hashes_collection.Get(hashes_count-1))->length;
 	  alignments->push_back(al);
 	}
 
@@ -126,4 +126,6 @@ void Aligner::AlignCandidate(SR_BamListIter* al_ite,
 	//
       } // end while
     } // end while
+
+    al_ite = NULL;
 }

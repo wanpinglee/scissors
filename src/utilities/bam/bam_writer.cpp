@@ -217,8 +217,9 @@ void BamWriter::Close(void) {
 
 
 // opens the alignment archive
-void BamWriter::Open(void) {
+void BamWriter::Open(const string& filename) {
 
+	filename_ = filename;
 	// open the BGZF file for writing
 	outputStream.open( filename_.c_str(), ofstream::binary );
 	if ( !outputStream.good() ) {
@@ -324,6 +325,7 @@ void BamWriter::WriteAlignment( const BamAlignment& al ) {
 	BgzfWrite( (char*) &buffer, Constant::kBamCoreSize );
 
 	// write the query name
+	if (al.query_name.size() > 0)
 	BgzfWrite( al.query_name.c_str(), al.query_name.size() );
 
 	// write the packed cigar
@@ -335,12 +337,15 @@ void BamWriter::WriteAlignment( const BamAlignment& al ) {
 		cigar[ current + 2 ] = ( al.bam_packed_cigar[i] >> 16 );
 		cigar[ current + 3 ] = ( al.bam_packed_cigar[i] >> 24 );
 	}
-	BgzfWrite( (char*)cigar, al.bam_packed_cigar.size() * 4 );
+	if (al.bam_packed_cigar.size() > 0)
+		BgzfWrite( (char*)cigar, al.bam_packed_cigar.size() * 4 );
 
 	// write the encoded query sequence
-	BgzfWrite( al.encoded_sequence.c_str(), al.encoded_sequence.size() );
+	if (al.encoded_sequence.size() > 0)
+		BgzfWrite( al.encoded_sequence.c_str(), al.encoded_sequence.size() );
 
 	// write the base qualities
-	BgzfWrite( al.qual.c_str(), al.qual.size() );
+	if (al.qual.size() > 0)
+		BgzfWrite( al.qual.c_str(), al.qual.size() );
 }
 
