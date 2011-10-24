@@ -12,7 +12,7 @@ extern "C" {
 
 #include "utilities/bam/bam_reference.h"
 #include "utilities/bam/bam_utilities.h"
-#include "utilities/bam/bam_writer.h"
+//#include "utilities/bam/bam_writer.h"
 #include "utilities/miscellaneous/parameter_parser.h"
 #include "utilities/miscellaneous/thread.h"
 
@@ -22,7 +22,7 @@ using std::endl;
 
 struct MainFiles {
   SR_BamInStream* bam_reader;  // bam reader
-  BamWriter       bam_writer;  // bam writer
+  bamFile         bam_writer;  // bam writer
   FILE*           ref_reader;  // reference reader
   FILE*           hash_reader; // hash table reader
 };
@@ -69,7 +69,7 @@ int main ( int argc, char** argv ) {
 
   // Write bam header
   ResetHeader(vars.bam_header->pOrigHeader);
-  //bam_header_write( files.bam_writer, vars.bam_header->pOrigHeader );
+  bam_header_write( files.bam_writer, vars.bam_header->pOrigHeader );
 
   // =========
   // Algorithm
@@ -116,8 +116,8 @@ void LoadRegionType(const bam1_t& anchor,
 void Deconstruct(MainFiles* files, MainVars* vars) {
   // close files
   SR_BamInStreamFree(files->bam_reader);
-  //bam_close(files->bam_writer);
-  files->bam_writer.Close();
+  bam_close(files->bam_writer);
+  //files->bam_writer.Close();
   fclose(files->ref_reader);
   fclose(files->hash_reader);
 
@@ -141,8 +141,8 @@ void InitFiles(const Parameters& parameters, MainFiles* files) {
       &streamMode);
 
   // Initialize bam output writer
-  //files->bam_writer = bam_open( parameters.output_bam.c_str(), "w" );
-  files->bam_writer.Open(parameters.output_bam);
+  files->bam_writer = bam_open( parameters.output_bam.c_str(), "w" );
+  //files->bam_writer.Open(parameters.output_bam);
 
   // Initialize reference input reader
   files->ref_reader  = fopen( parameters.reference_filename.c_str(), "rb");
@@ -180,7 +180,7 @@ void CheckFileOrDie(const Parameters& parameters,
                     const MainFiles& files){
 
 	bool error_found = false;
-/*
+
 	if (files.bam_writer == NULL) {
 		cout << "ERROR: Cannot open " 
 		     << parameters.output_bam 
@@ -190,7 +190,7 @@ void CheckFileOrDie(const Parameters& parameters,
 		     << endl;
 		error_found = true;
 	}
-*/
+
 	if (files.ref_reader == NULL) {
 		cout << "ERROR: Cannot open " 
 		     << parameters.reference_filename 

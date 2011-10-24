@@ -55,7 +55,6 @@ void SetTargetSequence(const SearchRegionType::RegionType& region_type,
   } // end if-else
 }
 
-
 Aligner::Aligner(const SR_Reference* reference, 
                  const SR_InHashTable* hash_table) 
     : reference_(reference)
@@ -87,7 +86,7 @@ void Aligner::LoadRegionType(const bam1_t& anchor) {
 
 
 void Aligner::AlignCandidate(SR_BamListIter* al_ite,
-                             vector<BamAlignment>* alignments) {
+                             vector<bam1_t>* alignments) {
 
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
       const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
@@ -113,12 +112,12 @@ void Aligner::AlignCandidate(SR_BamListIter* al_ite,
 	int hashes_count = hashes_collection.GetSize();
 	if (hashes_count == 0) continue;
 	if ((hashes_collection.Get(hashes_count-1))->numPos != 0) {
-	  BamAlignment al;
-	  al.query_name = bam1_qname(query_region_->pAnchor);
-	  al.reference_index = query_region_->pAnchor->core.tid;
-	  al.reference_begin = (hashes_collection.Get(hashes_count-1))->refBegins[0];
-	  al.reference_end   = (hashes_collection.Get(hashes_count-1))->refBegins[0] + (hashes_collection.Get(hashes_count-1))->length;
-	  alignments->push_back(al);
+	  //BamAlignment al;
+	  //al.query_name = bam1_qname(query_region_->pAnchor);
+	  //al.reference_index = query_region_->pAnchor->core.tid;
+	  //al.reference_begin = (hashes_collection.Get(hashes_count-1))->refBegins[0];
+	  //al.reference_end   = (hashes_collection.Get(hashes_count-1))->refBegins[0] + (hashes_collection.Get(hashes_count-1))->length - 1;
+	  //alignments->push_back(al);
 	}
 
 	//bam_write1( files.bam_writer, vars.query_region->pAnchor );

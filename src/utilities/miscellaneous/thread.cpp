@@ -28,17 +28,17 @@ inline void GetChromosomeId(const SR_BamListIter& alignment_list,
   *chromosome_id = alignment_list->alignment.core.tid;
 }
 
-void StoreAlignmentInBam(const vector<BamAlignment>& alignments,
-                         BamWriter* bam_writer,
-			 const int& thread_id) {
+void StoreAlignmentInBam(const vector<bam1_t>& alignments,
+                         bamFile* bam_writer) {
   pthread_mutex_lock(&bam_out_mutex);
   for (unsigned int i = 0; i < alignments.size(); ++i) {
-    bam_writer->WriteAlignment(alignments[i]);
+    /*
     cout << alignments[i].query_name << "\t" 
          << thread_id << "\t"
          << alignments[i].reference_index << "\t"
 	 << alignments[i].reference_begin << "\t"
 	 << alignments[i].reference_end << endl;
+    */
   }
   pthread_mutex_unlock(&bam_out_mutex);
 }
@@ -77,13 +77,8 @@ void* RunThread (void* thread_data_) {
     if (td->alignment_list != NULL) {
       td->alignments.clear();
       aligner.AlignCandidate(&td->alignment_list, &td->alignments);
-      pthread_mutex_lock(&bam_out_mutex);
-      if (td->alignment_list == NULL)
-        cout << td->id << "NULL" << endl;
-      else
-        cout << td->id << "NOT NULL" << endl;
-      pthread_mutex_unlock(&bam_out_mutex);
-      StoreAlignmentInBam(td->alignments, td->bam_writer, td->id);
+      StoreAlignmentInBam(td->alignments, td->bam_writer);
+      
       pthread_mutex_lock(&bam_in_mutex);
       SR_BamInStreamClearBuff(td->bam_reader, td->id);
       pthread_mutex_unlock(&bam_in_mutex);
@@ -102,7 +97,7 @@ Thread::Thread(const BamReference* bam_reference,
 	       FILE* ref_reader,
 	       FILE* hash_reader,
 	       SR_BamInStream* bam_reader,
-	       BamWriter*      bam_writer)
+	       bamFile*        bam_writer)
     : bam_reference_(bam_reference)
     , allowed_clip_(allowed_clip)
     , thread_count_(thread_count)

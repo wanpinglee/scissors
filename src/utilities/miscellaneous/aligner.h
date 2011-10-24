@@ -3,6 +3,7 @@
 
 extern "C" {
 #include "dataStructures/SR_QueryRegion.h"
+#include "outsources/samtools/bam.h"
 #include "utilities/bam/SR_BamInStream.h"
 #include "utilities/hashTable/SR_HashRegionTable.h"
 #include "utilities/hashTable/SR_InHashTable.h"
@@ -11,14 +12,13 @@ extern "C" {
 
 #include "dataStructures/anchor_region.h"
 #include "dataStructures/search_region_type.h"
-#include "utilities/bam/bam_alignment.h"
 
 class Aligner {
  public:
   Aligner(const SR_Reference* reference, 
           const SR_InHashTable* hash_table);
   ~Aligner();
-  void AlignCandidate(SR_BamListIter* al_ite, vector<BamAlignment>* alignments);
+  void AlignCandidate(SR_BamListIter* al_ite, vector<bam1_t>* alignments);
  private:
   SearchRegionType search_region_type_;
   AnchorRegion     anchor_region_;

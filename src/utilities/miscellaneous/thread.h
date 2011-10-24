@@ -4,15 +4,13 @@
 #include <vector>
 
 extern "C" {
+#include "outsources/samtools/bam.h"
 #include "utilities/bam/bam_reference.h"
 #include "utilities/bam/SR_BamInStream.h"
 #include "utilities/common/SR_Types.h"
 #include "utilities/hashTable/SR_InHashTable.h"
 #include "utilities/hashTable/SR_Reference.h"
 }
-
-#include "utilities/bam/bam_alignment.h"
-#include "utilities/bam/bam_writer.h"
 
 using std::vector;
 
@@ -24,8 +22,8 @@ struct ThreadData{
   SR_Status*      bam_status;
   SR_Reference*   reference;
   SR_InHashTable* hash_table;
-  BamWriter*      bam_writer;
-  vector<BamAlignment> alignments;
+  bamFile*        bam_writer;
+  vector<bam1_t> alignments;
 };
 
 class Thread {
@@ -36,7 +34,7 @@ class Thread {
 	 FILE*           ref_reader,
          FILE*           hash_reader,
 	 SR_BamInStream* bam_reader,
-	 BamWriter*      bam_writer);
+	 bamFile*        bam_writer);
   ~Thread();
  bool Start();
  private:
@@ -46,7 +44,7 @@ class Thread {
   FILE*           ref_reader_;
   FILE*           hash_reader_;
   SR_BamInStream* bam_reader_;
-  BamWriter*      bam_writer_;
+  bamFile*        bam_writer_;
   SR_Status       bam_status_;
   SR_Reference*   reference_;
   SR_InHashTable* hash_table_;
