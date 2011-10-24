@@ -38,7 +38,6 @@ void* RunThread (void* thread_data_) {
     // try to get alignments
     pthread_mutex_lock(&bam_in_mutex);
     bam_status = *(td->bam_status);
-    cout << "thread id: " << td->id << "\t" << bam_status << endl;
     if (bam_status != SR_OK) {
       // the bam is not okay for getting other alignments
       pthread_mutex_unlock(&bam_in_mutex);
@@ -49,7 +48,8 @@ void* RunThread (void* thread_data_) {
                                              td->id, 
                                              td->allowed_clip);
         *(td->bam_status) = bam_status;
-	cout << "thread id loading: " << td->id << "\t" << bam_status << endl;
+        td->alignment_list = SR_BamInStreamGetIter(td->bam_reader,
+                                                   td->id);
       }
       pthread_mutex_unlock(&bam_in_mutex);
     } // end if-else

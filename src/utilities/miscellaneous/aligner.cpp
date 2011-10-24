@@ -88,7 +88,6 @@ void Aligner::LoadRegionType(const bam1_t& anchor) {
 
 void Aligner::AlignCandidate(SR_BamListIter* al_ite) {
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
-      printf("Get a pair\n");
       const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
       // Convert 4-bit representive sequence into chars
       SR_QueryRegionLoadSeq(query_region_);
