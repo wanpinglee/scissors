@@ -11,13 +11,14 @@ extern "C" {
 
 #include "dataStructures/anchor_region.h"
 #include "dataStructures/search_region_type.h"
+#include "utilities/bam/bam_alignment.h"
 
 class Aligner {
  public:
   Aligner(const SR_Reference* reference, 
           const SR_InHashTable* hash_table);
   ~Aligner();
-  void AlignCandidate(SR_BamListIter* al_ite);
+  void AlignCandidate(SR_BamListIter* al_ite, vector<BamAlignment>* alignments);
  private:
   SearchRegionType search_region_type_;
   AnchorRegion     anchor_region_;

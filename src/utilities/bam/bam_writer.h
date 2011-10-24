@@ -16,8 +16,8 @@
 #include <stdint.h>
 #include <memory>
 
-#include "dataStructures/bam_alignment.h"
-#include "samtools/bam.h"
+#include "utilities/bam/bam_alignment.h"
+#include "outsources/samtools/bam.h"
 
 using std::string;
 using std::ofstream;
@@ -29,9 +29,11 @@ typedef unsigned char SortOrderType;
 const SortOrderType SORTORDER_UNSORTED = 0;
 const SortOrderType SORTORDER_READNAME = 10;
 const SortOrderType SORTORDER_POSITION = 20;
+*/
 
 const uint32_t MAX_BGZF_BLOCK_SIZE = 65536;
 
+/*
 // program group in header
 struct ProgramGroup {
 	string ID;  // program name

@@ -55,7 +55,7 @@ void* RunThread (void* thread_data_) {
     } // end if-else
 
     if (td->alignment_list != NULL) {
-      aligner.AlignCandidate(&td->alignment_list);
+      aligner.AlignCandidate(&td->alignment_list, &td->alignments);
     } else {
       break; // break the while loop
     }

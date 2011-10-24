@@ -11,7 +11,6 @@ void HashesCollection::Init(const BestRegionArray& array) {
   hash_regions_.resize(array.size);
   for (unsigned int i = 0; i < array.size; ++i) 
     hash_regions_[i] = &array.data[i];
-  
 }
 
 void HashesCollection::SortByLength() {
@@ -19,7 +18,7 @@ void HashesCollection::SortByLength() {
 }
 
 const BestRegion* HashesCollection::Get (const unsigned int& index) const {
-  if (index > hash_regions_.size()) return NULL;
+  if (index >= hash_regions_.size()) return NULL;
 
   return hash_regions_[index];
 }

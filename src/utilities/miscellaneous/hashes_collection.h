@@ -13,8 +13,13 @@ class HashesCollection {
   void SortByLength(void);
   void Print(void)const;
   const BestRegion* Get (const unsigned int& index) const;
+  inline const int GetSize() const;
  private:
   vector<BestRegion*> hash_regions_;
 }; // end HashRegionCollection
+
+inline const int HashesCollection::GetSize() const {
+  return hash_regions_.size();
+}
 
 #endif  // UTILITIES_HASH_REGION_COLLECTION_H_

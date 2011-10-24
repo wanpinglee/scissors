@@ -86,7 +86,9 @@ void Aligner::LoadRegionType(const bam1_t& anchor) {
 }
 
 
-void Aligner::AlignCandidate(SR_BamListIter* al_ite) {
+void Aligner::AlignCandidate(SR_BamListIter* al_ite,
+                             vector<BamAlignment>* alignments) {
+
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
       const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
       // Convert 4-bit representive sequence into chars
@@ -110,7 +112,14 @@ void Aligner::AlignCandidate(SR_BamListIter* al_ite) {
 	hashes_collection.Print();
 	printf("after sorting...\n");
 	hashes_collection.SortByLength();
-	hashes_collection.Print();
+
+	int hashes_count = hashes_collection.GetSize();
+	if (hashes_count == 0) continue;
+	if ((hashes_collection.Get(hashes_count-1))->numPos != 0) {
+	  BamAlignment al;
+	  al.query_name = bam1_qname(query_region_->pAnchor);
+	  alignments->push_back(al);
+	}
 
 	//bam_write1( files.bam_writer, vars.query_region->pAnchor );
 	//bam_write1( files.bam_writer, vars.query_region->pOrphan );
