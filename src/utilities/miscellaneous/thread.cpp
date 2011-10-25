@@ -28,10 +28,11 @@ inline void GetChromosomeId(const SR_BamListIter& alignment_list,
   *chromosome_id = alignment_list->alignment.core.tid;
 }
 
-void StoreAlignmentInBam(const vector<Alignment>& alignments,
+void StoreAlignmentInBam(const vector<bam1_t*>& alignments_bam,
                          bamFile* bam_writer) {
   pthread_mutex_lock(&bam_out_mutex);
-  for (unsigned int i = 0; i < alignments.size(); ++i) {
+  for (unsigned int i = 0; i < alignments_bam.size(); ++i) {
+    bam_write1(*bam_writer, alignments_bam[i]);
     /*
     cout << alignments[i].query_name << "\t" 
          << thread_id << "\t"
@@ -94,7 +95,7 @@ void* RunThread (void* thread_data_) {
     if (td->alignment_list != NULL) {
       td->alignments.clear();
       aligner.AlignCandidate(&td->alignment_list, &td->alignments_bam);
-      StoreAlignmentInBam(td->alignments, td->bam_writer);
+      StoreAlignmentInBam(td->alignments_bam, td->bam_writer);
       FreeAlignmentBam(&td->alignments_bam);
       
       pthread_mutex_lock(&bam_in_mutex);

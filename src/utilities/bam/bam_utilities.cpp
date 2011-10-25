@@ -278,6 +278,7 @@ void ConvertAlignmentToBam1(const Alignment& al,
 
   new_record->core.tid     = original_record.core.tid;
   new_record->core.pos     = al.reference_begin;
+  new_record->core.bin     = bam_reg2bin(al.query_begin, al.query_end);
   new_record->core.qual    = al.quality;
   new_record->core.l_qname = original_record.core.l_qname;
   new_record->core.flag    = 0;
@@ -295,6 +296,9 @@ void ConvertAlignmentToBam1(const Alignment& al,
 		    new_record->core.l_qseq +
 		    new_record->l_aux;
 
+  new_record->data_len = data_length;
+  new_record->m_data   = data_length;
+
   uint8_t* data = new uint8_t[data_length];  // Thread.cpp will delete those
   uint8_t* data_ptr = data;
   memcpy(data_ptr, original_record.data, new_record->core.l_qname);
@@ -309,6 +313,9 @@ void ConvertAlignmentToBam1(const Alignment& al,
 
   memcpy(data_ptr, bam1_qual(&original_record), new_record->core.l_qseq);
   data_ptr += new_record->core.l_qseq;
+
+  new_record->data = data;
+
 
 }
 
