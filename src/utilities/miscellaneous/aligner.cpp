@@ -1,5 +1,6 @@
 #include "aligner.h"
 
+#include "utilities/bam/bam_utilities.h"
 #include "utilities/miscellaneous/hashes_collection.h"
 
 void SetTargetSequence(const SearchRegionType::RegionType& region_type, 
@@ -86,7 +87,7 @@ void Aligner::LoadRegionType(const bam1_t& anchor) {
 
 
 void Aligner::AlignCandidate(SR_BamListIter* al_ite,
-                             vector<Alignment>* alignments) {
+                             vector<bam1_t*>* alignments) {
 
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
       const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
@@ -122,7 +123,11 @@ void Aligner::AlignCandidate(SR_BamListIter* al_ite,
 	  const char* bases = GetSequence((hashes_collection.Get(hashes_count-1))->refBegins[0]);
 	  al.reference.assign(bases, (hashes_collection.Get(hashes_count-1))->length);
 	  al.query.assign(bases, (hashes_collection.Get(hashes_count-1))->length);
-	  alignments->push_back(al);
+	  //alignments->push_back(al);
+	  bam1_t* al_bam;
+	  al_bam = bam_init1(); // Thread.cpp will free it
+	  BamUtilities::ConvertAlignmentToBam1(al, *query_region_->pOrphan, al_bam);
+	  alignments->push_back(al_bam);
 	}
 
 	//bam_write1( files.bam_writer, vars.query_region->pAnchor );

@@ -6,7 +6,6 @@
 #include <iostream>
 #include <sstream>
 
-#include "bam_alignment.h"
 #include "outsources/samtools/sam_header.h"
 
 using std::string;
@@ -14,8 +13,24 @@ using std::cout;
 using std::endl;
 using std::istringstream;
 
-namespace BamUtilities {
+namespace BamAlignmentConstant {
 
+const unsigned char kBamCoreSize   = 32;
+const unsigned char kBamCigarShift = 4;
+
+// cigar operator for bam packed cigar
+const unsigned char kBamCmatch     = 0;
+const unsigned char kBamCins       = 1;
+const unsigned char kBamCdel       = 2;
+const unsigned char kBamCrefSkip   = 3;
+const unsigned char kBamCsoftClip  = 4;
+const unsigned char kBamChardClip  = 5;
+const unsigned char kBamCpad       = 6;
+
+} // namespace BamAlignmentConstant
+
+
+namespace BamUtilities {
 bool ResetHeaderText( bam_header_t* const header, const string& header_string ){
 	
 	// Follow by the samtools style to allocate memory
@@ -246,6 +261,54 @@ bool GetPackedCigar( vector<uint32_t>& packed_cigar,
 
 
 	return true;
+
+}
+
+
+void ConvertAlignmentToBam1(const Alignment& al, 
+                            const bam1_t& original_record, 
+			    bam1_t* new_record) {
+  vector<uint32_t> packed_cigar;
+  GetPackedCigar(packed_cigar, 
+                 al.reference, 
+		 al.query, 
+		 al.query_begin, 
+		 al.query_end, 
+		 new_record->core.l_qseq);
+
+  new_record->core.tid     = original_record.core.tid;
+  new_record->core.pos     = al.reference_begin;
+  new_record->core.qual    = al.quality;
+  new_record->core.l_qname = original_record.core.l_qname;
+  new_record->core.flag    = 0;
+  new_record->core.n_cigar = packed_cigar.size();
+  new_record->core.l_qseq  = original_record.core.l_qseq;
+  new_record->core.mtid    = original_record.core.mtid;
+  new_record->core.mpos    = original_record.core.mpos;
+  new_record->core.isize   = 0;
+
+  new_record->l_aux = 0;
+
+  int data_length = new_record->core.l_qname +
+                    new_record->core.n_cigar +
+		    new_record->core.l_qseq +
+		    new_record->core.l_qseq +
+		    new_record->l_aux;
+
+  uint8_t* data = new uint8_t[data_length];  // Thread.cpp will delete those
+  uint8_t* data_ptr = data;
+  memcpy(data_ptr, original_record.data, new_record->core.l_qname);
+  data_ptr += new_record->core.l_qname;
+
+  for (unsigned int i = 0; i < packed_cigar.size(); ++i)
+    data[i] = static_cast<uint8_t>(packed_cigar[i]);
+  data_ptr += packed_cigar.size();
+
+  memcpy(data_ptr, bam1_seq(&original_record), new_record->core.l_qseq);
+  data_ptr += new_record->core.l_qseq;
+
+  memcpy(data_ptr, bam1_qual(&original_record), new_record->core.l_qseq);
+  data_ptr += new_record->core.l_qseq;
 
 }
 

@@ -26,6 +26,7 @@ struct ThreadData{
   SR_InHashTable* hash_table;
   bamFile*        bam_writer;
   vector<Alignment>  alignments;
+  vector<bam1_t*>    alignments_bam;
 };
 
 class Thread {

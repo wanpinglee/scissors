@@ -9,6 +9,8 @@
 
 #include "outsources/samtools/bam.h"
 
+#include "dataStructures/alignment.h"
+
 using std::string;
 using std::vector;
 
@@ -22,10 +24,6 @@ bool IsFileSorted(const bam_header_t* const header);
 void EncodeQuerySequence(string& encodedSequence, const string& sequence);
 
 
-// Given the packed_cigar,
-// convert packed_cigar into uint8_t for writing
-//inline const uint8_t* ConvertPackedCigar( const vector<uint32_t>& packed_cigar );
-
 // Given aligned reference and query sequences,
 // generate bam-foramt packed cigar and store it in packed_cigar
 bool GetPackedCigar( 
@@ -35,6 +33,11 @@ bool GetPackedCigar(
 	const uint32_t& query_begin,
 	const uint32_t& query_end,
 	const uint32_t& read_length);
+
+void ConvertAlignmentToBam1(const Alignment& al,
+                            const bam1_t& original_record,
+			    bam1_t* new_record);
+
 
 } // namespace BamUtilities
 

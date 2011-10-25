@@ -43,6 +43,27 @@ void StoreAlignmentInBam(const vector<Alignment>& alignments,
   pthread_mutex_unlock(&bam_out_mutex);
 }
 
+void FreeAlignmentBam(vector<bam1_t*>* als_bam) {
+  for (unsigned int i = 0; i < als_bam->size(); ++i) {
+    bam1_t* ptr = (*als_bam)[i];
+    bam_destroy1(ptr);
+  }
+
+  als_bam->clear();
+}
+
+/*
+void ConvertAlignments(const vector<Alignment>& als,
+                       vector<bam1_t>* als_bam) {
+  als_bam.resize(als.size());
+
+  for (unsigned int i = 0; i < als.size(); ++i) {
+    ConvertAlignmentToBam1(als[i], &als_bam[i]);
+  }
+
+}
+*/
+
 void* RunThread (void* thread_data_) {
   ThreadData *td = (ThreadData*) thread_data_;
   Aligner aligner(td->reference, td->hash_table);
@@ -55,10 +76,6 @@ void* RunThread (void* thread_data_) {
     bam_status = *(td->bam_status);
     bool terminate = false;
     if (td->alignment_list == NULL) {
-      pthread_mutex_lock(&bam_out_mutex);
-      cout << "**" << td->id << endl;
-      pthread_mutex_unlock(&bam_out_mutex);
-
       if (bam_status == SR_OK) {
         bam_status = SR_LoadUniquOrphanPairs(td->bam_reader, 
                                              td->id, 
@@ -76,8 +93,9 @@ void* RunThread (void* thread_data_) {
 
     if (td->alignment_list != NULL) {
       td->alignments.clear();
-      aligner.AlignCandidate(&td->alignment_list, &td->alignments);
+      aligner.AlignCandidate(&td->alignment_list, &td->alignments_bam);
       StoreAlignmentInBam(td->alignments, td->bam_writer);
+      FreeAlignmentBam(&td->alignments_bam);
       
       pthread_mutex_lock(&bam_in_mutex);
       SR_BamInStreamClearBuff(td->bam_reader, td->id);
@@ -146,6 +164,7 @@ void Thread::InitThreadData() {
     thread_data_[i].hash_table     = hash_table_;
     thread_data_[i].bam_writer     = bam_writer_;
     thread_data_[i].alignments.clear();
+    FreeAlignmentBam(&thread_data_[i].alignments_bam);
     SR_BamInStreamClearBuff(bam_reader_, i);
   }
 }
@@ -160,7 +179,6 @@ bool Thread::LoadReference() {
     bam_status_ = SR_LoadUniquOrphanPairs(bam_reader_,
                                           thread_id,
   				          allowed_clip_);
-    cout << bam_status_ << endl;
     if (bam_status_ == SR_ERR) { // cannot load alignments from bam
       cout << "ERROR: Cannot load alignments from the input bam." << endl;
       return false;
@@ -168,10 +186,6 @@ bool Thread::LoadReference() {
 
     thread_data_[0].alignment_list = SR_BamInStreamGetIter(bam_reader_, 
                                                            thread_id);
-    if (thread_data_[0].alignment_list == NULL)
-      cout << "NULL" << endl;
-    else
-      cout << "Not NULL" << endl;
   }
 
   if (thread_data_[0].alignment_list == NULL)
@@ -180,7 +194,6 @@ bool Thread::LoadReference() {
  
   int chromosome_id;
   GetChromosomeId(thread_data_[0].alignment_list, &chromosome_id);
-  cout << chromosome_id << endl;
 
   if (chromosome_id > bam_reference_->GetCount()) {
   // the obtained chr id is invalid
