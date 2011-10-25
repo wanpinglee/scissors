@@ -19,24 +19,24 @@ const static SearchRegionType::RegionType kRegionType8 = {true, true, false};
 SearchRegionType::SearchRegionType()
     : technology_(ILLUMINA) // the default tech is ILLUMINA
 {
-  forward_anchor_type_vector_.resize(4);
-  reverse_anchor_type_vector_.resize(4);
-  forward_anchor_type_preference_.resize(4);
-  reverse_anchor_type_preference_.resize(4);
-  forward_anchor_type_count_.resize(4);
-  reverse_anchor_type_count_.resize(4);
+  forward_anchor_type_vector_.resize(types_);
+  reverse_anchor_type_vector_.resize(types_);
+  forward_anchor_type_preference_.resize(types_);
+  reverse_anchor_type_preference_.resize(types_);
+  forward_anchor_type_count_.resize(types_);
+  reverse_anchor_type_count_.resize(types_);
   Init();
 }
 
 SearchRegionType::SearchRegionType(const Technology& technology)
     : technology_(technology)
 {
-  forward_anchor_type_vector_.resize(4);
-  reverse_anchor_type_vector_.resize(4);
-  forward_anchor_type_preference_.resize(4);
-  reverse_anchor_type_preference_.resize(4);
-  forward_anchor_type_count_.resize(4);
-  reverse_anchor_type_count_.resize(4);
+  forward_anchor_type_vector_.resize(types_);
+  reverse_anchor_type_vector_.resize(types_);
+  forward_anchor_type_preference_.resize(types_);
+  reverse_anchor_type_preference_.resize(types_);
+  forward_anchor_type_count_.resize(types_);
+  reverse_anchor_type_count_.resize(types_);
   Init();
 }
 
@@ -44,15 +44,19 @@ void SearchRegionType::Init() {
   switch (technology_) {
     case ILLUMINA: {
       // for forward anchor region type list
-      forward_anchor_type_vector_[0] = kRegionType1; 
-      forward_anchor_type_vector_[1] = kRegionType2; 
-      forward_anchor_type_vector_[2] = kRegionType3; 
-      forward_anchor_type_vector_[3] = kRegionType4;
+      forward_anchor_type_vector_[0] = kRegionType1;
+      forward_anchor_type_vector_[1] = kRegionType2;
+      forward_anchor_type_vector_[2] = kRegionType6;
+      forward_anchor_type_vector_[3] = kRegionType5;
+      forward_anchor_type_vector_[4] = kRegionType3;
+      forward_anchor_type_vector_[5] = kRegionType4;
       // for reverse anchor region type list
       reverse_anchor_type_vector_[0] = kRegionType5;
       reverse_anchor_type_vector_[1] = kRegionType6;
-      reverse_anchor_type_vector_[2] = kRegionType7;
-      reverse_anchor_type_vector_[3] = kRegionType8;
+      reverse_anchor_type_vector_[2] = kRegionType2;
+      reverse_anchor_type_vector_[3] = kRegionType1;
+      reverse_anchor_type_vector_[4] = kRegionType7;
+      reverse_anchor_type_vector_[5] = kRegionType8;
       break;
     } // ILLUMINA
     
@@ -125,7 +129,7 @@ bool SearchRegionType::GetNextRegionType(const bool is_anchor_forward,
 
   if (is_anchor_forward) {
     int preference_id = current_forward_anchor_type_preference_;
-    if (preference_id == 4) {
+    if (preference_id == types_) {
       has_gotten_forward_type_ = false; // make SetCurrentTypeSuccess fail
       return false;
     } else {
@@ -138,7 +142,7 @@ bool SearchRegionType::GetNextRegionType(const bool is_anchor_forward,
   
   } else {
     int preference_id = current_reverse_anchor_type_preference_;
-    if (preference_id == 4) {
+    if (preference_id == types_) {
       has_gotten_reverse_type_ = false; // make SetCurrentTypeSuccess fail
       return false;
     } else {
@@ -155,6 +159,13 @@ bool SearchRegionType::GetNextRegionType(const bool is_anchor_forward,
 
 void SearchRegionType::ResetRegionTypeList(void) {
   // reset the preference as defaults
+  for (int i = 0; i < types_; ++i) {
+    forward_anchor_type_preference_[i] = i;
+    reverse_anchor_type_preference_[i] = i;
+    forward_anchor_type_count_[i] = 0;
+    reverse_anchor_type_count_[i] = 0;
+  }
+  /*i
   forward_anchor_type_preference_[0] = 0;
   forward_anchor_type_preference_[1] = 1;
   forward_anchor_type_preference_[2] = 2;
@@ -163,7 +174,9 @@ void SearchRegionType::ResetRegionTypeList(void) {
   reverse_anchor_type_preference_[1] = 1;
   reverse_anchor_type_preference_[2] = 2;
   reverse_anchor_type_preference_[3] = 3;
+  */
   // reset counters
+  /*
   forward_anchor_type_count_[0] = 0;
   forward_anchor_type_count_[1] = 0;
   forward_anchor_type_count_[2] = 0;
@@ -172,6 +185,7 @@ void SearchRegionType::ResetRegionTypeList(void) {
   reverse_anchor_type_count_[1] = 0;
   reverse_anchor_type_count_[2] = 0;
   reverse_anchor_type_count_[3] = 0;
+  */
   RewindRegionTypeList();
 }
 

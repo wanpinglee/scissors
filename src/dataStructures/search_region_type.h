@@ -46,6 +46,8 @@ class SearchRegionType {
   bool has_gotten_forward_type_;
   bool has_gotten_reverse_type_;
 
+  static const int types_ = 6;
+
   void Init(void);
   SearchRegionType (const SearchRegionType&);
   SearchRegionType& operator= (const SearchRegionType&);
