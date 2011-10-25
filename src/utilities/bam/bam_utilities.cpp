@@ -264,17 +264,20 @@ bool GetPackedCigar( vector<uint32_t>& packed_cigar,
 
 }
 
-
+// TODO @ Wan-Ping: isize is not yet to be assigned.
 void ConvertAlignmentToBam1(const Alignment& al, 
                             const bam1_t& original_record, 
 			    bam1_t* new_record) {
+  cout << original_record.core.l_qname << endl;
+  cout << al.query_begin << "\t" << al.query_end << endl;
   vector<uint32_t> packed_cigar;
   GetPackedCigar(packed_cigar, 
                  al.reference, 
 		 al.query, 
 		 al.query_begin, 
 		 al.query_end, 
-		 new_record->core.l_qseq);
+		 original_record.core.l_qseq);
+  cout << packed_cigar.size() << endl;
 
   new_record->core.tid     = original_record.core.tid;
   new_record->core.pos     = al.reference_begin;
@@ -291,8 +294,8 @@ void ConvertAlignmentToBam1(const Alignment& al,
   new_record->l_aux = 0;
 
   int data_length = new_record->core.l_qname +
-                    new_record->core.n_cigar +
-		    new_record->core.l_qseq +
+                    new_record->core.n_cigar * 4 +
+		    (new_record->core.l_qseq + 1) / 2 +
 		    new_record->core.l_qseq +
 		    new_record->l_aux;
 
@@ -304,12 +307,19 @@ void ConvertAlignmentToBam1(const Alignment& al,
   memcpy(data_ptr, original_record.data, new_record->core.l_qname);
   data_ptr += new_record->core.l_qname;
 
-  for (unsigned int i = 0; i < packed_cigar.size(); ++i)
-    data[i] = static_cast<uint8_t>(packed_cigar[i]);
-  data_ptr += packed_cigar.size();
+  for (unsigned int i = 0; i < packed_cigar.size(); ++i) {
+    *data_ptr = static_cast<uint8_t>(packed_cigar[i]);
+    ++data_ptr;
+    *data_ptr = static_cast<uint8_t>(packed_cigar[i] >> 8);
+    ++data_ptr;
+    *data_ptr = static_cast<uint8_t>(packed_cigar[i] >> 16);
+    ++data_ptr;
+    *data_ptr = static_cast<uint8_t>(packed_cigar[i] >> 24);
+    ++data_ptr;
+  }
 
-  memcpy(data_ptr, bam1_seq(&original_record), new_record->core.l_qseq);
-  data_ptr += new_record->core.l_qseq;
+  memcpy(data_ptr, bam1_seq(&original_record), (new_record->core.l_qseq + 1) / 2);
+  data_ptr += ((new_record->core.l_qseq + 1) / 2);
 
   memcpy(data_ptr, bam1_qual(&original_record), new_record->core.l_qseq);
   data_ptr += new_record->core.l_qseq;

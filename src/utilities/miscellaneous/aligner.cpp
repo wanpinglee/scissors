@@ -123,6 +123,8 @@ void Aligner::AlignCandidate(SR_BamListIter* al_ite,
 	  const char* bases = GetSequence((hashes_collection.Get(hashes_count-1))->refBegins[0]);
 	  al.reference.assign(bases, (hashes_collection.Get(hashes_count-1))->length);
 	  al.query.assign(bases, (hashes_collection.Get(hashes_count-1))->length);
+
+	  printf("%s\n%s\n", al.reference.c_str(), al.query.c_str());
 	  //alignments->push_back(al);
 	  bam1_t* al_bam;
 	  al_bam = bam_init1(); // Thread.cpp will free it
