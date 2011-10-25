@@ -616,7 +616,7 @@ void CBandedSmithWaterman::Traceback(
 	alignment.reference_end   = bestColumn;
 	
 	// is_reverse_complement must be set before appling smith-waterman  
-	if( alignment.is_reverse_complement ){
+	if(alignment.is_seq_inverse){
 		alignment.query_begin = s2Length - bestRow - 1; 
 		alignment.query_end   = s2Length - previousRow - 1;
 	} else {

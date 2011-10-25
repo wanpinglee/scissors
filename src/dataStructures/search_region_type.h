@@ -28,22 +28,10 @@ class SearchRegionType {
   bool GetNextRegionType(const bool is_anchor_forward, RegionType* region_type);
   bool SetCurrentTypeSuccess(const bool is_anchor_forward);
   void ResetRegionTypeList(void);
-
-  // inline functions
-  inline void RewindRegionTypeList(void) {
-    current_forward_anchor_type_preference_ = 0;
-    current_reverse_anchor_type_preference_ = 0;
-    has_gotten_forward_type_ = false;
-    has_gotten_reverse_type_ = false;
-  }
-  inline void SetTechnology(const Technology& technology) {
-    technology_ = technology;
-    ResetRegionTypeList();
-  }
+  inline void RewindRegionTypeList(void);
+  inline void SetTechnology(const Technology& technology);
 
  private:
-  void Init(void);
-  
   Technology technology_;
   vector<RegionType> forward_anchor_type_vector_;
   vector<RegionType> reverse_anchor_type_vector_;
@@ -58,6 +46,24 @@ class SearchRegionType {
   bool has_gotten_forward_type_;
   bool has_gotten_reverse_type_;
 
+  void Init(void);
+  SearchRegionType (const SearchRegionType&);
+  SearchRegionType& operator= (const SearchRegionType&);
+
 };
+
+
+// inline functions
+inline void SearchRegionType::RewindRegionTypeList(void) {
+  current_forward_anchor_type_preference_ = 0;
+  current_reverse_anchor_type_preference_ = 0;
+  has_gotten_forward_type_ = false;
+  has_gotten_reverse_type_ = false;
+}
+
+inline void SearchRegionType::SetTechnology(const Technology& technology) {
+  technology_ = technology;
+  ResetRegionTypeList();
+}
 
 #endif // DATASTRUCTURES_SEARCH_REGION_TYPE_H_

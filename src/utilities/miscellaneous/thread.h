@@ -12,6 +12,8 @@ extern "C" {
 #include "utilities/hashTable/SR_Reference.h"
 }
 
+#include "dataStructures/alignment.h"
+
 using std::vector;
 
 struct ThreadData{
@@ -23,7 +25,7 @@ struct ThreadData{
   SR_Reference*   reference;
   SR_InHashTable* hash_table;
   bamFile*        bam_writer;
-  vector<bam1_t> alignments;
+  vector<Alignment>  alignments;
 };
 
 class Thread {

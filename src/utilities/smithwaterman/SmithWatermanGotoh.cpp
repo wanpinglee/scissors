@@ -283,7 +283,7 @@ void CSmithWatermanGotoh::Align(Alignment& alignment, const char* s1, const unsi
 	alignment.reference_end   = BestRow - 1;
 
 	// set the query endpoints
-	if( alignment.is_reverse_complement ) {
+	if(alignment.is_seq_inverse) {
 		alignment.query_begin = s2Length - BestColumn;
 		alignment.query_end   = s2Length - cj - 1;
 	} else {

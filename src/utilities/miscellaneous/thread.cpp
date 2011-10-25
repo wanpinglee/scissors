@@ -28,7 +28,7 @@ inline void GetChromosomeId(const SR_BamListIter& alignment_list,
   *chromosome_id = alignment_list->alignment.core.tid;
 }
 
-void StoreAlignmentInBam(const vector<bam1_t>& alignments,
+void StoreAlignmentInBam(const vector<Alignment>& alignments,
                          bamFile* bam_writer) {
   pthread_mutex_lock(&bam_out_mutex);
   for (unsigned int i = 0; i < alignments.size(); ++i) {

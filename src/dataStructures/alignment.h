@@ -27,7 +27,8 @@ struct Alignment{
 	uint32_t query_end;
 	uint32_t num_mismatches;
 
-	bool is_reverse_complement;
+	bool is_seq_inverse;
+	bool is_seq_complement;
 
 	Alignment()
 		: reference_begin(0)
@@ -36,7 +37,8 @@ struct Alignment{
 		, query_end(0)
 		, num_mismatches(0)
 
-		, is_reverse_complement(false)
+		, is_seq_inverse(false)
+		, is_seq_complement(false)
 	{}
 };
 

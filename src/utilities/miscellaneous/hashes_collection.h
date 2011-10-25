@@ -9,6 +9,8 @@ using std::vector;
 
 class HashesCollection {
  public:
+  HashesCollection(){};
+  ~HashesCollection(){};
   void Init(const BestRegionArray& array);
   void SortByLength(void);
   void Print(void)const;
@@ -16,6 +18,9 @@ class HashesCollection {
   inline const int GetSize() const;
  private:
   vector<BestRegion*> hash_regions_;
+
+  HashesCollection (const HashesCollection&);
+  HashesCollection& operator= (const HashesCollection&);
 }; // end HashRegionCollection
 
 inline const int HashesCollection::GetSize() const {
