@@ -128,7 +128,7 @@ void Deconstruct(MainFiles* files, MainVars* vars) {
 void InitFiles(const Parameters& parameters, MainFiles* files) {
   // set the stream mode to "UO" (unique orphan)
   SR_StreamMode streamMode;
-  SR_SetStreamMode(&streamMode, SR_UO_STREAM);
+  SR_SetStreamMode(&streamMode, SR_CommonFilter, NULL, SR_NO_SPECIAL_CONTROL);
   // Initialize bam input reader
   // The program will be terminated with printing error message
   //     if the given bam cannot be opened.
