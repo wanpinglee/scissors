@@ -12,7 +12,8 @@ INCLUDE = -I../..
 CSOURCES = SR_BamHeader.c \
 		SR_BamMemPool.c \
 		SR_BamPairAux.c \
-		SR_BamInStream.c
+		SR_BamInStream.c \
+		SR_FragLenDstrb.c
 
 COBJECTS = $(patsubst %.c, $(OBJ_DIR)/%.o, $(CSOURCES) )
 CINCLUDE = -I../..

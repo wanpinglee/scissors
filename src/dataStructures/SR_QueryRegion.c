@@ -75,18 +75,21 @@ void SR_QueryRegionFree(SR_QueryRegion* pQueryRegion)
 // Interface functions
 //======================
 
-SR_Status SR_QueryRegionLoadPair(SR_QueryRegion* pQuerRegion, SR_BamListIter* pIter)
+SR_Status SR_QueryRegionLoadPair(SR_QueryRegion* pQueryRegion, SR_BamInStreamIter* pIter)
 {
-    if ((*pIter) == NULL)
+    if (pIter->pBamNode == NULL)
         return SR_OUT_OF_RANGE;
 
-    pQuerRegion->pAnchor = &((*pIter)->alignment);
-    (*pIter) = (*pIter)->next;
-    if ((*pIter) == NULL)
+    pQueryRegion->pAnchor = &(pIter->pBamNode->alignment);
+    pIter->pBamNode = pIter->pBamNode->next;
+    if (pIter->pBamNode == NULL)
         return SR_ERR;
 
-    pQuerRegion->pOrphan = &((*pIter)->alignment);
-    (*pIter) = (*pIter)->next;
+    pQueryRegion->pOrphan = &(pIter->pBamNode->alignment);
+    pIter->pBamNode = pIter->pBamNode->next;
+
+    pQueryRegion->algnType = *(pIter->pAlgnType);
+    ++(pIter->pAlgnType);
 
     return SR_OK;
 }

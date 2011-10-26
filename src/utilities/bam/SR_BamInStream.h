@@ -17,7 +17,6 @@
 #ifndef  SR_BAMINSTREAM_H
 #define  SR_BAMINSTREAM_H
 
-#include <limits.h>
 
 #include "outsources/samtools/bam.h"
 #include "utilities/common/SR_Types.h"
@@ -28,7 +27,7 @@
 // Type and constant definition
 //===============================
 
-typedef SR_Bool (*SR_BamFilter) (const SR_BamNode* pBamNode, const void* pFilterData);
+typedef SR_Bool (*SR_BamFilter) (SR_BamNode* pBamNode, const void* pFilterData);
 
 typedef enum SR_StreamControlFlag
 {
@@ -42,11 +41,35 @@ typedef enum SR_StreamControlFlag
 
 typedef struct SR_StreamMode
 {
-    SR_BamFilter filterFunc;
+    SR_BamFilter filterFunc;             // a filter function used to skip those uninterested reads
 
-    SR_StreamControlFlag controlFlag;
+    const void* filterData;              // parameters for the filter function
+
+    SR_StreamControlFlag controlFlag;    // flag used to control the bam in stream
 
 }SR_StreamMode;
+
+typedef enum
+{
+    SR_UNIQUE_ORPHAN = 0, 
+
+    SR_UNIQUE_SOFT = 1, 
+
+    SR_UNIQUE_MULTIPLE = 2,
+
+    SR_UNIQUE_NORMAL = 3,
+
+    SR_OTHER_ALGN_TYPE = 4
+
+}SR_AlgnType;
+
+typedef struct SR_BamInStreamIter
+{
+    SR_BamNode* pBamNode;
+
+    SR_AlgnType* pAlgnType;
+
+}SR_BamInStreamIter;
 
 // private data structure that holds all bam-input-related information
 typedef struct SR_BamInStream
@@ -57,15 +80,19 @@ typedef struct SR_BamInStream
 
     SR_BamFilter filterFunc;                   // customized filter function 
 
+    const void* filterData;                    // data used by the filter function
+
     SR_BamMemPool* pMemPool;                   // memory pool used to allocate and recycle the bam alignments
 
     void* pNameHashes[2];                      // two hashes used to get a pair of alignments
 
-    SR_BamList* pRetLists;                     // when we find any unique-orphan pairs we push them into these lists
+    SR_BamList* pRetLists;                     // when we find any unique-orphan pairs we push them into these lists, each thread has its own list
+
+    SR_AlgnType* pAlgnTypes;                   // store the alignment types of read pairs(unique-orphan, unique-multiple, unique-softclipping, unique-unique...)
 
     SR_BamNode* pNewNode;                      // the just read-in bam alignment
 
-    SR_BamList pAlgnLists[2];                  // lists used to store those incoming alignments. each thread has their own lists.
+    SR_BamList pAlgnLists[2];                  // lists used to store those incoming alignments
 
     unsigned int numThreads;                   // number of threads will be used
 
@@ -136,6 +163,24 @@ SR_Status SR_BamInStreamJump(SR_BamInStream* pBamInStream, int32_t refID);
 //================================================================ 
 SR_BamHeader* SR_BamInStreamLoadHeader(SR_BamInStream* pBamInStream);
 
+//===============================================================
+// function:
+//      set the mode of the bam in stream
+//
+// args:
+//      1. pBamInStream: a pointer to an bam instream structure
+//      2. filterFunc: filter function for the bam in stream
+//      3. filterData: filter data passed to filter function
+//      4. controlFlag: flags used to control the stream
+// 
+//=============================================================== 
+static inline void SR_SetStreamMode(SR_StreamMode* pStreamMode, SR_BamFilter filterFunc, const void* filterData, SR_StreamControlFlag controlFlag)
+{
+    pStreamMode->filterFunc = filterFunc;
+    pStreamMode->filterData = filterData;
+    pStreamMode->controlFlag = controlFlag;
+}
+
 //================================================================
 // function:
 //      read an alignment from the bam file
@@ -192,7 +237,7 @@ static inline SR_Status SR_BamInStreamRead(bam1_t* pAlignment, SR_BamInStream* p
 //      the current chromosome, return SR_OUT_OF_RANGE; 
 //      else, return SR_ERR
 //==================================================================
-SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppAlgnOne, SR_BamNode** ppAlgnTwo, const void* filterData, SR_BamInStream* pBamInStream);
+SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppAlgnOne, SR_BamNode** ppAlgnTwo, SR_BamInStream* pBamInStream);
 
 //================================================================
 // function:
@@ -218,7 +263,21 @@ SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppAlgnOne, SR_BamNode** ppAlgnTwo,
 // return:
 //      iterator to the buffer of a thread
 //================================================================ 
-#define SR_BamInStreamGetIter(pBamInStream, threadID) SR_BamListGetIter((pBamInStream)->pRetLists + (threadID))
+#define SR_BamInStreamSetIter(pIter, pBamInStream, threadID)                                           \
+    do                                                                                                 \
+    {                                                                                                  \
+        (pIter)->pBamNode = SR_BamListGetIter((pBamInStream)->pRetLists + (threadID));                 \
+        (pIter)->pAlgnType = (pBamInStream)->pAlgnTypes + (pBamInStream)->reportSize * (threadID);     \
+                                                                                                       \
+    }while(0)
+
+#define SR_BamInStreamSetAlgnType(pBamInStream, threadID, algnType)                                                            \
+    do                                                                                                                         \
+    {                                                                                                                          \
+        unsigned int index = (pBamInStream)->reportSize * (threadID) + (pBamInStream)->pRetLists[(threadID)].numNode / 2 -1;   \
+        (pBamInStream)->pAlgnTypes[index] = (algnType);                                                                        \
+                                                                                                                               \
+    }while(0)
 
 //================================================================
 // function:
@@ -255,13 +314,13 @@ static inline SR_Status SR_BamInStreamPush(SR_BamInStream* pBamInStream, SR_BamN
 
 //================================================================
 // function:
-//      clear the buffer associated with a certain thread
+//      clear the return list  associated with a certain thread
 //
 // args:
 //      1. pBamInStream: a pointer to an bam instream structure
 //      2. threadID: the id of the thread that needs to be clear
 //================================================================ 
-#define SR_BamInStreamClearBuff(pBamInStream, threadID) SR_BamListReset((pBamInStream)->pRetLists + (threadID), (pBamInStream)->pMemPool)
+#define SR_BamInStreamClearRetList(pBamInStream, threadID) SR_BamListReset((pBamInStream)->pRetLists + (threadID), (pBamInStream)->pMemPool)
 
 //================================================================
 // function:

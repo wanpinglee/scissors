@@ -81,6 +81,7 @@ typedef enum
 
 typedef enum
 {
+    SR_BAD_PAIR_MODE = -1,
     SR_1F2F = 0,
     SR_1F2R = 1,
     SR_1R2F = 2,
@@ -101,5 +102,11 @@ typedef SR_SeqAction SR_Strand;
 #define MAX_HASH_SIZE 12
 
 #define SR_EMPTY 0
+
+#define NUM_TOTAL_PAIR_MODE 8
+
+#define NUM_ALLOWED_PAIR_MODE 4
+
+#define NUM_ALLOWED_HIST 2
 
 #endif  /*SR_TYPES_H*/

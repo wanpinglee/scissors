@@ -21,7 +21,7 @@
 
 #include "outsources/samtools/bam.h"
 #include "utilities/common/SR_Types.h"
-#include "utilities/bam/SR_BamMemPool.h"
+#include "utilities/bam/SR_BamInStream.h"
 
 //===============================
 // Type and constant definition
@@ -49,6 +49,8 @@ typedef struct SR_QueryRegion
     bam1_t* pOrphan;                // the orphan alignment
 
     char* orphanSeq;                // the sequence of the orphan alignment, not '\0' terminated
+
+    SR_AlgnType algnType;           // alignment type of the pair(unique-orphan, unique-soft or unique-multiple)
 
     SR_Bool isOrphanInversed;       // boolean varible used to indicate if the orphan sequence is inversed
 
@@ -130,7 +132,7 @@ static inline void SR_SetStrand(bam1_t* pAlignment, SR_Strand strand)
 //      1. pQueryRegion: a pointer to a query region object
 //      2. iter: a iterator to an alignment buffer
 //================================================================ 
-SR_Status SR_QueryRegionLoadPair(SR_QueryRegion* pQuerRegion, SR_BamListIter* pIter);
+SR_Status SR_QueryRegionLoadPair(SR_QueryRegion* pQueryRegion, SR_BamInStreamIter* pIter);
 
 //==============================================================
 // function:
