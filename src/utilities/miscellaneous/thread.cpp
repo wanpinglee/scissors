@@ -78,9 +78,17 @@ void* RunThread (void* thread_data_) {
     bool terminate = false;
     if (td->alignment_list == NULL) {
       if (bam_status == SR_OK) {
-        bam_status = SR_LoadUniquOrphanPairs(td->bam_reader, 
+        // TODO @WP: make sure each field of Jiantao
+        bam_status = SR_LoadAlgnPairs(td->bam_reader,
+					     NULL, 
+					     // the pointer to frag length 
+					     // distribution; NULL means
+					     // we don't want to load it
                                              td->id, 
-                                             td->allowed_clip);
+                                             td->allowed_clip,
+					     0.1, //maxMismatchRate
+					     1 // min mapping quality
+					     );
         *(td->bam_status) = bam_status;
         td->alignment_list = SR_BamInStreamGetIter(td->bam_reader,
                                                    td->id);
