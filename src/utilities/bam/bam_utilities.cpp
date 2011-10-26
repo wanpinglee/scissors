@@ -264,7 +264,7 @@ bool GetPackedCigar( vector<uint32_t>& packed_cigar,
 
 }
 
-// TODO @ Wan-Ping: isize is not yet to be assigned.
+// TODO @ Wan-Ping: isize, flag, and mq are not yet to be assigned.
 void ConvertAlignmentToBam1(const Alignment& al, 
                             const bam1_t& original_record, 
 			    bam1_t* new_record) {
@@ -290,6 +290,9 @@ void ConvertAlignmentToBam1(const Alignment& al,
   new_record->core.mtid    = original_record.core.mtid;
   new_record->core.mpos    = original_record.core.mpos;
   new_record->core.isize   = 0;
+
+  if (al.is_seq_inverse && al.is_seq_complement)
+    new_record->core.flag |= 0x0010;
 
   new_record->l_aux = 0;
 

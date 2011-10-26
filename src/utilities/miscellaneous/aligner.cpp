@@ -99,6 +99,10 @@ void Aligner::AlignCandidate(SR_BamListIter* al_ite,
 
       SearchRegionType::RegionType region_type;
       HashesCollection hashes_collection;
+      bam1_t* al_bam_anchor;
+      al_bam_anchor = bam_init1(); // Thread.cpp will free it
+      al_bam_anchor = bam_copy1(al_bam_anchor, query_region_->pAnchor);
+      alignments->push_back(al_bam_anchor);
       while (search_region_type_.GetNextRegionType(is_anchor_forward, 
                                                    &region_type)) {
         // Reverse or complement the sequence if necesary

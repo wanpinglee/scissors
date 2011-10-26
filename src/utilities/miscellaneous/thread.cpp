@@ -189,9 +189,10 @@ bool Thread::LoadReference() {
                                                            thread_id);
   }
 
-  if (thread_data_[0].alignment_list == NULL)
+  if (thread_data_[0].alignment_list == NULL) {
   // this also means bam_status_ != SR_EOF
     return true;
+  }
  
   int chromosome_id;
   GetChromosomeId(thread_data_[0].alignment_list, &chromosome_id);
