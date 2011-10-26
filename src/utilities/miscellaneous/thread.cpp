@@ -90,8 +90,9 @@ void* RunThread (void* thread_data_) {
 					     1 // min mapping quality
 					     );
         *(td->bam_status) = bam_status;
-        td->alignment_list = SR_BamInStreamGetIter(td->bam_reader,
-                                                   td->id);
+        SR_BamInStreamSetIter(td->alignment_list,
+	                      td->bam_reader,
+                              td->id);
       } else {
         terminate = true; // break the while loop
       }
@@ -185,16 +186,23 @@ bool Thread::LoadReference() {
   
   while ((thread_data_[0].alignment_list == NULL) &&
         (bam_status_ != SR_EOF)) {
-    bam_status_ = SR_LoadUniquOrphanPairs(bam_reader_,
-                                          thread_id,
-  				          allowed_clip_);
+    bam_status_ = SR_SR_LoadAlgnPairs(bam_reader_,
+                                      NULL,
+				      // the pointer to frag length
+				      // distribution; NULL means
+				      // we don't want to load it
+                                      thread_id,
+  				      allowed_clip_,
+				      0.1, // maxMismatchRate
+				      1); // min mapping quality
     if (bam_status_ == SR_ERR) { // cannot load alignments from bam
       cout << "ERROR: Cannot load alignments from the input bam." << endl;
       return false;
     }
 
-    thread_data_[0].alignment_list = SR_BamInStreamGetIter(bam_reader_, 
-                                                           thread_id);
+    SR_BamInStreamSetIter(thread_data_[0].alignment_list,
+                          bam_reader_, 
+                          thread_id);
   }
 
   if (thread_data_[0].alignment_list == NULL) {
