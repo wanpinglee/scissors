@@ -103,7 +103,7 @@ void* RunThread (void* thread_data_) {
 
     if (td->alignment_list.pBamNode != NULL) {
       td->alignments.clear();
-      aligner.AlignCandidate(td->alignment_list, &td->alignments_bam);
+      aligner.AlignCandidate(&td->alignment_list, &td->alignments_bam);
       StoreAlignmentInBam(td->alignments_bam, td->bam_writer);
       FreeAlignmentBam(&td->alignments_bam);
       
