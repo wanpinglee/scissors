@@ -19,14 +19,14 @@ using std::vector;
 struct ThreadData{
   int   id;
   float allowed_clip;
-  SR_BamInStream* bam_reader;
-  SR_BamListIter  alignment_list;
-  SR_Status*      bam_status;
-  SR_Reference*   reference;
-  SR_InHashTable* hash_table;
-  bamFile*        bam_writer;
-  vector<Alignment>  alignments;
-  vector<bam1_t*>    alignments_bam;
+  SR_BamInStream*     bam_reader;
+  SR_BamInStreamIter  alignment_list;
+  SR_Status*          bam_status;
+  SR_Reference*       reference;
+  SR_InHashTable*     hash_table;
+  bamFile*            bam_writer;
+  vector<Alignment>   alignments;
+  vector<bam1_t*>     alignments_bam;
 };
 
 class Thread {

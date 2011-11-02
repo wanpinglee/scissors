@@ -86,7 +86,7 @@ void Aligner::LoadRegionType(const bam1_t& anchor) {
 }
 
 
-void Aligner::AlignCandidate(SR_BamListIter* al_ite,
+void Aligner::AlignCandidate(SR_BamInStreamIter* al_ite,
                              vector<bam1_t*>* alignments) {
 
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {

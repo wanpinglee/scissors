@@ -76,7 +76,7 @@ void* RunThread (void* thread_data_) {
     pthread_mutex_lock(&bam_in_mutex);
     bam_status = *(td->bam_status);
     bool terminate = false;
-    if (td->alignment_list == NULL) {
+    if (td->alignment_list.pBamNode == NULL) {
       if (bam_status == SR_OK) {
         // TODO @WP: make sure each field of Jiantao
         bam_status = SR_LoadAlgnPairs(td->bam_reader,
@@ -90,7 +90,7 @@ void* RunThread (void* thread_data_) {
 					     1 // min mapping quality
 					     );
         *(td->bam_status) = bam_status;
-        SR_BamInStreamSetIter(td->alignment_list,
+        SR_BamInStreamSetIter(&td->alignment_list,
 	                      td->bam_reader,
                               td->id);
       } else {
@@ -101,14 +101,14 @@ void* RunThread (void* thread_data_) {
     pthread_mutex_unlock(&bam_in_mutex);
     if (terminate) break;
 
-    if (td->alignment_list != NULL) {
+    if (td->alignment_list.pBamNode != NULL) {
       td->alignments.clear();
-      aligner.AlignCandidate(&td->alignment_list, &td->alignments_bam);
+      aligner.AlignCandidate(td->alignment_list, &td->alignments_bam);
       StoreAlignmentInBam(td->alignments_bam, td->bam_writer);
       FreeAlignmentBam(&td->alignments_bam);
       
       pthread_mutex_lock(&bam_in_mutex);
-      SR_BamInStreamClearBuff(td->bam_reader, td->id);
+      SR_BamInStreamClearRetList(td->bam_reader, td->id);
       pthread_mutex_unlock(&bam_in_mutex);
     } else {
       break; // break the while loop
@@ -165,17 +165,18 @@ Thread::~Thread() {
 void Thread::InitThreadData() {
   thread_data_.resize(thread_count_);
   for (int i = 0; i < thread_count_; ++i) {
-    thread_data_[i].id             = i;
-    thread_data_[i].allowed_clip   = allowed_clip_;
-    thread_data_[i].bam_reader     = bam_reader_;
-    thread_data_[i].alignment_list = NULL;
-    thread_data_[i].bam_status     = &bam_status_;
-    thread_data_[i].reference      = reference_;
-    thread_data_[i].hash_table     = hash_table_;
-    thread_data_[i].bam_writer     = bam_writer_;
+    thread_data_[i].id                       = i;
+    thread_data_[i].allowed_clip             = allowed_clip_;
+    thread_data_[i].bam_reader               = bam_reader_;
+    thread_data_[i].alignment_list.pBamNode  = NULL;
+    thread_data_[i].alignment_list.pAlgnType = NULL;
+    thread_data_[i].bam_status               = &bam_status_;
+    thread_data_[i].reference                = reference_;
+    thread_data_[i].hash_table               = hash_table_;
+    thread_data_[i].bam_writer               = bam_writer_;
     thread_data_[i].alignments.clear();
     FreeAlignmentBam(&thread_data_[i].alignments_bam);
-    SR_BamInStreamClearBuff(bam_reader_, i);
+    SR_BamInStreamClearRetList(bam_reader_, i);
   }
 }
 
@@ -184,9 +185,9 @@ void Thread::InitThreadData() {
 bool Thread::LoadReference() {
   int thread_id = 0;
   
-  while ((thread_data_[0].alignment_list == NULL) &&
+  while ((thread_data_[0].alignment_list.pBamNode == NULL) &&
         (bam_status_ != SR_EOF)) {
-    bam_status_ = SR_SR_LoadAlgnPairs(bam_reader_,
+    bam_status_ = SR_LoadAlgnPairs(bam_reader_,
                                       NULL,
 				      // the pointer to frag length
 				      // distribution; NULL means
@@ -200,18 +201,22 @@ bool Thread::LoadReference() {
       return false;
     }
 
-    SR_BamInStreamSetIter(thread_data_[0].alignment_list,
+    cout << bam_status_ << endl;
+    if (bam_status_ == SR_OUT_OF_RANGE)
+      continue;
+    else
+    SR_BamInStreamSetIter(&thread_data_[0].alignment_list,
                           bam_reader_, 
                           thread_id);
   }
 
-  if (thread_data_[0].alignment_list == NULL) {
+  if (thread_data_[0].alignment_list.pBamNode == NULL) {
   // this also means bam_status_ != SR_EOF
     return true;
   }
  
   int chromosome_id;
-  GetChromosomeId(thread_data_[0].alignment_list, &chromosome_id);
+  GetChromosomeId(thread_data_[0].alignment_list.pBamNode, &chromosome_id);
 
   if (chromosome_id > bam_reference_->GetCount()) {
   // the obtained chr id is invalid
