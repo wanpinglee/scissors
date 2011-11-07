@@ -16,7 +16,9 @@ const static SearchRegionType::RegionType kRegionType6 = {true, false, false};
 const static SearchRegionType::RegionType kRegionType7 = {false, true, false};
 const static SearchRegionType::RegionType kRegionType8 = {true, true, false};
 
-void Validate( const RegionType& expect, const RegionType& actual) {
+void Validate(
+    const SearchRegionType::RegionType& expect, 
+    const SearchRegionType::RegionType& actual) {
   EXPECT_EQ(expect.upstream, actual.upstream);
   EXPECT_EQ(expect.sequence_inverse, actual.sequence_inverse);
   EXPECT_EQ(expect.sequence_complement, actual.sequence_complement);

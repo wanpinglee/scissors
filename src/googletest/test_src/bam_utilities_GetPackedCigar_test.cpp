@@ -3,8 +3,7 @@
 
 #include "gtest/gtest.h"
 
-#include "utilities/bam_utilities.h"
-#include "dataStructures/bam_alignment.h"
+#include "utilities/bam/bam_utilities.h"
 
 using std::cout;
 using std::endl;

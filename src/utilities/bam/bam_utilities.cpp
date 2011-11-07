@@ -13,6 +13,7 @@ using std::cout;
 using std::endl;
 using std::istringstream;
 
+/*
 namespace BamAlignmentConstant {
 
 const unsigned char kBamCoreSize   = 32;
@@ -28,7 +29,7 @@ const unsigned char kBamChardClip  = 5;
 const unsigned char kBamCpad       = 6;
 
 } // namespace BamAlignmentConstant
-
+*/
 
 namespace BamUtilities {
 bool ResetHeaderText( bam_header_t* const header, const string& header_string ){

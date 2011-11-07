@@ -4,7 +4,7 @@
 
 #include "gtest/gtest.h"
 
-#include "dataStructures/bam_alignment.h"
+#include "utilities/bam/bam_alignment.h"
 
 namespace {
 // convert the readable cigar string into the packed string
