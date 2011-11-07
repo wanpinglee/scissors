@@ -79,6 +79,7 @@ int main ( int argc, char** argv ) {
   Thread thread(&bam_reference,
 		parameters.allowed_clip,
 		parameters.processors,
+		parameters.fragment_length,
 		files.ref_reader,
 		files.hash_reader,
 		files.bam_reader,
@@ -96,22 +97,6 @@ int main ( int argc, char** argv ) {
   return 0;
 
 }
-
-/*
-void LoadRegionType(const bam1_t& anchor, 
-                    AnchorRegion& anchor_region,
-                    SearchRegionType& search_region_type) {
-  uint32_t* cigar = bam1_cigar(&anchor);
-  bool is_new_region = anchor_region.IsNewRegion(cigar,
-                       anchor.core.n_cigar, 
-		       anchor.core.pos);
-  if (is_new_region)
-    search_region_type.ResetRegionTypeList();
-  else
-    search_region_type.RewindRegionTypeList();
-
-}
-*/
 
 void Deconstruct(MainFiles* files, MainVars* vars) {
   // close files
@@ -170,10 +155,6 @@ void InitVariablesOrDie(const Parameters& parameters,
   vars->bam_header = SR_BamInStreamLoadHeader(files.bam_reader);
 
   IsInputBamSortedOrDie(parameters, *(vars->bam_header));
-
-  //vars->search_window.fragLen    = 1000;
-  //vars->search_window.closeRange = 2000;
-  //vars->search_window.farRange   = 100000;
 }
 
 void CheckFileOrDie(const Parameters& parameters,

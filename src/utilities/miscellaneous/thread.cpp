@@ -67,7 +67,7 @@ void ConvertAlignments(const vector<Alignment>& als,
 
 void* RunThread (void* thread_data_) {
   ThreadData *td = (ThreadData*) thread_data_;
-  Aligner aligner(td->reference, td->hash_table);
+  Aligner aligner(td->reference, td->hash_table, td->fragment_length);
 
   while (true) { // until bam != SR_OK
     SR_Status bam_status;
@@ -122,6 +122,7 @@ void* RunThread (void* thread_data_) {
 Thread::Thread(const BamReference* bam_reference,
 	       const float& allowed_clip,
 	       const int& thread_count,
+	       const int& fragment_length,
 	       FILE* ref_reader,
 	       FILE* hash_reader,
 	       SR_BamInStream* bam_reader,
@@ -129,6 +130,7 @@ Thread::Thread(const BamReference* bam_reference,
     : bam_reference_(bam_reference)
     , allowed_clip_(allowed_clip)
     , thread_count_(thread_count)
+    , fragment_length_(fragment_length)
     , ref_reader_(ref_reader)
     , hash_reader_(hash_reader)
     , bam_reader_(bam_reader)
@@ -137,7 +139,6 @@ Thread::Thread(const BamReference* bam_reference,
   bam_status_ = SR_OK;
   InitThreadData();
   Init();
-
 }
 
 void Thread::Init() {
@@ -167,6 +168,7 @@ void Thread::InitThreadData() {
   for (int i = 0; i < thread_count_; ++i) {
     thread_data_[i].id                       = i;
     thread_data_[i].allowed_clip             = allowed_clip_;
+    thread_data_[i].fragment_length          = fragment_length_;
     thread_data_[i].bam_reader               = bam_reader_;
     thread_data_[i].alignment_list.pBamNode  = NULL;
     thread_data_[i].alignment_list.pAlgnType = NULL;

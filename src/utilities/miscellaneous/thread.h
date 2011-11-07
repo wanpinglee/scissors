@@ -19,6 +19,7 @@ using std::vector;
 struct ThreadData{
   int   id;
   float allowed_clip;
+  int   fragment_length;
   SR_BamInStream*     bam_reader;
   SR_BamInStreamIter  alignment_list;
   SR_Status*          bam_status;
@@ -34,6 +35,7 @@ class Thread {
   Thread(const BamReference* bam_reference,
          const float&    allowed_clip,
          const int&      thread_count,
+	 const int&      fragment_length,
 	 FILE*           ref_reader,
          FILE*           hash_reader,
 	 SR_BamInStream* bam_reader,
@@ -44,6 +46,7 @@ class Thread {
   const BamReference*   bam_reference_;
   const float           allowed_clip_;
   const int             thread_count_;
+  const int             fragment_length_;
   FILE*           ref_reader_;
   FILE*           hash_reader_;
   SR_BamInStream* bam_reader_;

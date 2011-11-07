@@ -58,13 +58,14 @@ void SetTargetSequence(const SearchRegionType::RegionType& region_type,
 }
 
 Aligner::Aligner(const SR_Reference* reference, 
-                 const SR_InHashTable* hash_table) 
+                 const SR_InHashTable* hash_table,
+		 const int& fragment_length) 
     : reference_(reference)
     , hash_table_(hash_table) {
   query_region_ = SR_QueryRegionAlloc();
   hashes_       = HashRegionTableAlloc();
 
-  hash_length_.fragLen = 1000;
+  hash_length_.fragLen = fragment_length;
   hash_length_.closeRange = 2000;
   hash_length_.farRange   = 10000;
 }

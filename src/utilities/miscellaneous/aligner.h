@@ -17,7 +17,8 @@ extern "C" {
 class Aligner {
  public:
   Aligner(const SR_Reference* reference, 
-          const SR_InHashTable* hash_table);
+          const SR_InHashTable* hash_table,
+	  const int& fragment_length);
   ~Aligner();
   void AlignCandidate(SR_BamInStreamIter* al_ite, vector<bam1_t*>* alignments);
  private:
