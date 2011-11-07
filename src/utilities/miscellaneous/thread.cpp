@@ -201,7 +201,7 @@ bool Thread::LoadReference() {
       return false;
     }
 
-    cout << bam_status_ << endl;
+    //cout << bam_status_ << endl;
     if (bam_status_ == SR_OUT_OF_RANGE)
       continue;
     else

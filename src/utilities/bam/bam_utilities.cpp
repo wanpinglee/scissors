@@ -268,8 +268,8 @@ bool GetPackedCigar( vector<uint32_t>& packed_cigar,
 void ConvertAlignmentToBam1(const Alignment& al, 
                             const bam1_t& original_record, 
 			    bam1_t* new_record) {
-  cout << original_record.core.l_qname << endl;
-  cout << al.query_begin << "\t" << al.query_end << endl;
+  //cout << original_record.core.l_qname << endl;
+  //cout << al.query_begin << "\t" << al.query_end << endl;
   vector<uint32_t> packed_cigar;
   GetPackedCigar(packed_cigar, 
                  al.reference, 
@@ -277,7 +277,7 @@ void ConvertAlignmentToBam1(const Alignment& al,
 		 al.query_begin, 
 		 al.query_end, 
 		 original_record.core.l_qseq);
-  cout << packed_cigar.size() << endl;
+  //cout << packed_cigar.size() << endl;
 
   new_record->core.tid     = original_record.core.tid;
   new_record->core.pos     = al.reference_begin;
