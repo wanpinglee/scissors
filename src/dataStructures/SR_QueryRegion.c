@@ -116,6 +116,8 @@ void SR_QueryRegionLoadSeq(SR_QueryRegion* pQueryRegion)
 
 void SR_QueryRegionChangeSeq(SR_QueryRegion* pQueryRegion, SR_SeqAction action)
 {
+    SR_QueryRegionLoadSeq(pQueryRegion);
+    
     if (action == SR_INVERSE || action == SR_REVERSE_COMP)
     {
         for (unsigned int i = 0, j = pQueryRegion->pOrphan->core.l_qseq - 1; i < j; ++i, --j)
@@ -148,6 +150,17 @@ void SR_QueryRegionChangeSeq(SR_QueryRegion* pQueryRegion, SR_SeqAction action)
             }
         }
     }
+}
+
+const char* SR_QueryRegionGetSeq(const SR_QueryRegion* pQueryRegion, 
+                                 const uint32_t* query_begin) {
+  if (pQueryRegion == NULL) return NULL;
+  if (pQueryRegion->pOrphan == NULL) return NULL;
+
+  if (*query_begin > pQueryRegion->pOrphan->core.l_qseq) return NULL;
+
+  return pQueryRegion->orphanSeq + *query_begin;
+
 }
 
 SR_Bool SR_QueryRegionSetRange(SR_QueryRegion* pQueryRegion, const SR_SearchArgs* pSearchArgs, uint32_t refLen, SR_Direction direction)

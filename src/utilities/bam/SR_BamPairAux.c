@@ -16,12 +16,13 @@
  * =====================================================================================
  */
 
+#include "outsources/samtools/bam.h"
 #include "SR_BamPairAux.h"
 
 
 // default soft clipping tolerance
 const float DEFAULT_SC_TOLERANCE = 0.2;
-
+ 
 const float DEFAULT_MAX_MISMATCH_RATE = 0.1;
 
 #define BAM_CMISMATCH 8
@@ -180,6 +181,58 @@ SR_Status SR_LoadUniquOrphanPairs(SR_BamInStream* pBamInStream, unsigned int thr
     return readerStatus;
 }
 */
+
+SR_Bool SR_ReadPairFilter(SR_BamNode* pBamNode, const void* filterData)
+{
+    if ((pBamNode->alignment.core.flag & BAM_FPAIRED) == 0
+        || strcmp(bam1_qname(&(pBamNode->alignment)), "*") == 0
+        || (pBamNode->alignment.core.flag & SR_READ_PAIR_FMASK) != 0
+        || (pBamNode->alignment.core.isize == 0))
+    {
+        return TRUE;
+    }
+
+    // get the statistics of the read pair
+    SR_BamPairStats pairStats;
+    SR_Status status = SR_LoadPairStats(&pairStats, pBamNode);
+    if (status == SR_ERR)
+        return TRUE;
+
+    // this is the fragment length distribution
+    const SR_FragLenDstrb* pDstrb = (const SR_FragLenDstrb*) filterData;
+
+    // any reads do not have valid read group name will be filtered out
+    int32_t readGrpIndex = 0;
+    status = SR_FragLenDstrbGetRGIndex(&readGrpIndex, pDstrb, pairStats.RG);
+    if (status == SR_ERR)
+        return TRUE;
+    
+    // any reads aligned to different chromosome will be kept as SV candidates
+    if (pBamNode->alignment.core.tid != pBamNode->alignment.core.mtid)
+    {
+        return FALSE;
+    }
+
+    // any reads aligned with improper pair mode (orientation) will be kept as SV candidates
+    int histIndex = pDstrb->validModeMap[pairStats.pairMode];
+    if (histIndex < 0)
+    {
+        return FALSE;
+    }
+
+    // any reads with fragment length at the edge of the fragment length distribution will be kept as SV candidates
+    uint32_t lowerCutoffIndex = pDstrb->pHists[readGrpIndex].cutoff[histIndex][DSTRB_LOWER_CUTOFF];
+    uint32_t upperCutoffIndex = pDstrb->pHists[readGrpIndex].cutoff[histIndex][DSTRB_UPPER_CUTOFF];
+
+    uint32_t lowerCutoff = pDstrb->pHists[readGrpIndex].fragLen[histIndex][lowerCutoffIndex];
+    uint32_t upperCutoff = pDstrb->pHists[readGrpIndex].fragLen[histIndex][upperCutoffIndex];
+
+    if (pairStats.fragLen < lowerCutoff || pairStats.fragLen > upperCutoff)
+        return FALSE;
+
+    // at last, those reads with valid pair mode and proper fragment length will be filtered out
+    return TRUE;
+}
 
 SR_Status SR_LoadAlgnPairs(SR_BamInStream* pBamInStream, SR_FragLenDstrb* pDstrb, unsigned int threadID, double scTolerance, double maxMismatchRate, unsigned char minMQ)
 {

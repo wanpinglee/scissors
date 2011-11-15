@@ -19,13 +19,61 @@
 #ifndef  HASHREGIONTABLE_H
 #define  HASHREGIONTABLE_H
 
-#include "SR_HashRegionArray.h"
+#include "utilities/common/SR_Types.h"
 #include "SR_InHashTable.h"
 #include "dataStructures/SR_QueryRegion.h"
 
 //===============================
 // Type and constant definition
 //===============================
+
+#define MAX_BEST_REF_BEGINS 3
+
+// structure hold the information of a hash region
+typedef struct HashRegion
+{
+    uint32_t refBegin;      // begin position of a hash region at the reference
+
+    uint32_t  queryBegin;   // begin position of a hash region at a read
+
+    uint32_t  length;       // length of a hash region
+
+}HashRegion;
+
+// structure to hold the information about the best hash region start at a certain position in a read
+typedef struct BestRegion
+{
+    uint32_t refBegins[MAX_BEST_REF_BEGINS];     // begin position of a hash region at the reference
+
+    uint32_t queryBegin;                         // begion position of a hash region at a read
+
+    uint32_t length;                             // length of the hash region
+
+    uint32_t numPos;                             // number of locations of the hash region found in the reference
+
+}BestRegion;
+
+// hash region array
+typedef struct HashRegionArray
+{
+    HashRegion* data;          // array of hash regions 
+
+    unsigned int size;         // size of the array
+
+    unsigned int capacity;     // maximum number of objects that can be held in the array
+
+}HashRegionArray;
+
+// best region array
+typedef struct BestRegionArray
+{
+    BestRegion* data;
+
+    unsigned int size;
+
+    unsigned int capacity;
+
+}BestRegionArray;
 
 typedef struct HashRegionTable
 {

@@ -92,11 +92,10 @@ void Aligner::AlignCandidate(SR_BamInStreamIter* al_ite,
                              vector<bam1_t*>* alignments) {
 
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
-      
+      // TODO@WP: it may be removed later
       if (query_region_->algnType != SR_UNIQUE_ORPHAN) continue;
       
       const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
-      //printf("%c\n", is_anchor_forward ? 'T' : 'F');
       // Convert 4-bit representive sequence into chars
       SR_QueryRegionLoadSeq(query_region_);
       int read_length = query_region_->pOrphan->core.l_qseq;
@@ -115,19 +114,19 @@ void Aligner::AlignCandidate(SR_BamInStreamIter* al_ite,
       while (search_region_type_.GetNextRegionType(is_anchor_forward, 
                                                    &region_type)) {
         
-	//printf("%c\t%c\t%c\n",region_type.upstream ? 'T' : 'F', region_type.sequence_inverse ? 'T' : 'F', region_type.sequence_complement ? 'T' : 'F');
 	// Reverse or complement the sequence if necesary
         SetTargetSequence(region_type, query_region_);
         HashRegionTableInit(hashes_, read_length);
         SR_QueryRegionSetRange(query_region_, &hash_length_, reference_->seqLen,
                                region_type.upstream ? SR_DOWNSTREAM : SR_UPSTREAM);
 	HashRegionTableLoad(hashes_, hash_table_, query_region_);
+
 	hashes_collection.Init(*(hashes_->pBestCloseRegions));
-	//hashes_collection.Print();
-	//char a; scanf("%c",&a);
+	printf("Before sorting\n");
+	hashes_collection.Print();
 	hashes_collection.SortByLength();
-	//hashes_collection.Print();
-	//scanf("%c",&a);
+	printf("After sorting\n");
+	hashes_collection.Print();
 
 	int hashes_count = hashes_collection.GetSize();
 	if (hashes_count == 0) continue;
@@ -142,9 +141,7 @@ void Aligner::AlignCandidate(SR_BamInStreamIter* al_ite,
 	  const char* bases = GetSequence((hashes_collection.Get(hashes_count-1))->refBegins[0]);
 	  al.reference.assign(bases, (hashes_collection.Get(hashes_count-1))->length);
 	  al.query.assign(bases, (hashes_collection.Get(hashes_count-1))->length);
-
-	  //printf("%s\n%s\n", al.reference.c_str(), al.query.c_str());
-	  //alignments->push_back(al);
+	  
 	  bam1_t* al_bam;
 	  al_bam = bam_init1(); // Thread.cpp will free it
 	  BamUtilities::ConvertAlignmentToBam1(al, *query_region_->pOrphan, al_bam);

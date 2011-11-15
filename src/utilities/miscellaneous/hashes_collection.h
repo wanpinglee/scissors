@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "utilities/hashTable/SR_HashRegionArray.h"
+#include "utilities/hashTable/SR_HashRegionTable.h"
 
 using std::vector;
 

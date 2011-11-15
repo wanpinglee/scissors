@@ -575,7 +575,7 @@ void SR_FragLenDstrbFinalize(SR_FragLenDstrb* pDstrb)
     }
 }
 
-void SR_DstrbCutoffSet(SR_FragLenDstrb* pDstrb, double cutoff)
+void SR_FragLenDstrbSetCutoff(SR_FragLenDstrb* pDstrb, double cutoff)
 {
     for (unsigned int i = 0; i != pDstrb->size; ++i)
     {

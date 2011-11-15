@@ -70,7 +70,7 @@
         (pArray)->size = SR_EMPTY;                                           \
         (pArray)->capacity = pArrayCap;                                      \
                                                                              \
-        (pArray)->data = (dataType*) malloc(pArrayCap * sizeof(dataType));   \
+        (pArray)->data = (dataType*) calloc(pArrayCap, sizeof(dataType));   \
         if ((pArray)->data == NULL)                                          \
             SR_ErrSys("ERROR: not enough memory for the data storage->\n");  \
                                                                              \

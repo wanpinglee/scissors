@@ -8,6 +8,7 @@ bool OperatorLength(const BestRegion* r1, const BestRegion* r2) {
 }
 
 void HashesCollection::Init(const BestRegionArray& array) {
+  hash_regions_.clear();
   hash_regions_.resize(array.size);
   for (unsigned int i = 0; i < array.size; ++i) 
     hash_regions_[i] = &array.data[i];

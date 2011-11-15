@@ -35,6 +35,8 @@ static const unsigned int SR_UNIQUE_ORPHAN_FMASK = (BAM_FSECONDARY | BAM_FQCFAIL
 
 static const unsigned int SR_NORMAL_FMASK = (BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP | BAM_FUNMAP | BAM_FMUNMAP);
 
+static const unsigned int SR_READ_PAIR_FMASK = (BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP | BAM_FUNMAP | BAM_FMUNMAP);
+
 //======================
 // Interface functions
 //======================
@@ -68,6 +70,8 @@ static inline SR_Bool SR_NormalFilter(SR_BamNode* pBamNode, const void* filterDa
 
     return FALSE;
 }
+
+SR_Bool SR_ReadPairFilter(SR_BamNode* pBamNode, const void* filterData);
 
 //==================================================================
 // function:

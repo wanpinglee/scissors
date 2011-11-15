@@ -143,6 +143,7 @@ SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename, uint32_t binLen, un
     }
 
     pBamInStream->filterFunc = pStreamMode->filterFunc;
+    pBamInStream->filterData = pStreamMode->filterData;
     pBamInStream->numThreads = numThreads;
     pBamInStream->reportSize = reportSize;
     pBamInStream->currRefID = NO_QUERY_YET;

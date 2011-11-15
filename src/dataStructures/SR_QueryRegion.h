@@ -160,6 +160,11 @@ void SR_QueryRegionLoadSeq(SR_QueryRegion* pQueryRegion);
 void SR_QueryRegionChangeSeq(SR_QueryRegion* pQueryRegion, SR_SeqAction action);
 
 
+
+//const char* SR_QueryRegionGetSeq(const SR_QueryRegion* pQueryRegion, 
+  //                               const uint32_t* query_begin);
+
+
 //==============================================================
 // function:
 //      set the search region for the split aligner according
