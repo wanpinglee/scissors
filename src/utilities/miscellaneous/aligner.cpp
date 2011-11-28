@@ -51,6 +51,7 @@ void SetTargetSequence(const SearchRegionType::RegionType& region_type,
    // else if (complement)
    //   SR_QueryRegionChangeSeq(query_region, SR_COMP);
 
+    SR_QueryRegionChangeSeq(query_region, SR_FORWARD);
     SR_SetStrand(query_region->pOrphan, SR_FORWARD);
     query_region->isOrphanInversed = FALSE;
   } // end if-else
@@ -122,11 +123,11 @@ void Aligner::AlignCandidate(SR_BamInStreamIter* al_ite,
 	HashRegionTableLoad(hashes_, hash_table_, query_region_);
 
 	hashes_collection.Init(*(hashes_->pBestCloseRegions));
-	printf("Before sorting\n");
-	hashes_collection.Print();
+	//printf("\nBefore sorting\n");
+	//hashes_collection.Print();
 	hashes_collection.SortByLength();
-	printf("After sorting\n");
-	hashes_collection.Print();
+	//printf("\nAfter sorting\n");
+	//hashes_collection.Print();
 
 	int hashes_count = hashes_collection.GetSize();
 	if (hashes_count == 0) continue;
@@ -147,10 +148,6 @@ void Aligner::AlignCandidate(SR_BamInStreamIter* al_ite,
 	  BamUtilities::ConvertAlignmentToBam1(al, *query_region_->pOrphan, al_bam);
 	  alignments->push_back(al_bam);
 	}
-
-	//bam_write1( files.bam_writer, vars.query_region->pAnchor );
-	//bam_write1( files.bam_writer, vars.query_region->pOrphan );
-	//
       } // end while
     } // end while
 
