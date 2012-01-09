@@ -128,7 +128,9 @@ void Aligner::AlignCandidate(SR_BamInStreamIter* al_ite,
 	hashes_collection.SortByLength();
 	//printf("\nAfter sorting\n");
 	//hashes_collection.Print();
-
+	unsigned int best1, best2;
+	bool best_pair_found = hashes_collection.GetBestCoverPair(&best1, &best2);
+	/*
 	int hashes_count = hashes_collection.GetSize();
 	if (hashes_count == 0) continue;
 	if ((hashes_collection.Get(hashes_count-1))->numPos != 0) {
@@ -148,6 +150,7 @@ void Aligner::AlignCandidate(SR_BamInStreamIter* al_ite,
 	  BamUtilities::ConvertAlignmentToBam1(al, *query_region_->pOrphan, al_bam);
 	  alignments->push_back(al_bam);
 	}
+	*/
       } // end while
     } // end while
 

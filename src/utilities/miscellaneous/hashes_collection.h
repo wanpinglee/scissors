@@ -16,9 +16,10 @@ class HashesCollection {
   void Print(void)const;
   const BestRegion* Get (const unsigned int& index) const;
   inline const int GetSize() const;
+  bool GetBestCoverPair(unsigned int* best1, unsigned int* best2);
+
  private:
   vector<BestRegion*> hash_regions_;
-
   HashesCollection (const HashesCollection&);
   HashesCollection& operator= (const HashesCollection&);
 }; // end HashRegionCollection

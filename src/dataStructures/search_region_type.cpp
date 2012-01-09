@@ -165,27 +165,6 @@ void SearchRegionType::ResetRegionTypeList(void) {
     forward_anchor_type_count_[i] = 0;
     reverse_anchor_type_count_[i] = 0;
   }
-  /*i
-  forward_anchor_type_preference_[0] = 0;
-  forward_anchor_type_preference_[1] = 1;
-  forward_anchor_type_preference_[2] = 2;
-  forward_anchor_type_preference_[3] = 3;
-  reverse_anchor_type_preference_[0] = 0;
-  reverse_anchor_type_preference_[1] = 1;
-  reverse_anchor_type_preference_[2] = 2;
-  reverse_anchor_type_preference_[3] = 3;
-  */
-  // reset counters
-  /*
-  forward_anchor_type_count_[0] = 0;
-  forward_anchor_type_count_[1] = 0;
-  forward_anchor_type_count_[2] = 0;
-  forward_anchor_type_count_[3] = 0;
-  reverse_anchor_type_count_[0] = 0;
-  reverse_anchor_type_count_[1] = 0;
-  reverse_anchor_type_count_[2] = 0;
-  reverse_anchor_type_count_[3] = 0;
-  */
   RewindRegionTypeList();
 }
 
