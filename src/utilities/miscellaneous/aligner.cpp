@@ -3,6 +3,7 @@
 #include "utilities/bam/bam_utilities.h"
 #include "utilities/miscellaneous/hashes_collection.h"
 
+namespace {
 void SetTargetSequence(const SearchRegionType::RegionType& region_type, 
                        SR_QueryRegion* query_region) {
   //const bool forward    = !bam1_strand(query_region->pOrphan);
@@ -56,6 +57,7 @@ void SetTargetSequence(const SearchRegionType::RegionType& region_type,
     query_region->isOrphanInversed = FALSE;
   } // end if-else
   
+}
 }
 
 Aligner::Aligner(const SR_Reference* reference, 
@@ -155,4 +157,25 @@ void Aligner::AlignCandidate(SR_BamInStreamIter* al_ite,
     } // end while
 
     al_ite = NULL;
+}
+
+//@description:
+//  Gets alignment from the hashes_collection by given id in hashes_collection
+bool Aligner::GetAlignment(
+    const HashesCollection& hashes_collection, 
+    const unsigned int& id,
+    Alignment* al) {
+  if (static_cast<int>(id) >= hashes_collection.GetSize()) {
+    return false;
+  } else {
+    al->reference_begin = (hashes_collection.Get(id))->refBegins[0];
+    al->reference_end   = (hashes_collection.Get(id))->refBegins[0] + (hashes_collection.Get(id))->length - 1;
+    al->query_begin     = (hashes_collection.Get(id))->queryBegin;
+    al->query_end       = (hashes_collection.Get(id))->queryBegin + (hashes_collection.Get(id))->length - 1;
+    const char* bases = GetSequence((hashes_collection.Get(id))->refBegins[0]);
+    al->reference.assign(bases, (hashes_collection.Get(id))->length);
+    al->query.assign(bases, (hashes_collection.Get(id))->length);
+
+    return true;
+  }
 }

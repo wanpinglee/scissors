@@ -14,6 +14,8 @@ extern "C" {
 #include "dataStructures/anchor_region.h"
 #include "dataStructures/search_region_type.h"
 
+class HashesCollection;
+
 class Aligner {
  public:
   Aligner(const SR_Reference* reference, 
@@ -33,6 +35,8 @@ class Aligner {
 
   void LoadRegionType(const bam1_t& anchor);
   inline const char* GetSequence(const size_t& start) const;
+  bool GetAlignment(const HashesCollection& hashes_collection, 
+      const unsigned int& id, Alignment* al);
 
   Aligner (const Aligner&);
   Aligner& operator= (const Aligner&);
