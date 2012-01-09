@@ -39,7 +39,6 @@ bool HashesCollection::GetBestCoverPair(unsigned int* best1, unsigned int* best2
   for (unsigned int i = 0; i < hash_regions_.size(); ++i) {
     int end_i = hash_regions_[i]->queryBegin + hash_regions_[i]->length - 1;
     for (unsigned int j = hash_regions_.size() - 1; j > i; --j) {
-      int end_j   = hash_regions_[j]->queryBegin + hash_regions_[j]->length - 1;
       int overlap = end_i - hash_regions_[j]->queryBegin + 1;
       int cover   = hash_regions_[i]->length + hash_regions_[j]->length;
       if (overlap > 0) cover -= overlap;

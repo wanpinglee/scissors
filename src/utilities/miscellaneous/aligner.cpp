@@ -132,6 +132,26 @@ void Aligner::AlignCandidate(SR_BamInStreamIter* al_ite,
 	//hashes_collection.Print();
 	unsigned int best1, best2;
 	bool best_pair_found = hashes_collection.GetBestCoverPair(&best1, &best2);
+	Alignment al1, al2;
+	if (best_pair_found) {
+	  GetAlignment(hashes_collection, best1, &al1);
+	  GetAlignment(hashes_collection, best2, &al2);
+	  al1.is_seq_inverse    = region_type.sequence_inverse;
+	  al2.is_seq_inverse    = region_type.sequence_inverse;
+	  al1.is_seq_complement = region_type.sequence_complement;
+	  al2.is_seq_complement = region_type.sequence_complement;
+
+	  // store alignments
+	  bam1_t *al1_bam, *al2_bam;
+	  al1_bam = bam_init1(); // Thread.cpp will free it
+	  al2_bam = bam_init1(); // Thread.cpp will free it
+	  BamUtilities::ConvertAlignmentToBam1(al1, *query_region_->pOrphan, al1_bam);
+	  BamUtilities::ConvertAlignmentToBam1(al2, *query_region_->pOrphan, al2_bam);
+	  alignments->push_back(al1_bam);
+	  alignments->push_back(al2_bam);
+	} else {
+	  // nothing
+	}
 	/*
 	int hashes_count = hashes_collection.GetSize();
 	if (hashes_count == 0) continue;
