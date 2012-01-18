@@ -19,9 +19,9 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "outsources/samtools/khash.h"
-#include "utilities/common/SR_Error.h"
-#include "utilities/common/SR_Utilities.h"
+#include "khash.h"
+#include "SR_Error.h"
+#include "SR_Utilities.h"
 #include "SR_FragLenDstrb.h"
 
 
@@ -30,10 +30,10 @@
 //===============================
 
 // default capacity of fragment length distribution
-const int DEFAULT_FRAG_DSTRB_CAP = 10;
+#define DEFAULT_FRAG_DSTRB_CAP 10
 
 // index of the mode count for invalid pair mode 
-#define INVALID_PAIR_MODE_SET_INDEX 2
+#define INVALID_PAIR_MODE_SET_INDEX 1
 
 typedef struct SR_FragLenBin
 {
@@ -123,25 +123,19 @@ static SR_Status SR_FragLenHistSetMature(SR_FragLenHist* pHist)
 
 static inline void SR_FragLenHistClearRaw(SR_FragLenHist* pHist)
 {
-    for (unsigned int i = 0; i != NUM_ALLOWED_HIST; ++i)
-    {
-        kh_destroy(fragLen, pHist->rawHist[i]);
-        pHist->rawHist[i] = NULL;
-    }
+    kh_destroy(fragLen, pHist->rawHist);
+    pHist->rawHist = NULL;
 }
 
 static inline void SR_FragLenHistClear(SR_FragLenHist* pHist)
 {
     SR_FragLenHistClearRaw(pHist);
 
-    for (unsigned int i = 0; i != NUM_ALLOWED_HIST; ++i)
-    {
-        free(pHist->fragLen[i]);
-        free(pHist->cdf[i]);
+    free(pHist->fragLen);
+    free(pHist->cdf);
 
-        pHist->fragLen[i] = NULL;
-        pHist->cdf[i] = NULL;
-    }
+    pHist->fragLen = NULL;
+    pHist->cdf = NULL;
 }
 
 static inline int CompareFragLenBin(const void* a, const void* b)
@@ -159,73 +153,67 @@ static inline int CompareFragLenBin(const void* a, const void* b)
 
 static void SR_FragLenHistToMature(SR_FragLenHist* pHist)
 {
-    for (unsigned int k = 0; k != NUM_ALLOWED_HIST; ++k)
+    const khash_t(fragLen)* pRawHist = pHist->rawHist;
+
+    SR_FragLenBin* matureHist = (SR_FragLenBin*) malloc(kh_size(pRawHist) * sizeof(SR_FragLenBin));
+    if (matureHist == NULL)
+        SR_ErrQuit("ERROR: Not enough memory for the histogram in the fragment length distribution object.\n");
+
+    pHist->size = kh_size(pRawHist);
+
+    unsigned int i = 0;
+    for (khiter_t khIter = kh_begin(pRawHist); khIter != kh_end(pRawHist); ++khIter)
     {
-        const khash_t(fragLen)* pRawHist = pHist->rawHist[k];
-        // if we do not have the second pair mode, we will finish here
-        if (pRawHist == NULL)
-            break;
-
-        SR_FragLenBin* matureHist = (SR_FragLenBin*) malloc(kh_size(pRawHist) * sizeof(SR_FragLenBin));
-        if (matureHist == NULL)
-            SR_ErrQuit("ERROR: Not enough memory for the histogram in the fragment length distribution object.\n");
-
-        pHist->size[k] = kh_size(pRawHist);
-
-        unsigned int i = 0;
-        for (khiter_t khIter = kh_begin(pRawHist); khIter != kh_end(pRawHist); ++khIter)
+        if (kh_exist(pRawHist, khIter))
         {
-            if (kh_exist(pRawHist, khIter))
-            {
-                matureHist[i].fragLen = kh_key(pRawHist, khIter);
-                matureHist[i].freq = kh_value(pRawHist, khIter);
-                ++i;
-            }
+            matureHist[i].fragLen = kh_key(pRawHist, khIter);
+            matureHist[i].freq = kh_value(pRawHist, khIter);
+            ++i;
         }
-
-        qsort(matureHist, pHist->size[k], sizeof(SR_FragLenBin), CompareFragLenBin);
-
-        pHist->fragLen[k] = (uint32_t*) malloc(pHist->size[k] * sizeof(uint32_t));
-        if (pHist->fragLen == NULL)
-            SR_ErrQuit("ERROR: Not enough memory for the storeage of the fragment length array in the fragment length histogram.\n");
-
-        pHist->cdf[k] = (double*) malloc(pHist->size[k] * sizeof(double));
-        if (pHist->cdf == NULL)
-            SR_ErrQuit("ERROR: Not enough memory for the storeage of the cdf in the fragment length histogram.\n");
-
-        double cumFreq = 0.0;
-        double totalFragLen = 0.0;
-        uint64_t totalFreq = pHist->modeCount[k];
-        for (unsigned int j = 0; j != pHist->size[k]; ++j)
-        {
-            totalFragLen += matureHist[j].fragLen * matureHist[j].freq;
-            pHist->fragLen[k][j] = matureHist[j].fragLen;
-            cumFreq += matureHist[j].freq;
-            pHist->cdf[k][j] = cumFreq / totalFreq;
-        }
-
-        pHist->mean[k] = totalFragLen / totalFreq;
-
-        for (unsigned int j = 0; j != pHist->size[k]; ++j)
-        {
-            if (pHist->cdf[k][j] >= 0.5)
-            {
-                pHist->median[k] = pHist->fragLen[k][j];
-                break;
-            }
-        }
-
-        pHist->stdev[k] = 0.0;
-        for (unsigned int j = 0; j != pHist->size[k]; ++j)
-        {
-            pHist->stdev[k] += (double) matureHist[j].freq * pow(pHist->mean[k] - matureHist[j].fragLen, 2);
-        }
-
-        if (totalFreq != 1)
-            pHist->stdev[k] = sqrt(pHist->stdev[k] / (double) (totalFreq - 1));
-
-        free(matureHist);
     }
+
+    qsort(matureHist, pHist->size, sizeof(SR_FragLenBin), CompareFragLenBin);
+
+    pHist->fragLen = (uint32_t*) malloc(pHist->size * sizeof(uint32_t));
+    if (pHist->fragLen == NULL)
+        SR_ErrQuit("ERROR: Not enough memory for the storeage of the fragment length array in the fragment length histogram.\n");
+
+    pHist->cdf = (double*) malloc(pHist->size * sizeof(double));
+    if (pHist->cdf == NULL)
+        SR_ErrQuit("ERROR: Not enough memory for the storeage of the cdf in the fragment length histogram.\n");
+
+    double cumFreq = 0.0;
+    double totalFragLen = 0.0;
+    uint64_t totalFreq = pHist->modeCount[0];
+    for (unsigned int j = 0; j != pHist->size; ++j)
+    {
+        totalFragLen += matureHist[j].fragLen * matureHist[j].freq;
+        pHist->fragLen[j] = matureHist[j].fragLen;
+        cumFreq += matureHist[j].freq;
+        pHist->cdf[j] = cumFreq / totalFreq;
+    }
+
+    pHist->mean = totalFragLen / totalFreq;
+
+    for (unsigned int j = 0; j != pHist->size; ++j)
+    {
+        if (pHist->cdf[j] >= 0.5)
+        {
+            pHist->median = pHist->fragLen[j];
+            break;
+        }
+    }
+
+    pHist->stdev = 0.0;
+    for (unsigned int j = 0; j != pHist->size; ++j)
+    {
+        pHist->stdev += (double) matureHist[j].freq * pow(pHist->mean - matureHist[j].fragLen, 2);
+    }
+
+    if (totalFreq != 1)
+        pHist->stdev = sqrt(pHist->stdev / (double) (totalFreq - 1));
+
+    free(matureHist);
 }
 
 
@@ -250,7 +238,6 @@ SR_FragLenDstrb* SR_FragLenDstrbAlloc(uint32_t capacity)
     pNewDstrb->pReadGrpHash = NULL;
     pNewDstrb->pHists = NULL;
 
-    pNewDstrb->numPairMode = 0;
     pNewDstrb->size = 0;
     pNewDstrb->capacity = capacity;
 
@@ -338,17 +325,14 @@ SR_Status SR_LoadPairStats(SR_BamPairStats* pPairStats, const SR_BamNode* pBamNo
     return SR_OK;
 }
 
-void SR_FragLenDstrbSetPairMode(SR_FragLenDstrb* pDstrb, const int8_t* pValidPairMode, uint8_t numPairMode)
+void SR_FragLenDstrbSetPairMode(SR_FragLenDstrb* pDstrb, const int8_t* pValidPairMode)
 {
-    pDstrb->numPairMode = numPairMode;
-    for (unsigned int i = 0; i != NUM_TOTAL_PAIR_MODE; ++i)
-        pDstrb->validModeMap[i] = SR_BAD_PAIR_MODE;
+    pDstrb->validMode[0] = pValidPairMode[0];
+    pDstrb->validMode[1] = pValidPairMode[1];
 
-    for (unsigned int i = 0; i != numPairMode; ++i)
-    {
-        pDstrb->validMode[i] = pValidPairMode[i] - 1;
-        pDstrb->validModeMap[pValidPairMode[i] - 1] = i / 2;
-    }
+    pDstrb->validModeMap &= 0;
+    pDstrb->validModeMap |= (1 << (pValidPairMode[0]));
+    pDstrb->validModeMap |= (1 << (pValidPairMode[1]));
 }
 
 /*
@@ -531,8 +515,7 @@ SR_Status SR_FragLenDstrbUpdate(SR_FragLenDstrb* pDstrb, const SR_BamPairStats* 
 
     // if the pair mode is not valid
     // we only updated the count of the invalid pair and return
-    int8_t histIndex = pDstrb->validModeMap[pPairStats->pairMode];
-    if (histIndex < 0)
+    if (SR_IsValidPairMode(pDstrb, pPairStats->pairMode))
     {
         ++(pCurrHist->modeCount[INVALID_PAIR_MODE_SET_INDEX]);
         return SR_OK;
@@ -541,7 +524,7 @@ SR_Status SR_FragLenDstrbUpdate(SR_FragLenDstrb* pDstrb, const SR_BamPairStats* 
     // because we can have up to 2 different pair mode sets (4 differen pair modes)
     // we should choose which histogram we should update
     // the first one (with index 0 or 1) or the second one(2, 3)
-    khash_t(fragLen)* pCurrHash = pCurrHist->rawHist[histIndex];
+    khash_t(fragLen)* pCurrHash = pCurrHist->rawHist;
 
     if (pCurrHash == NULL)
     {
@@ -560,8 +543,8 @@ SR_Status SR_FragLenDstrbUpdate(SR_FragLenDstrb* pDstrb, const SR_BamPairStats* 
         kh_value(pCurrHash, khIter) = 1;
     }
 
-    ++(pCurrHist->modeCount[histIndex]);
-    pCurrHist->rawHist[histIndex] = pCurrHash;
+    ++(pCurrHist->modeCount[0]);
+    pCurrHist->rawHist = pCurrHash;
 
     return SR_OK;
 }
@@ -579,24 +562,21 @@ void SR_FragLenDstrbSetCutoff(SR_FragLenDstrb* pDstrb, double cutoff)
 {
     for (unsigned int i = 0; i != pDstrb->size; ++i)
     {
-        for (unsigned int j = 0; j != NUM_ALLOWED_HIST; ++j)
+        for (unsigned int k = 0; k != pDstrb->pHists[i].size; ++k)
         {
-            for (unsigned int k = 0; k != pDstrb->pHists[i].size[j]; ++k)
+            if (pDstrb->pHists[i].cdf[k] >= cutoff)
             {
-                if (pDstrb->pHists[i].cdf[j][k] >= cutoff)
-                {
-                    pDstrb->pHists[i].cutoff[j][DSTRB_LOWER_CUTOFF] = k;
-                    break;
-                }
+                pDstrb->pHists[i].cutoff[DSTRB_LOWER_CUTOFF] = k;
+                break;
             }
+        }
 
-            for (int k = pDstrb->pHists[i].size[j] - 1; k != -1; --k)
+        for (int k = pDstrb->pHists[i].size - 1; k != -1; --k)
+        {
+            if (pDstrb->pHists[i].cdf[k] <= 1 - cutoff)
             {
-                if (pDstrb->pHists[i].cdf[j][k] <= 1 - cutoff)
-                {
-                    pDstrb->pHists[i].cutoff[j][DSTRB_UPPER_CUTOFF] = k;
-                    break;
-                }
+                pDstrb->pHists[i].cutoff[DSTRB_UPPER_CUTOFF] = k;
+                break;
             }
         }
     }
@@ -614,12 +594,8 @@ void SR_FragLenDstrbWrite(const SR_FragLenDstrb* pDstrb, FILE* dstrbOutput)
     if (writeSize != 1)
         SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
 
-    writeSize = fwrite(&(pDstrb->numPairMode), sizeof(uint8_t), 1, dstrbOutput);
-    if (writeSize != 1)
-        SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
-
-    writeSize = fwrite(pDstrb->validMode, sizeof(int8_t), pDstrb->numPairMode, dstrbOutput);
-    if (writeSize != pDstrb->numPairMode)
+    writeSize = fwrite(pDstrb->validMode, sizeof(int8_t), NUM_ALLOWED_PAIR_MODE, dstrbOutput);
+    if (writeSize != NUM_ALLOWED_PAIR_MODE)
         SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
 
     if (pDstrb->hasRG)
@@ -641,38 +617,35 @@ void SR_FragLenDstrbWrite(const SR_FragLenDstrb* pDstrb, FILE* dstrbOutput)
         }
     }
 
-    for (unsigned j = 0; j != pDstrb->numPairMode / 2; ++j)
+    for (unsigned int i = 0; i != pDstrb->size; ++i)
     {
-        for (unsigned int i = 0; i != pDstrb->size; ++i)
-        {
-            writeSize = fwrite(&(pDstrb->pHists[i].modeCount[j]), sizeof(uint64_t), 1, dstrbOutput);
-            if (writeSize != 1)
-                SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
+        writeSize = fwrite(&(pDstrb->pHists[i].modeCount), sizeof(uint64_t), 1, dstrbOutput);
+        if (writeSize != 1)
+            SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
 
-            writeSize = fwrite(&(pDstrb->pHists[i].mean[j]), sizeof(double), 1, dstrbOutput);
-            if (writeSize != 1)
-                SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
+        writeSize = fwrite(&(pDstrb->pHists[i].mean), sizeof(double), 1, dstrbOutput);
+        if (writeSize != 1)
+            SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
 
-            writeSize = fwrite(&(pDstrb->pHists[i].median[j]), sizeof(double), 1, dstrbOutput);
-            if (writeSize != 1)
-                SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
+        writeSize = fwrite(&(pDstrb->pHists[i].median), sizeof(double), 1, dstrbOutput);
+        if (writeSize != 1)
+            SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
 
-            writeSize = fwrite(&(pDstrb->pHists[i].stdev[j]), sizeof(double), 1, dstrbOutput);
-            if (writeSize != 1)
-                SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
+        writeSize = fwrite(&(pDstrb->pHists[i].stdev), sizeof(double), 1, dstrbOutput);
+        if (writeSize != 1)
+            SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
 
-            writeSize = fwrite(&(pDstrb->pHists[i].size[j]), sizeof(uint32_t), 1, dstrbOutput);
-            if (writeSize != 1)
-                SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
+        writeSize = fwrite(&(pDstrb->pHists[i].size), sizeof(uint32_t), 1, dstrbOutput);
+        if (writeSize != 1)
+            SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
 
-            writeSize = fwrite(pDstrb->pHists[i].fragLen[j], sizeof(uint32_t), pDstrb->pHists[i].size[j], dstrbOutput);
-            if (writeSize != pDstrb->pHists[i].size[j])
-                SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
+        writeSize = fwrite(pDstrb->pHists[i].fragLen, sizeof(uint32_t), pDstrb->pHists[i].size, dstrbOutput);
+        if (writeSize != pDstrb->pHists[i].size)
+            SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
 
-            writeSize = fwrite(pDstrb->pHists[i].cdf[j], sizeof(double), pDstrb->pHists[i].size[j], dstrbOutput);
-            if (writeSize != pDstrb->pHists[i].size[j])
-                SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
-        }
+        writeSize = fwrite(pDstrb->pHists[i].cdf, sizeof(double), pDstrb->pHists[i].size, dstrbOutput);
+        if (writeSize != pDstrb->pHists[i].size)
+            SR_ErrQuit("ERROR: Found an error when writing into the fragment length distribution file.\n");
     }
 
     fflush(dstrbOutput);
@@ -689,19 +662,12 @@ void SR_FragLenDstrbRead(SR_FragLenDstrb* pDstrb, FILE* dstrbInput)
     if (readSize != 1)
         SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
 
-    readSize = fread(&(pDstrb->numPairMode), sizeof(uint8_t), 1, dstrbInput);
-    if (readSize != 1)
+    readSize = fread(pDstrb->validMode, sizeof(int8_t), NUM_ALLOWED_PAIR_MODE, dstrbInput);
+    if (readSize != NUM_ALLOWED_PAIR_MODE)
         SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
 
-    readSize = fread(pDstrb->validMode, sizeof(int8_t), pDstrb->numPairMode, dstrbInput);
-    if (readSize != pDstrb->numPairMode)
-        SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
-
-    for (unsigned int i = 0; i != NUM_TOTAL_PAIR_MODE; ++i)
-        pDstrb->validModeMap[i] = SR_BAD_PAIR_MODE;
-
-    for (unsigned int i = 0; i != pDstrb->numPairMode; ++i)
-        pDstrb->validModeMap[pDstrb->validMode[i]] = i / 2;
+    for (unsigned int i = 0; i != NUM_ALLOWED_PAIR_MODE; ++i)
+        pDstrb->validModeMap |= (1 << pDstrb->validMode[i]);
 
     if (pDstrb->hasRG)
     {
@@ -740,45 +706,42 @@ void SR_FragLenDstrbRead(SR_FragLenDstrb* pDstrb, FILE* dstrbInput)
     if (pDstrb->pHists == NULL)
         SR_ErrQuit("ERROR: Not enough memory for the storage of histograms in the fragment length distribution object.\n");
 
-    for (unsigned int j = 0; j != pDstrb->numPairMode / 2; ++j)
+    for (unsigned int i = 0; i != pDstrb->size; ++i)
     {
-        for (unsigned int i = 0; i != pDstrb->size; ++i)
-        {
-            readSize = fread(&(pDstrb->pHists[i].modeCount[j]), sizeof(uint64_t), 1, dstrbInput);
-            if (readSize != 1)
-                SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
+        readSize = fread(&(pDstrb->pHists[i].modeCount), sizeof(uint64_t), 1, dstrbInput);
+        if (readSize != 1)
+            SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
 
-            readSize = fread(&(pDstrb->pHists[i].mean[j]), sizeof(double), 1, dstrbInput);
-            if (readSize != 1)
-                SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
+        readSize = fread(&(pDstrb->pHists[i].mean), sizeof(double), 1, dstrbInput);
+        if (readSize != 1)
+            SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
 
-            readSize = fread(&(pDstrb->pHists[i].median[j]), sizeof(double), 1, dstrbInput);
-            if (readSize != 1)
-                SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
+        readSize = fread(&(pDstrb->pHists[i].median), sizeof(double), 1, dstrbInput);
+        if (readSize != 1)
+            SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
 
-            readSize = fread(&(pDstrb->pHists[i].stdev[j]), sizeof(double), 1, dstrbInput);
-            if (readSize != 1)
-                SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
+        readSize = fread(&(pDstrb->pHists[i].stdev), sizeof(double), 1, dstrbInput);
+        if (readSize != 1)
+            SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
 
-            readSize = fread(&(pDstrb->pHists[i].size[j]), sizeof(uint32_t), 1, dstrbInput);
-            if (readSize != 1)
-                SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
+        readSize = fread(&(pDstrb->pHists[i].size), sizeof(uint32_t), 1, dstrbInput);
+        if (readSize != 1)
+            SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
 
-            pDstrb->pHists[i].fragLen[j] = (uint32_t*) malloc(pDstrb->pHists[i].size[j] * sizeof(uint32_t));
-            if (pDstrb->pHists[i].fragLen[j] == NULL)
-                SR_ErrQuit("ERROR: Not enough memory for the storage of fragment length in the fragment length distribution object.\n");
+        pDstrb->pHists[i].fragLen = (uint32_t*) malloc(pDstrb->pHists[i].size * sizeof(uint32_t));
+        if (pDstrb->pHists[i].fragLen == NULL)
+            SR_ErrQuit("ERROR: Not enough memory for the storage of fragment length in the fragment length distribution object.\n");
 
-            pDstrb->pHists[i].cdf[j] = (double*) malloc(pDstrb->pHists[i].size[j] * sizeof(double));
-            if (pDstrb->pHists[i].cdf[j] == NULL)
-                SR_ErrQuit("ERROR: Not enough memory for the storage of fragment length probabilities in the fragment length distribution object.\n");
+        pDstrb->pHists[i].cdf = (double*) malloc(pDstrb->pHists[i].size * sizeof(double));
+        if (pDstrb->pHists[i].cdf == NULL)
+            SR_ErrQuit("ERROR: Not enough memory for the storage of fragment length probabilities in the fragment length distribution object.\n");
 
-            readSize = fread(pDstrb->pHists[i].fragLen[j], sizeof(uint32_t), pDstrb->pHists[i].size[j], dstrbInput);
-            if (readSize != pDstrb->pHists[i].size[j])
-                SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
+        readSize = fread(pDstrb->pHists[i].fragLen, sizeof(uint32_t), pDstrb->pHists[i].size, dstrbInput);
+        if (readSize != pDstrb->pHists[i].size)
+            SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
 
-            readSize = fread(pDstrb->pHists[i].cdf[j], sizeof(double), pDstrb->pHists[i].size[j], dstrbInput);
-            if (readSize != pDstrb->pHists[i].size[j])
-                SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
-        }
+        readSize = fread(pDstrb->pHists[i].cdf, sizeof(double), pDstrb->pHists[i].size, dstrbInput);
+        if (readSize != pDstrb->pHists[i].size)
+            SR_ErrQuit("ERROR: Found an error when reading from the fragment length distribution file.\n");
     }
 }

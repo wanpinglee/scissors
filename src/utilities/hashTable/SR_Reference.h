@@ -23,12 +23,20 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-#include "utilities/common/SR_Types.h"
+#include "SR_Types.h"
 
 
 //===============================
 // Type and constant definition
 //===============================
+
+// the default number of chromosomes
+#define DEFAULT_NUM_CHR 100
+
+#define DEFAULT_NUM_SPECIAL_REF 30
+
+// the default length of padding between two special references
+#define DEFAULT_PADDING_LEN 300
 
 // reset the reference object for next reading
 #define SR_ReferenceReset(pRef)               \
@@ -38,6 +46,15 @@
                                               \
     }while(0) 
 
+typedef struct SR_SpecialRefInfo
+{
+    uint32_t* endPos;
+
+    uint32_t numRefs;
+
+    uint32_t capacity;
+
+}SR_SpecialRefInfo;
 
 // reference header strcture
 typedef struct SR_RefHeader
@@ -54,20 +71,37 @@ typedef struct SR_RefHeader
 
     uint32_t numRefs;         // total number of chromosomes 
 
+    uint32_t numSeqs;         // total number of reference sequences (special reference sequence may contain one or more chromosomes)
+
+    uint32_t capacity;
+
+    SR_SpecialRefInfo* pSpecialRefInfo;
+
 }SR_RefHeader;
 
-// an object hold the reference sequence of a chromosome
+// an object holds the reference sequence of a chromosome
 typedef struct SR_Reference
 {
     char* sequence;               // reference sequence
 
-    int32_t  id;                  // id of the chromosome
+    int32_t  id;                  // id of the sequence
 
     uint32_t seqLen;              // length of the chromosome
 
     uint32_t seqCap;              // capacity of reference sequence
 
 }SR_Reference;
+
+// an object holds the pointer to an existed reference
+typedef struct SR_RefView
+{
+    const char* sequence;       // a pointer to an existed reference
+
+    int32_t id;                 // the id of that sequence
+
+    uint32_t seqLen;            // the length of that sequence
+
+}SR_RefView;
 
 // get the reference name given the reference ID
 #define SR_RefHeaderGetName(pRefHeader, refID) ((pRefHeader)->names[(refID)])
@@ -85,10 +119,17 @@ SR_Reference* SR_ReferenceAlloc(void);
 // free an existing reference object
 void SR_ReferenceFree(SR_Reference* pRef);
 
-SR_RefHeader* SR_RefHeaderAlloc(void);
+SR_RefHeader* SR_RefHeaderAlloc(uint32_t refCapacity, uint32_t seqCapacity);
 
 void SR_RefHeaderFree(SR_RefHeader* pRefHeader);
 
+SR_SpecialRefInfo* SR_SpecialRefInfoAlloc(uint32_t capcity);
+
+void SR_SpecialRefInfoFree(SR_SpecialRefInfo* pSpecialRefInfo);
+
+SR_RefView* SR_RefViewAlloc(void);
+
+void SR_RefViewFree(SR_RefView* pRefView);
 
 //==========================================
 // Interface functions related with input
@@ -107,7 +148,7 @@ void SR_RefHeaderFree(SR_RefHeader* pRefHeader);
 //      reference file. It is used to check the compatibility between
 //      the reference file and the hash table file
 //====================================================================
-int64_t SR_RefHeaderRead(SR_RefHeader* pRefHeader, FILE* refInput);
+SR_RefHeader* SR_RefHeaderRead(int64_t* pRefStart, FILE* refInput);
 
 //===================================================================
 // function:
@@ -122,6 +163,30 @@ int64_t SR_RefHeaderRead(SR_RefHeader* pRefHeader, FILE* refInput);
 //      reference ID. Otherwise, return -1
 //===================================================================
 int32_t SR_RefHeaderGetRefID(const SR_RefHeader* pRefHeader, const char* refName);
+
+static inline int32_t SR_RefHeaderGetSeqID(const SR_RefHeader* pRefHeader, int32_t refID)
+{
+    if (refID < 0)
+        return refID;
+    else
+        return (refID <= (int32_t) pRefHeader->numSeqs - 1 ? refID : pRefHeader->numSeqs - 1);
+}
+
+//====================================================================
+// function:
+//      read the spcail reference sequence from the input 
+//      reference file 
+//
+// args:
+//      1. pSpecialRef: a pointer to the reference sequence structure
+//      2. pRefHeader:  a pointer to the reference header structure
+//      3. refInput: a file pointer to the input reference file
+//
+//return:
+//      if there is no special reference sequence, return SR_ERR,
+//      otherwise return SR_OK.
+//====================================================================
+SR_Status SR_SpecialRefRead(SR_Reference* pSpecialRef, const SR_RefHeader* pRefHeader, FILE* refInput);
 
 //====================================================================
 // function:
@@ -149,6 +214,22 @@ SR_Status SR_ReferenceJump(FILE* refInput, const SR_RefHeader* pRefHeader, int32
 //====================================================================
 void SR_ReferenceRead(SR_Reference* pRef, FILE* refInput);
 
+//=====================================================================
+// function:
+//      get the reference ID and the real position from the position 
+//      of the special sequence
+//
+// args:
+//      1. pRefID: a pointer to the reference ID
+//      2. pPos: a pointer to the real reference position
+//      3. pRefHeader: a pointer to the reference header structure
+//      4. specialPos: position on the special sequence
+// 
+// return:
+//      return a pointer to the reference view on success, 
+//      otherwise return NULL
+//=====================================================================
+SR_Status SR_GetRefFromSpecialPos(SR_RefView* pRefView, int32_t* pRefID, uint32_t* pPos, const SR_RefHeader* pRefHeader, const SR_Reference* pSpecialRef, uint32_t specialPos);
 
 //==========================================
 // Interface functions related with output
@@ -170,6 +251,59 @@ void SR_ReferenceRead(SR_Reference* pRef, FILE* refInput);
 //      SR_ERR: find an error during loading
 //===================================================================
 SR_Status SR_ReferenceLoad(SR_Reference* pRef, SR_RefHeader* pRefHeader, FILE* faInput);
+
+//=====================================================================
+// function:
+//      get the special reference ID from the reference ID
+//
+// args:
+//      1. pRefHeader: a pointer to the reference header structure
+//      2. refID: reference ID
+// 
+// return:
+//      return the spcail reference ID on success, otherwise return -1
+//=====================================================================
+static inline int32_t SR_GetSpecialRefIDFromRefID(const SR_RefHeader* pRefHeader, int32_t refID)
+{
+    if (pRefHeader->pSpecialRefInfo != NULL && refID >= (int32_t) pRefHeader->numSeqs - 1)
+        return (refID - (pRefHeader->numSeqs - 1));
+
+    return -1;
+}
+
+//===================================================================
+// function:
+//      Get the begin position of a certain special chromosome in
+//      the special reference sequence
+//
+// args:
+//      1. pRefHeader: a pointer to the reference header structure
+//      2. specialRefID: the special reference ID (start from zero)
+// 
+// return:
+//      the start position of a certain special chromosome
+//===================================================================
+static inline uint32_t SR_SpecialRefGetBeginPos(const SR_RefHeader* pRefHeader, int32_t specialRefID)
+{
+    return (specialRefID == 0 ? 0 : pRefHeader->pSpecialRefInfo->endPos[specialRefID - 1] + DEFAULT_PADDING_LEN + 1);
+}
+
+//===================================================================
+// function:
+//      load all the special chromosomes at once and then combine
+//      them into a long special reference sequence separated by
+//      "XXXX..." padding
+//
+// args:
+//      1. pRef: a pointer to the reference structure
+//      2. pRefHeader: a pointer to the reference header structure
+//      3. faInput: a file pointer to the input fasta file
+// 
+// return:
+//      SR_OK: successfully load the special chromosome sequence
+//      SR_ERR: find an error during loading
+//===================================================================
+SR_Status SR_SpecialRefLoad(SR_Reference* pRef, SR_RefHeader* pRefHeader, FILE* faInput);
 
 //===================================================================
 // function:

@@ -18,8 +18,8 @@
 #ifndef  SR_FRAGLENDSTRB_H
 #define  SR_FRAGLENDSTRB_H
 
-#include "outsources/samtools/bam.h"
-#include "utilities/common/SR_Types.h"
+#include "bam.h"
+#include "SR_Types.h"
 #include "SR_BamHeader.h"
 #include "SR_BamMemPool.h"
 // #include "SR_BamPairAux.h"
@@ -27,6 +27,14 @@
 //===============================
 // Type and constant definition
 //===============================
+
+#define SR_IsValidPairMode(pDstrb, pairMode) ((pDstrb)->validModeMap & (1 << (pairMode)))
+
+#define SR_GetHistCutoffIndex(pDstrb, readGrpID, where) ((pDstrb)->pHists[(readGrpID)].cutoff[(where)])
+
+#define SR_GetHistCutoffValue(pDstrb, readGrpID, cutoffIndex) ((pDstrb)->pHists[(readGrpID)].fragLen[(cutoffIndex)])
+
+#define SR_GetHistMedian(pDstrb, readGrpID) ((pDstrb)->pHists[(readGrpID)].median)
 
 enum SR_FragLenDstrbCutoffIndex
 {
@@ -67,30 +75,30 @@ typedef struct SR_BamPairStats
 
     unsigned int fragLen;     // fragment length of the pair
 
-    uint16_t pairMode;        // orientation mode of the pair
+    int16_t pairMode;        // orientation mode of the pair
 
 }SR_BamPairStats;
 
 // the object used to hold the fragment length histogram of a given read group
 typedef struct SR_FragLenHist
 {
-    void* rawHist[NUM_ALLOWED_HIST];                  // raw fragment length histogram. this is a hash table for histogram building
+    void* rawHist;                  // raw fragment length histogram. this is a hash table for histogram building
 
-    uint32_t* fragLen[NUM_ALLOWED_HIST];              // array of the fragment length
+    uint32_t* fragLen;              // array of the fragment length
 
-    double* cdf[NUM_ALLOWED_HIST];                    // array of the cumulative probability at a given fragment length
+    double* cdf;                    // array of the cumulative probability at a given fragment length
 
-    double mean[NUM_ALLOWED_HIST];                    // mean of the histogram
+    double mean;                    // mean of the histogram
 
-    double median[NUM_ALLOWED_HIST];                  // median of the histogram
+    double median;                  // median of the histogram
 
-    double stdev[NUM_ALLOWED_HIST];                   // standard deviation of the histogram
+    double stdev;                   // standard deviation of the histogram
 
-    uint32_t size[NUM_ALLOWED_HIST];                  // number of unique fragment length
+    uint32_t size;                  // number of unique fragment length
 
-    uint32_t cutoff[NUM_ALLOWED_HIST][2];             // cutoff of the probability
+    uint32_t cutoff[2];             // cutoff of the probability
 
-    uint64_t modeCount[NUM_ALLOWED_HIST + 1];         // total counts of a histogram
+    uint64_t modeCount[2];             // total counts of a histogram
 
 }SR_FragLenHist;
 
@@ -103,12 +111,10 @@ typedef struct SR_FragLenDstrb
 
     SR_FragLenHist* pHists;                        // array of fragment length histograms
 
-    int8_t validModeMap[NUM_TOTAL_PAIR_MODE];      // map the pair mode to its corresponding histogram, invalid pair mode will get a negative value
+    int8_t validModeMap;                           // map the pair mode to its corresponding histogram, invalid pair mode will get a negative value
     
     int8_t validMode[NUM_ALLOWED_PAIR_MODE];       // the valid pair modes
     
-    uint8_t numPairMode;                           // number of valid pair modes given by the user
-
     uint32_t size;                                 // number of read groups found in the bam file
 
     uint32_t capacity;                             // capacity of the read group name array
@@ -160,7 +166,7 @@ SR_PairMode SR_GetPairMode(const SR_BamNode* pBamNode);
 SR_Status SR_LoadPairStats(SR_BamPairStats* pPairStats, const SR_BamNode* pBamNode);
 
 
-void SR_FragLenDstrbSetPairMode(SR_FragLenDstrb* pDstrb, const int8_t* pValidPairMode, uint8_t numPairMode);
+void SR_FragLenDstrbSetPairMode(SR_FragLenDstrb* pDstrb, const int8_t* pValidPairMode);
 
 //=======================================================================
 // function:

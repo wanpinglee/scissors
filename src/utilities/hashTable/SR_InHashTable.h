@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "utilities//common/SR_Types.h"
+#include "SR_Types.h"
 #include "SR_Reference.h"
 
 
@@ -87,6 +87,22 @@ void SR_InHashTableFree(SR_InHashTable* pHashTable);
 //      compatibility check with the reference file)
 //================================================================ 
 int64_t SR_InHashTableReadStart(unsigned char* pHashSize, FILE* htInput);
+
+//============================================================================
+// function:
+//      read the hash positions of the special sequence into the 
+//      hash table structure
+//
+// args:
+//      1. pSpecialHashTable: a pointer to the special hash table structure
+//      2. pRefHeader: a pointer to a reference header structure
+//      3. htInput: a file pointer to the hash table input file
+// 
+// return:
+//      SR_OK: read successfully
+//      SR_ERR: found an error during reading
+//============================================================================
+SR_Status SR_InHashTableReadSpecial(SR_InHashTable* pSpecialHashTable, const SR_RefHeader* pRefHeader, FILE* htInput);
 
 //==================================================================
 // function:

@@ -105,7 +105,7 @@ typedef SR_SeqAction SR_Strand;
 
 #define NUM_TOTAL_PAIR_MODE 8
 
-#define NUM_ALLOWED_PAIR_MODE 4
+#define NUM_ALLOWED_PAIR_MODE 2
 
 #define NUM_ALLOWED_HIST 2
 

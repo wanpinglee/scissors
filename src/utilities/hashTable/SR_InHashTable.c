@@ -18,7 +18,7 @@
 
 #include <stdlib.h>
 
-#include "utilities/common/SR_Error.h"
+#include "SR_Error.h"
 #include "SR_InHashTable.h"
 
 SR_InHashTable* SR_InHashTableAlloc(unsigned char hashSize)
@@ -69,9 +69,34 @@ int64_t SR_InHashTableReadStart(unsigned char* pHashSize, FILE* htInput)
     return refHeaderPos;
 }
 
+SR_Status SR_InHashTableReadSpecial(SR_InHashTable* pSpecialHashTable, const SR_RefHeader* pRefHeader, FILE* htInput)
+{
+    if (pRefHeader->pSpecialRefInfo != NULL)
+    {
+        int64_t pHashTablePos = ftello(htInput);
+        if (pHashTablePos < 0)
+            SR_ErrQuit("ERROR: Cannot get the offset of current file.\n");
+
+        int64_t specialHtPos = pRefHeader->htFilePos[pRefHeader->numSeqs - 1];
+        if (fseek(htInput, specialHtPos, SEEK_SET) != 0)
+            SR_ErrQuit("ERROR: Cannot seek in the hash table file.\n");
+
+        if (SR_InHashTableRead(pSpecialHashTable, htInput) != SR_OK)
+            return SR_ERR;
+
+        if (fseek(htInput, pHashTablePos, SEEK_SET) != 0)
+            SR_ErrQuit("ERROR: Cannot seek in the hash table file.\n");
+
+        return SR_OK;
+    }
+
+    return SR_ERR;
+}
+
 SR_Status SR_InHashTableJump(FILE* htInput, const SR_RefHeader* pRefHeader, int32_t refID)
 {
-    int64_t jumpPos = pRefHeader->htFilePos[refID];
+    int32_t seqID = SR_RefHeaderGetSeqID(pRefHeader, refID);
+    int64_t jumpPos = pRefHeader->htFilePos[seqID];
 
     if (fseeko(htInput, jumpPos, SEEK_SET) != 0)
         return SR_ERR;
