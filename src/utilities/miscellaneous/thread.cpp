@@ -67,12 +67,13 @@ void ConvertAlignments(const vector<Alignment>& als,
 
 void* RunThread (void* thread_data_) {
   ThreadData *td = (ThreadData*) thread_data_;
-  Aligner aligner(td->reference, td->hash_table, td->fragment_length);
+  Aligner aligner(td->reference, td->hash_table, td->reference_special, 
+                  td->hash_table_special, td->fragment_length);
 
   while (true) { // until bam != SR_OK
     SR_Status bam_status;
 
-    // try to get alignments
+    // try to get alignments from bam_reader
     pthread_mutex_lock(&bam_in_mutex);
     bam_status = *(td->bam_status);
     bool terminate = false;
@@ -103,7 +104,7 @@ void* RunThread (void* thread_data_) {
 
     if (td->alignment_list.pBamNode != NULL) {
       td->alignments.clear();
-      aligner.AlignCandidate(&td->alignment_list, &td->alignments_bam);
+      aligner.AlignCandidate(td->detect_special, &td->alignment_list, &td->alignments_bam);
       StoreAlignmentInBam(td->alignments_bam, td->bam_writer);
       FreeAlignmentBam(&td->alignments_bam);
       

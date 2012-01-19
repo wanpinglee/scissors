@@ -20,9 +20,13 @@ class Aligner {
  public:
   Aligner(const SR_Reference* reference, 
           const SR_InHashTable* hash_table,
+	  const SR_Reference* reference_special,
+	  const SR_InHashTable* hash_table_special,
 	  const int& fragment_length);
   ~Aligner();
-  void AlignCandidate(SR_BamInStreamIter* al_ite, vector<bam1_t*>* alignments);
+  void AlignCandidate(const bool& detect_special, 
+                      SR_BamInStreamIter* al_ite, 
+                      vector<bam1_t*>* alignments);
  private:
   SearchRegionType search_region_type_;
   AnchorRegion     anchor_region_;

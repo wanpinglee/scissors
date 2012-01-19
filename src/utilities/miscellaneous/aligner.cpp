@@ -62,7 +62,9 @@ void SetTargetSequence(const SearchRegionType::RegionType& region_type,
 
 Aligner::Aligner(const SR_Reference* reference, 
                  const SR_InHashTable* hash_table,
-		 const int& fragment_length) 
+		 const SR_Reference* reference_special,
+		 const SR_InHashTable* hash_table_special,
+		 const int& fragment_length)
     : reference_(reference)
     , hash_table_(hash_table) {
   query_region_ = SR_QueryRegionAlloc();
@@ -91,7 +93,8 @@ void Aligner::LoadRegionType(const bam1_t& anchor) {
 }
 
 
-void Aligner::AlignCandidate(SR_BamInStreamIter* al_ite,
+void Aligner::AlignCandidate(const bool& detect_special,
+                             SR_BamInStreamIter* al_ite,
                              vector<bam1_t*>* alignments) {
 
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
