@@ -80,6 +80,7 @@ int main ( int argc, char** argv ) {
 		parameters.allowed_clip,
 		parameters.processors,
 		parameters.fragment_length,
+		parameters.detect_special,
 		files.ref_reader,
 		files.hash_reader,
 		files.bam_reader,

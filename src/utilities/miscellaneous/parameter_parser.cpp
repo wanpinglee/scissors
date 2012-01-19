@@ -30,7 +30,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		param->command_line += argv[i];
 	}
 
-	const char *short_option = "hi:r:o:l:w:c:sp:M";
+	const char *short_option = "hi:r:o:l:w:c:sp:S";
 
 	const struct option long_option[] = {
 		{ "help", no_argument, NULL, 'h' },
@@ -43,7 +43,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		{ "allowed-clip", required_argument, NULL, 'c' },
 		{ "is-input-sorted", no_argument, NULL, 's'},
 		{ "processors", required_argument, NULL, 'p'},
-		{ "mei", no_argument, NULL, 'M'},
+		{ "special", no_argument, NULL, 'S'},
 
 		{ 0, 0, 0, 0 }
 	};
@@ -96,7 +96,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 					cout << "WARNING: Cannot parse -p --processors." << endl;
 				break;
 			case 'M':
-				param->is_mei = true;
+				param->detect_special = true;
 			default:
 				break;
 		}
@@ -181,7 +181,8 @@ void PrintHelp(const string& program) {
 		<< "                         Default: 0.2" << endl
 		<< "   -s --is-input-sorted" << endl
 		<< "   -p --processors <INT> Use # of processors." << endl
-		<< "   -M --mei              Detect MEI." << endl
+		<< "   -S --special-reference" << endl
+		<< "                         Detect special references, e.g. MEI." << endl
 
 		<< endl;
 }

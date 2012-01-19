@@ -36,6 +36,7 @@ class Thread {
          const float&    allowed_clip,
          const int&      thread_count,
 	 const int&      fragment_length,
+	 const bool&     detect_special,
 	 FILE*           ref_reader,
          FILE*           hash_reader,
 	 SR_BamInStream* bam_reader,
@@ -47,12 +48,14 @@ class Thread {
   const float           allowed_clip_;
   const int             thread_count_;
   const int             fragment_length_;
+  const bool            detect_special_;
   FILE*           ref_reader_;
   FILE*           hash_reader_;
   SR_BamInStream* bam_reader_;
   bamFile*        bam_writer_;
   SR_Status       bam_status_;
   SR_Reference*   reference_;
+  SR_Reference*   reference_special_;
   SR_InHashTable* hash_table_;
   SR_RefHeader*   reference_header_;
   vector<ThreadData> thread_data_;

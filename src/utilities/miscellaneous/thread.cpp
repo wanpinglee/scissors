@@ -123,6 +123,7 @@ Thread::Thread(const BamReference* bam_reference,
 	       const float& allowed_clip,
 	       const int& thread_count,
 	       const int& fragment_length,
+	       const bool& detect_special,
 	       FILE* ref_reader,
 	       FILE* hash_reader,
 	       SR_BamInStream* bam_reader,
@@ -131,6 +132,7 @@ Thread::Thread(const BamReference* bam_reference,
     , allowed_clip_(allowed_clip)
     , thread_count_(thread_count)
     , fragment_length_(fragment_length)
+    , detect_special_(detect_special)
     , ref_reader_(ref_reader)
     , hash_reader_(hash_reader)
     , bam_reader_(bam_reader)
@@ -142,18 +144,30 @@ Thread::Thread(const BamReference* bam_reference,
 }
 
 void Thread::Init() {
-  reference_        = SR_ReferenceAlloc();
-
   int64_t reference_seal;
+  // load the reference header
   reference_header_ = SR_RefHeaderRead(&reference_seal, ref_reader_);
+  
+  // load the header in hash table file
   unsigned char hash_size = 0;
   int64_t hash_seal = SR_InHashTableReadStart(&hash_size, hash_reader_);
+  
+  // check the compatibility between reference file and the hash table file
   if (reference_seal != hash_seal) {
     printf("ERROR: The reference file is not compatible with the hash table file.\n");
     exit(1);
   }
 
+  // load special sequence
+  if (detect_special_) {
+    reference_special_ = SR_ReferenceAlloc();
+    if (SR_SpecialRefRead(reference_special_, reference_header_, ref_reader_) == SR_ERR)
+      printf("ERROR: Cannot read special sequence.\n");
+  }
+
   hash_table_ = SR_InHashTableAlloc(hash_size);
+
+  reference_ = SR_ReferenceAlloc();
 
 }
 
@@ -161,6 +175,7 @@ Thread::~Thread() {
   SR_ReferenceFree(reference_);
   SR_InHashTableFree(hash_table_);
   SR_RefHeaderFree(reference_header_);
+  if (detect_special_) SR_ReferenceFree(reference_special_);
 }
 
 void Thread::InitThreadData() {

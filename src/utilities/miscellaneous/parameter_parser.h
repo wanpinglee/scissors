@@ -21,7 +21,7 @@ struct Parameters {
   float allowed_clip;     // -c --allowed-clip
   bool  is_input_sorted;  // -s --is-input-sorted
   int   processors;       // -p --processors
-  bool  is_mei;           // -M --mei
+  bool  detect_special;   // -S --special-reference
 	
   // command line
   string command_line;
@@ -38,7 +38,7 @@ struct Parameters {
       , allowed_clip(0.2)
       , is_input_sorted(false)
       , processors(1)
-      , is_mei(false)
+      , detect_special(false)
 
   {}
 };
