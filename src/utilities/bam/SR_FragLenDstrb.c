@@ -19,9 +19,9 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "khash.h"
-#include "SR_Error.h"
-#include "SR_Utilities.h"
+#include "outsources/samtools/khash.h"
+#include "utilities/common/SR_Error.h"
+#include "utilities/common/SR_Utilities.h"
 #include "SR_FragLenDstrb.h"
 
 

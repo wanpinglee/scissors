@@ -143,9 +143,9 @@ Thread::Thread(const BamReference* bam_reference,
 
 void Thread::Init() {
   reference_        = SR_ReferenceAlloc();
-  reference_header_ = SR_RefHeaderAlloc();
 
-  int64_t reference_seal = SR_RefHeaderRead(reference_header_, ref_reader_);
+  int64_t reference_seal;
+  reference_header_ = SR_RefHeaderRead(&reference_seal, ref_reader_);
   unsigned char hash_size = 0;
   int64_t hash_seal = SR_InHashTableReadStart(&hash_size, hash_reader_);
   if (reference_seal != hash_seal) {

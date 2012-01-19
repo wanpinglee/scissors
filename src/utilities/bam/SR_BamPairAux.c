@@ -21,9 +21,9 @@
 
 
 // default soft clipping tolerance
-const float DEFAULT_SC_TOLERANCE = 0.2;
- 
-const float DEFAULT_MAX_MISMATCH_RATE = 0.1;
+#define DEFAULT_SC_TOLERANCE 0.2
+
+#define DEFAULT_MAX_MISMATCH_RATE 0.1
 
 #define BAM_CMISMATCH 8
 
@@ -214,18 +214,17 @@ SR_Bool SR_ReadPairFilter(SR_BamNode* pBamNode, const void* filterData)
     }
 
     // any reads aligned with improper pair mode (orientation) will be kept as SV candidates
-    int histIndex = pDstrb->validModeMap[pairStats.pairMode];
-    if (histIndex < 0)
+    if (!SR_IsValidPairMode(pDstrb, pairStats.pairMode))
     {
         return FALSE;
     }
 
     // any reads with fragment length at the edge of the fragment length distribution will be kept as SV candidates
-    uint32_t lowerCutoffIndex = pDstrb->pHists[readGrpIndex].cutoff[histIndex][DSTRB_LOWER_CUTOFF];
-    uint32_t upperCutoffIndex = pDstrb->pHists[readGrpIndex].cutoff[histIndex][DSTRB_UPPER_CUTOFF];
+    uint32_t lowerCutoffIndex = pDstrb->pHists[readGrpIndex].cutoff[DSTRB_LOWER_CUTOFF];
+    uint32_t upperCutoffIndex = pDstrb->pHists[readGrpIndex].cutoff[DSTRB_UPPER_CUTOFF];
 
-    uint32_t lowerCutoff = pDstrb->pHists[readGrpIndex].fragLen[histIndex][lowerCutoffIndex];
-    uint32_t upperCutoff = pDstrb->pHists[readGrpIndex].fragLen[histIndex][upperCutoffIndex];
+    uint32_t lowerCutoff = pDstrb->pHists[readGrpIndex].fragLen[lowerCutoffIndex];
+    uint32_t upperCutoff = pDstrb->pHists[readGrpIndex].fragLen[upperCutoffIndex];
 
     if (pairStats.fragLen < lowerCutoff || pairStats.fragLen > upperCutoff)
         return FALSE;

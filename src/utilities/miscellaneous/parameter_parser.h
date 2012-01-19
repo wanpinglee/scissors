@@ -21,16 +21,25 @@ struct Parameters {
   float allowed_clip;     // -c --allowed-clip
   bool  is_input_sorted;  // -s --is-input-sorted
   int   processors;       // -p --processors
+  bool  is_mei;           // -M --mei
 	
   // command line
   string command_line;
 
   // default values
   Parameters()
-      : mate_window_size(2)
+      : input_bam()
+      , input_reference_hash()
+      , output_bam()
+      , reference_filename()
+      , hash_filename()
+      , fragment_length(-1)
+      , mate_window_size(2)
       , allowed_clip(0.2)
       , is_input_sorted(false)
       , processors(1)
+      , is_mei(false)
+
   {}
 };
 

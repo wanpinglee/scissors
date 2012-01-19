@@ -18,8 +18,8 @@
 #ifndef  SR_FRAGLENDSTRB_H
 #define  SR_FRAGLENDSTRB_H
 
-#include "bam.h"
-#include "SR_Types.h"
+#include "outsources/samtools/bam.h"
+#include "utilities/common/SR_Types.h"
 #include "SR_BamHeader.h"
 #include "SR_BamMemPool.h"
 // #include "SR_BamPairAux.h"

@@ -30,7 +30,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		param->command_line += argv[i];
 	}
 
-	const char *short_option = "hi:r:o:l:w:c:sp:";
+	const char *short_option = "hi:r:o:l:w:c:sp:M";
 
 	const struct option long_option[] = {
 		{ "help", no_argument, NULL, 'h' },
@@ -43,6 +43,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		{ "allowed-clip", required_argument, NULL, 'c' },
 		{ "is-input-sorted", no_argument, NULL, 's'},
 		{ "processors", required_argument, NULL, 'p'},
+		{ "mei", no_argument, NULL, 'M'},
 
 		{ 0, 0, 0, 0 }
 	};
@@ -94,6 +95,8 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 				if (!convert_from_string( optarg, param->processors))
 					cout << "WARNING: Cannot parse -p --processors." << endl;
 				break;
+			case 'M':
+				param->is_mei = true;
 			default:
 				break;
 		}
@@ -128,7 +131,7 @@ bool CheckParameters(Parameters* param) {
 		errorFound = true;
 	}
 
-	if ( param->fragment_length == 0 ) {
+	if ( param->fragment_length == -1 ) {
 		cout << "ERROR: Please specific fragment length, -l." << endl;
 		errorFound = true;
 	}
@@ -177,6 +180,8 @@ void PrintHelp(const string& program) {
 		<< "                         Percentage [0.0 - 1.0] of allowed soft clip." << endl
 		<< "                         Default: 0.2" << endl
 		<< "   -s --is-input-sorted" << endl
+		<< "   -p --processors <INT> Use # of processors." << endl
+		<< "   -M --mei              Detect MEI." << endl
 
 		<< endl;
 }

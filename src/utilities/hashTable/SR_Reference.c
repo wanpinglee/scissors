@@ -21,9 +21,9 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "md5.h"
-#include "khash.h"
-#include "SR_Error.h"
+#include "utilities/miscellaneous/md5.h"
+#include "outsources/samtools/khash.h"
+#include "utilities/common/SR_Error.h"
 #include "SR_Reference.h"
 
 
