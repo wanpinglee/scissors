@@ -20,11 +20,14 @@ struct ThreadData{
   int   id;
   float allowed_clip;
   int   fragment_length;
+  bool  detect_special;
   SR_BamInStream*     bam_reader;
   SR_BamInStreamIter  alignment_list;
   SR_Status*          bam_status;
   SR_Reference*       reference;
   SR_InHashTable*     hash_table;
+  SR_Reference*       reference_special;
+  SR_InHashTable*     hash_table_special;
   bamFile*            bam_writer;
   vector<Alignment>   alignments;
   vector<bam1_t*>     alignments_bam;

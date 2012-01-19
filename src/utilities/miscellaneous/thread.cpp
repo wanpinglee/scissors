@@ -180,7 +180,10 @@ Thread::~Thread() {
   SR_ReferenceFree(reference_);
   SR_InHashTableFree(hash_table_);
   SR_RefHeaderFree(reference_header_);
-  if (detect_special_) SR_ReferenceFree(reference_special_);
+  if (detect_special_) {
+    SR_ReferenceFree(reference_special_);
+    SR_InHashTableFree(hash_table_special_);
+  }
 }
 
 void Thread::InitThreadData() {
@@ -189,12 +192,15 @@ void Thread::InitThreadData() {
     thread_data_[i].id                       = i;
     thread_data_[i].allowed_clip             = allowed_clip_;
     thread_data_[i].fragment_length          = fragment_length_;
+    thread_data_[i].detect_special           = detect_special_;
     thread_data_[i].bam_reader               = bam_reader_;
     thread_data_[i].alignment_list.pBamNode  = NULL;
     thread_data_[i].alignment_list.pAlgnType = NULL;
     thread_data_[i].bam_status               = &bam_status_;
     thread_data_[i].reference                = reference_;
     thread_data_[i].hash_table               = hash_table_;
+    thread_data_[i].reference_special        = reference_special_;
+    thread_data_[i].hash_table_special       = hash_table_special_;
     thread_data_[i].bam_writer               = bam_writer_;
     thread_data_[i].alignments.clear();
     FreeAlignmentBam(&thread_data_[i].alignments_bam);
