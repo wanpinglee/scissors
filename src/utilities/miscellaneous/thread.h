@@ -57,6 +57,7 @@ class Thread {
   SR_Reference*   reference_;
   SR_Reference*   reference_special_;
   SR_InHashTable* hash_table_;
+  SR_InHashTable* hash_table_special_;
   SR_RefHeader*   reference_header_;
   vector<ThreadData> thread_data_;
 

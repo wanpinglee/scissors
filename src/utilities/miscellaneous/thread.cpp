@@ -158,11 +158,16 @@ void Thread::Init() {
     exit(1);
   }
 
-  // load special sequence
+  // load special references and their hash tables if necessary
   if (detect_special_) {
+    // load special references
     reference_special_ = SR_ReferenceAlloc();
     if (SR_SpecialRefRead(reference_special_, reference_header_, ref_reader_) == SR_ERR)
       printf("ERROR: Cannot read special sequence.\n");
+    // load special hash tables
+    hash_table_special_ = SR_InHashTableAlloc(hash_size);
+    if (SR_InHashTableReadSpecial(hash_table_special_, reference_header_, hash_reader_) == SR_ERR)
+      printf("ERROR: Cannot read special hash table.\n");
   }
 
   hash_table_ = SR_InHashTableAlloc(hash_size);
