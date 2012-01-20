@@ -66,9 +66,12 @@ Aligner::Aligner(const SR_Reference* reference,
 		 const SR_InHashTable* hash_table_special,
 		 const int& fragment_length)
     : reference_(reference)
-    , hash_table_(hash_table) {
-  query_region_ = SR_QueryRegionAlloc();
-  hashes_       = HashRegionTableAlloc();
+    , hash_table_(hash_table)
+    , reference_special_(reference_special)
+    , hash_table_special_(hash_table_special) {
+  query_region_   = SR_QueryRegionAlloc();
+  hashes_         = HashRegionTableAlloc();
+  hashes_special_ = HashRegionTableAlloc();
 
   hash_length_.fragLen = fragment_length;
   hash_length_.closeRange = 2000;
@@ -78,6 +81,7 @@ Aligner::Aligner(const SR_Reference* reference,
 Aligner::~Aligner() {
   SR_QueryRegionFree(query_region_);
   HashRegionTableFree(hashes_);
+  HashRegionTableFree(hashes_special_);
 }
 
 void Aligner::LoadRegionType(const bam1_t& anchor) {
@@ -110,6 +114,7 @@ void Aligner::AlignCandidate(const bool& detect_special,
 
       SearchRegionType::RegionType region_type;
       HashesCollection hashes_collection;
+      HashesCollection hashes_collection_special;
       
       // store the anchor in output bam
       bam1_t* al_bam_anchor;
@@ -119,7 +124,20 @@ void Aligner::AlignCandidate(const bool& detect_special,
 
       // For MEI first
       search_region_type_.GetStandardType(is_anchor_forward, &region_type);
-
+      SetTargetSequence(region_type, query_region_);
+      HashRegionTableInit(hashes_, read_length);
+      SR_QueryRegionSetRange(query_region_, &hash_length_, reference_->seqLen,
+                             region_type.upstream ? SR_DOWNSTREAM : SR_UPSTREAM);
+      HashRegionTableLoad(hashes_, hash_table_, query_region_);
+      hashes_collection.Init(*(hashes_->pBestCloseRegions));
+     
+      // get special hashes
+      HashRegionTableInit(hashes_special_, read_length);
+      SR_QueryRegionSetRange(query_region_, &hash_length_, reference_special_->seqLen,
+                             region_type.upstream ? SR_DOWNSTREAM : SR_UPSTREAM);
+      HashRegionTableLoad(hashes_special_, hash_table_special_, query_region_);
+      hashes_collection_special.Init(*(hashes_special_->pBestCloseRegions));
+      
 
       // For normal detection
       /*

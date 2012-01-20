@@ -33,8 +33,11 @@ class Aligner {
 
   const SR_Reference*   reference_;
   const SR_InHashTable* hash_table_;
+  const SR_Reference*   reference_special_;
+  const SR_InHashTable* hash_table_special_;
   SR_QueryRegion*       query_region_;
   HashRegionTable*      hashes_;
+  HashRegionTable*      hashes_special_;
   SR_SearchArgs         hash_length_;
 
   void LoadRegionType(const bam1_t& anchor);
