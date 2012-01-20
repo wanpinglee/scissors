@@ -12,6 +12,10 @@ bool OperatorQueryBegin(const BestRegion* r1, const BestRegion* r2) {
   return (r1->queryBegin) < (r2->queryBegin);
 }
 
+bool OperatorQueryBeginDescending(const BestRegion* r1, const BestRegion* r2) {
+  return (r2->queryBegin) < (r1->queryBegin);
+}
+
 void HashesCollection::Init(const BestRegionArray& array) {
   hash_regions_.clear();
   hash_regions_.resize(array.size);
@@ -21,6 +25,38 @@ void HashesCollection::Init(const BestRegionArray& array) {
 
 void HashesCollection::SortByLength() {
   sort(hash_regions_.begin(), hash_regions_.end(), OperatorLength);
+}
+
+bool HashesCollection::GetBestCoverPair(HashesCollection* hc, 
+                                        unsigned int* best1, 
+					unsigned int* best2) {
+  sort(hash_regions_.begin(), hash_regions_.end(), OperatorQueryBegin);
+  sort(hc->hash_regions_.begin(), hc->hash_regions_.end(), OperatorQueryBeginDescending);
+
+  int best_cover = INT_MIN;
+  bool found = false;
+  for (unsigned int i = 0; i < hash_regions_.size(); ++i) {
+    int end_i = hash_regions_[i]->queryBegin + hash_regions_[i]->length - 1;
+    for (unsigned int j = 0; j < hc->hash_regions_.size(); ++j) {
+      if (hash_regions_[i]->queryBegin > hc->hash_regions_[j]->queryBegin) break;
+
+      int overlap = end_i - hc->hash_regions_[j]->queryBegin + 1;
+      int cover   = hash_regions_[i]->length + hc->hash_regions_[j]->length;
+      if (overlap > 0) cover -= overlap;
+
+      // update the best cover
+      if (best_cover < cover) {
+        best_cover = cover;
+	*best1 = i;
+	*best2 = j;
+	found = true;
+      } else {
+        // nothing
+      }
+    }
+  }
+
+  return found;
 }
 
 // @description:

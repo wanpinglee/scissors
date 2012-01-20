@@ -6,7 +6,7 @@ export CXX = g++
 export CC = gcc
 export MAKE = make
 export CFLAGS = -Wall -std=gnu99 -g 
-export CXXFLAGS = -Wall -g -Weffc++
+export CXXFLAGS = -Wall -g
 
 # define our sources
 SOURCES = main.cpp

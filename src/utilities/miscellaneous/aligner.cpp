@@ -137,6 +137,34 @@ void Aligner::AlignCandidate(const bool& detect_special,
                              region_type.upstream ? SR_DOWNSTREAM : SR_UPSTREAM);
       HashRegionTableLoad(hashes_special_, hash_table_special_, query_region_);
       hashes_collection_special.Init(*(hashes_special_->pBestCloseRegions));
+
+      // get best cover
+      unsigned int best1, best2;
+      bool best_pair_found = false;
+      if (is_anchor_forward)
+        best_pair_found = hashes_collection.GetBestCoverPair(&hashes_collection_special, &best1, &best2);
+      else 
+        best_pair_found = hashes_collection_special.GetBestCoverPair(&hashes_collection, &best2, &best1);
+      Alignment al1, al2;
+      if (best_pair_found) {
+        GetAlignment(hashes_collection, best1, &al1);
+	GetAlignment(hashes_collection_special, best2, &al2);
+	al1.is_seq_inverse    = region_type.sequence_inverse;
+	al2.is_seq_inverse    = region_type.sequence_inverse;
+	al1.is_seq_complement = region_type.sequence_complement;
+	al2.is_seq_complement = region_type.sequence_complement;
+
+	  // store alignments
+	  bam1_t *al1_bam, *al2_bam;
+	  al1_bam = bam_init1(); // Thread.cpp will free it
+	  al2_bam = bam_init1(); // Thread.cpp will free it
+	  BamUtilities::ConvertAlignmentToBam1(al1, *query_region_->pOrphan, al1_bam);
+	  BamUtilities::ConvertAlignmentToBam1(al2, *query_region_->pOrphan, al2_bam);
+	  alignments->push_back(al1_bam);
+	  alignments->push_back(al2_bam);
+      } else {
+        // nothing
+      }
       
 
       // For normal detection

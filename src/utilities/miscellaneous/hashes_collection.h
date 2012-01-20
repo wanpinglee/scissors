@@ -17,6 +17,7 @@ class HashesCollection {
   const BestRegion* Get (const unsigned int& index) const;
   inline const int GetSize() const;
   bool GetBestCoverPair(unsigned int* best1, unsigned int* best2);
+  bool GetBestCoverPair(HashesCollection* hc, unsigned int* best1, unsigned int* best2);
 
  private:
   vector<BestRegion*> hash_regions_;
