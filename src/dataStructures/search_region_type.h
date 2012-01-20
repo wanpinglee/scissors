@@ -26,6 +26,7 @@ class SearchRegionType {
   //~SearchRegionType();
 
   bool GetNextRegionType(const bool is_anchor_forward, RegionType* region_type);
+  bool GetStandardType(const bool is_anchor_forward, RegionType* region_type);
   bool SetCurrentTypeSuccess(const bool is_anchor_forward);
   void ResetRegionTypeList(void);
   inline void RewindRegionTypeList(void);

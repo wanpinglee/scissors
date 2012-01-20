@@ -5,6 +5,7 @@
 #include <algorithm>
 
 // for illumina forward anchors
+// struct RegionType {bool upstream; bool sequence_inverse; bool sequence_complement;};
 const static SearchRegionType::RegionType kRegionType1 = {true, true, true};
 const static SearchRegionType::RegionType kRegionType2 = {false, true, true};
 const static SearchRegionType::RegionType kRegionType3 = {true, false, true};
@@ -122,6 +123,18 @@ bool SearchRegionType::SetCurrentTypeSuccess(const bool is_anchor_forward){
 
   return true;
 
+}
+
+// TODO@WP: Only consider illumina; has to deal with 454 and others
+bool SearchRegionType::GetStandardType(const bool is_anchor_forward,
+    RegionType* region_type) {
+  if (is_anchor_forward) {
+    *region_type = kRegionType1;
+  } else {
+    *region_type = kRegionType5;
+  }
+
+  return true;
 }
 
 bool SearchRegionType::GetNextRegionType(const bool is_anchor_forward, 

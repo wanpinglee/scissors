@@ -117,6 +117,12 @@ void Aligner::AlignCandidate(const bool& detect_special,
       al_bam_anchor = bam_copy1(al_bam_anchor, query_region_->pAnchor);
       alignments->push_back(al_bam_anchor);
 
+      // For MEI first
+      search_region_type_.GetStandardType(is_anchor_forward, &region_type);
+
+
+      // For normal detection
+      /*
       while (search_region_type_.GetNextRegionType(is_anchor_forward, 
                                                    &region_type)) {
         
@@ -155,28 +161,8 @@ void Aligner::AlignCandidate(const bool& detect_special,
 	} else {
 	  // nothing
 	}
-	/*
-	int hashes_count = hashes_collection.GetSize();
-	if (hashes_count == 0) continue;
-	if ((hashes_collection.Get(hashes_count-1))->numPos != 0) {
-	  Alignment al;
-	  al.reference_begin = (hashes_collection.Get(hashes_count-1))->refBegins[0];
-	  al.reference_end   = (hashes_collection.Get(hashes_count-1))->refBegins[0] + (hashes_collection.Get(hashes_count-1))->length - 1;
-	  al.query_begin     = (hashes_collection.Get(hashes_count-1))->queryBegin;
-	  al.query_end       = (hashes_collection.Get(hashes_count-1))->queryBegin + (hashes_collection.Get(hashes_count-1))->length - 1;
-	  al.is_seq_inverse  = region_type.sequence_inverse;
-	  al.is_seq_complement = region_type.sequence_complement;
-	  const char* bases = GetSequence((hashes_collection.Get(hashes_count-1))->refBegins[0]);
-	  al.reference.assign(bases, (hashes_collection.Get(hashes_count-1))->length);
-	  al.query.assign(bases, (hashes_collection.Get(hashes_count-1))->length);
-	  
-	  bam1_t* al_bam;
-	  al_bam = bam_init1(); // Thread.cpp will free it
-	  BamUtilities::ConvertAlignmentToBam1(al, *query_region_->pOrphan, al_bam);
-	  alignments->push_back(al_bam);
-	}
-	*/
       } // end while
+      */
     } // end while
 
     al_ite = NULL;
