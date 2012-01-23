@@ -1,5 +1,4 @@
 #include "aligner.h"
-
 #include "utilities/bam/bam_utilities.h"
 #include "utilities/miscellaneous/hashes_collection.h"
 
@@ -133,10 +132,10 @@ void Aligner::AlignCandidate(const bool& detect_special,
      
       // get special hashes
       HashRegionTableInit(hashes_special_, read_length);
-      SR_QueryRegionSetRange(query_region_, &hash_length_, reference_special_->seqLen,
-                             region_type.upstream ? SR_DOWNSTREAM : SR_UPSTREAM);
+      SR_QueryRegionSetRangeSpecial(query_region_, reference_special_->seqLen);
       HashRegionTableLoad(hashes_special_, hash_table_special_, query_region_);
       hashes_collection_special.Init(*(hashes_special_->pBestCloseRegions));
+      hashes_collection_special.Print();
 
       // get best cover
       unsigned int best1, best2;

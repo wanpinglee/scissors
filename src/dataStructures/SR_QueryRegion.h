@@ -160,11 +160,6 @@ void SR_QueryRegionLoadSeq(SR_QueryRegion* pQueryRegion);
 void SR_QueryRegionChangeSeq(SR_QueryRegion* pQueryRegion, SR_SeqAction action);
 
 
-
-//const char* SR_QueryRegionGetSeq(const SR_QueryRegion* pQueryRegion, 
-  //                               const uint32_t* query_begin);
-
-
 //==============================================================
 // function:
 //      set the search region for the split aligner according
@@ -185,6 +180,24 @@ void SR_QueryRegionChangeSeq(SR_QueryRegion* pQueryRegion, SR_SeqAction action);
 //      will return FALSE
 //==============================================================
 SR_Bool SR_QueryRegionSetRange(SR_QueryRegion* pQueryRegion, const SR_SearchArgs* pSearchArgs, uint32_t refLen, SR_Direction direction);
+
+//==============================================================
+// function:
+//      set the search region on special reference for the 
+//      split aligner
+//
+// args:
+//      1. pQueryRegion: a pointer to an query region structure
+//      2. specialRefLen : length of the special references
+//==============================================================
+static inline void SR_QueryRegionSetRangeSpecial(SR_QueryRegion* pQueryRegion, unsigned int specialRefLen) 
+{
+    pQueryRegion->closeRefBegin = 0;
+    pQueryRegion->closeRefEnd = specialRefLen - 1;
+
+    pQueryRegion->farRefBegin = 0;
+    pQueryRegion->farRefEnd = specialRefLen - 1;
+}
 
 #endif  /*SR_QUERYREGION_H*/
 
