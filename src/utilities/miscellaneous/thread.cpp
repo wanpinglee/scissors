@@ -172,8 +172,7 @@ void Thread::Init() {
   }
 
   hash_table_ = SR_InHashTableAlloc(hash_size);
-
-  reference_ = SR_ReferenceAlloc();
+  reference_  = SR_ReferenceAlloc();
 
 }
 

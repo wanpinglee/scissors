@@ -95,7 +95,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 				if (!convert_from_string( optarg, param->processors))
 					cout << "WARNING: Cannot parse -p --processors." << endl;
 				break;
-			case 'M':
+			case 'S':
 				param->detect_special = true;
 			default:
 				break;
