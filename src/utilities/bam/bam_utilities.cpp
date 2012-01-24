@@ -11,7 +11,6 @@
 using std::string;
 using std::cout;
 using std::endl;
-using std::istringstream;
 
 static const char COMPLEMENT_BASE_MAP[16] = {0x0, 0x8, 0x4, 0xf, 0x2,0xf,0xf,0xf,0x1,0xf,0xf,0xf,0xf,0xf,0xf,0xf};
 
@@ -357,6 +356,7 @@ void ConvertAlignmentToBam1(const Alignment& al,
 
 bool AppendReferenceSequence(const char** names,
                              const uint32_t* lens,
+			     const char** md5s,
                              const int& n_sequences,
 			     bam_header_t* const header) {
   // for sizing
@@ -378,17 +378,42 @@ bool AppendReferenceSequence(const char** names,
   free(header->target_name);
   free(header->target_len);
 
+  std::ostringstream additional_text;
+  additional_text << "\n";
   // append the new names and lengths
   for (int i = 0; i < n_sequences; ++i) {
     int len_name = strlen(names[i]);
     new_names[i + header->n_targets] = (char*)calloc(len_name, sizeof(char_a));
     memcpy(new_names[i + header->n_targets], names[i], len_name);
     new_lens[i + header->n_targets] = lens[i];
+    additional_text << "@SQ\tSN:" << names[i] << "\tLN:" << lens[i] << "\tM5:" << md5s[i] << endl;
   }
   header->target_name = new_names;
   header->target_len  = new_lens;
-  
+
+  string original_text = header->text;
+  size_t sq_begin = original_text.find("@SQ");
+  size_t sq_end   = sq_begin + 1;
+  while (true) {
+    size_t found = original_text.find("@SQ", sq_end);
+    if (found != string::npos) { // found
+      sq_end = found + 1;
+    } else { // no more @SQ
+      found = original_text.find("\n", sq_end);
+      sq_end = found;
+      break;
+    }
+  }
   header->n_targets += n_sequences;
+  
+  string new_text = original_text.substr(0, sq_end);
+  new_text += additional_text.str();
+  new_text += original_text.substr(sq_end + 1);
+  free(header->text);
+  header->text = (char*) calloc(new_text.size(), sizeof(char_a));
+  memcpy(header->text, new_text.c_str(), new_text.size());
+  header->l_text = new_text.size();
+  
 
   return true;
 }

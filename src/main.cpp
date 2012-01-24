@@ -236,15 +236,18 @@ void AppendReferenceSequence(bam_header_t* const bam_header, const string& refer
   } else {
     int n_special = reference_header->pSpecialRefInfo->numRefs;
     int n_normal  = reference_header->numRefs - reference_header->pSpecialRefInfo->numRefs;
-    char** names = new char* [n_special];
+    char** names   = new char* [n_special];
     uint32_t* lens = new uint32_t [n_special];
+    char** md5s    = new char* [n_special];
     for (int i = 0; i < n_special; ++i) {
       names[i] = reference_header->names[i + n_normal];
       uint32_t begin = SR_SpecialRefGetBeginPos(reference_header, i);
       uint32_t end = reference_header->pSpecialRefInfo->endPos[i];
-      lens[i]  = end - begin + 1;
+      lens[i] = end - begin + 1;
+      md5s[i] = new char[32];
+      memcpy(md5s[i], SR_RefHeaderGetMD5(reference_header, i + n_normal), 32);
     }
-    BamUtilities::AppendReferenceSequence((const char**)names, lens, n_special, bam_header);
+    BamUtilities::AppendReferenceSequence((const char**)names, lens, (const char**)md5s, n_special, bam_header);
     // delete
     delete [] names;
     delete [] lens;

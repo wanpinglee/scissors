@@ -56,6 +56,7 @@ void ConvertAlignmentToBam1(const Alignment& al,
 
 bool AppendReferenceSequence(const char** names,
                              const uint32_t* lens,
+			     const char** md5s,
                              const int& n_sequences,
 			     bam_header_t* const header);
 } // namespace BamUtilities
