@@ -42,7 +42,9 @@ void InitVariablesOrDie(const Parameters& parameter_parser,
 			MainVars* vars);
 void CheckFileOrDie(const Parameters& parameters,
                     const MainFiles& files);
-void ResetHeader(bam_header_t* const bam_header);
+void ResetSoBamHeader(bam_header_t* const bam_header);
+void AppendReferenceSequence(bam_header_t* const bam_header,
+                             const string& reference_filename);
 
 
 int main ( int argc, char** argv ) {
@@ -68,8 +70,11 @@ int main ( int argc, char** argv ) {
   InitVariablesOrDie(parameters, files, &vars);
 
   // Write bam header
-  ResetHeader(vars.bam_header->pOrigHeader);
-  bam_header_write( files.bam_writer, vars.bam_header->pOrigHeader );
+  ResetSoBamHeader(vars.bam_header->pOrigHeader);
+  if (parameters.detect_special)
+    AppendReferenceSequence(vars.bam_header->pOrigHeader, parameters.reference_filename);
+  // load the reference header
+  bam_header_write(files.bam_writer, vars.bam_header->pOrigHeader);
 
   // =========
   // Algorithm
@@ -156,6 +161,26 @@ void InitVariablesOrDie(const Parameters& parameters,
   vars->bam_header = SR_BamInStreamLoadHeader(files.bam_reader);
 
   IsInputBamSortedOrDie(parameters, *(vars->bam_header));
+
+  // print bam header
+  /*
+  int n_target = vars->bam_header->pOrigHeader->n_targets;
+  cout << vars->bam_header->pOrigHeader->n_targets << endl;
+  for (int i = 0; i < n_target; ++i)
+    cout << vars->bam_header->pOrigHeader->target_name[i] << endl;
+  
+  for (int i = 0; i < n_target; ++i)
+    cout << vars->bam_header->pOrigHeader->target_len[i] << endl;
+
+  cout << vars->bam_header->pOrigHeader->l_text << endl;
+  cout << vars->bam_header->pOrigHeader->n_text << endl;
+  cout << vars->bam_header->pOrigHeader->text << endl;
+
+  cout << ((vars->bam_header->pOrigHeader->dict == NULL) ? "NULL" : "Non-null") << endl;
+  cout << ((vars->bam_header->pOrigHeader->rg2lib == NULL) ? "NULL" : "Non-null") << endl;
+  
+  exit(1);
+  */
 }
 
 void CheckFileOrDie(const Parameters& parameters,
@@ -197,11 +222,41 @@ void CheckFileOrDie(const Parameters& parameters,
 
 }
 
-void ResetHeader( bam_header_t* const bam_header ){
+void AppendReferenceSequence(bam_header_t* const bam_header, const string& reference_filename){
+  // open reference file
+  FILE* ref_reader = fopen(reference_filename.c_str(), "rb");
+  // load the reference header
+  int64_t reference_seal;
+  SR_RefHeader* reference_header;
+  reference_header = SR_RefHeaderRead(&reference_seal, ref_reader);
 
-	// Reset header line to "@HD\tVN:1.0\tSO:unsorted"
-	//BamUtilities::ResetHeaderLineText( bam_header, "@HD\tVN:1.0\tSO:unsorted" );
-	// Replace SO:coordinate or SO:queryname by SO:unsorted
-	BamUtilities::ReplaceHeaderSoText( bam_header );
+  if (reference_header->pSpecialRefInfo == NULL) {
+    // no special header is detected
+    // dose nothing
+  } else {
+    int n_special = reference_header->pSpecialRefInfo->numRefs;
+    int n_normal  = reference_header->numRefs - reference_header->pSpecialRefInfo->numRefs;
+    char** names = new char* [n_special];
+    uint32_t* lens = new uint32_t [n_special];
+    for (int i = 0; i < n_special; ++i) {
+      names[i] = reference_header->names[i + n_normal];
+      uint32_t begin = SR_SpecialRefGetBeginPos(reference_header, i);
+      uint32_t end = reference_header->pSpecialRefInfo->endPos[i];
+      lens[i]  = end - begin + 1;
+    }
+    BamUtilities::AppendReferenceSequence((const char**)names, lens, n_special, bam_header);
+    // delete
+    delete [] names;
+    delete [] lens;
+  }
+  
+  // close the file
+  fclose(ref_reader);
+  SR_RefHeaderFree(reference_header);
+}
+
+void ResetSoBamHeader(bam_header_t* const bam_header) {
+  // Replace SO:coordinate or SO:queryname by SO:unsorted
+  BamUtilities::ReplaceHeaderSoText( bam_header );
 }
 

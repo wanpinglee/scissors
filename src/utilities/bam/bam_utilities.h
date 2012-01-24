@@ -54,7 +54,10 @@ void ConvertAlignmentToBam1(const Alignment& al,
                             const bam1_t& original_record,
 			    bam1_t* new_record);
 
-
+bool AppendReferenceSequence(const char** names,
+                             const uint32_t* lens,
+                             const int& n_sequences,
+			     bam_header_t* const header);
 } // namespace BamUtilities
 
 #endif // SRC_UTILITIES_BAMUTILITIES_H_

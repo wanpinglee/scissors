@@ -13,24 +13,6 @@ using std::cout;
 using std::endl;
 using std::istringstream;
 
-/*
-namespace BamAlignmentConstant {
-
-const unsigned char kBamCoreSize   = 32;
-const unsigned char kBamCigarShift = 4;
-
-// cigar operator for bam packed cigar
-const unsigned char kBamCmatch     = 0;
-const unsigned char kBamCins       = 1;
-const unsigned char kBamCdel       = 2;
-const unsigned char kBamCrefSkip   = 3;
-const unsigned char kBamCsoftClip  = 4;
-const unsigned char kBamChardClip  = 5;
-const unsigned char kBamCpad       = 6;
-
-} // namespace BamAlignmentConstant
-*/
-
 static const char COMPLEMENT_BASE_MAP[16] = {0x0, 0x8, 0x4, 0xf, 0x2,0xf,0xf,0xf,0x1,0xf,0xf,0xf,0xf,0xf,0xf,0xf};
 
 namespace BamUtilities {
@@ -46,35 +28,6 @@ bool ResetHeaderText( bam_header_t* const header, const string& header_string ){
 
 	return true;
 }
-/*
-bool ResetHeaderLineText( bam_header_t* const header, const char* const str ) {
-	string input( header->text );
-
-	// The header line (@HD) must be the first line if present
-	if ( input.empty() )
-		input = str;
-	else {
-		if ( input.substr(1, 2) != "HD" ) {
-		// @HD doesn't exist
-			input.insert(0, str+'\n');
-		}
-		else {
-		// @HD is found
-			size_t pos = input.find('\n');
-			if ( pos == string::npos ) // cannot find '\n'
-				pos = input.find('\r');
-
-			if ( pos == string::npos ) // cannot find '\n' and '\r'
-				return false;
-
-
-		}
-	}
-
-	ResetHeaderText( header, input );
-	return true;
-}
-*/
 
 bool IsFileSorted( const bam_header_t* const header ){
 	string header_string( header->text );
@@ -86,7 +39,7 @@ bool IsFileSorted( const bam_header_t* const header ){
 		return false;
 }
 
-bool ReplaceHeaderSoText( bam_header_t* const header ) {
+bool ReplaceHeaderSoText(bam_header_t* const header) {
 	
 	string header_string( header->text );
 	
@@ -400,6 +353,44 @@ void ConvertAlignmentToBam1(const Alignment& al,
   new_record->data = data;
 
 
+}
+
+bool AppendReferenceSequence(const char** names,
+                             const uint32_t* lens,
+                             const int& n_sequences,
+			     bam_header_t* const header) {
+  // for sizing
+  char char_a;
+  uint32_t uint32_t_a;
+  
+  int total_names = header->n_targets + n_sequences;
+  char** new_names = (char**)calloc(total_names, sizeof(&char_a));
+  uint32_t* new_lens = (uint32_t*)calloc(total_names, sizeof(uint32_t_a));
+
+  // copy the original names and lengths
+  for (int i = 0; i < header->n_targets; ++i) {
+    int len_name = strlen(header->target_name[i]);
+    new_names[i] = (char*)calloc(len_name, sizeof(char_a));
+    memcpy(new_names[i], header->target_name[i], len_name);
+    new_lens[i] = header->target_len[i];
+    free(header->target_name[i]);
+  }
+  free(header->target_name);
+  free(header->target_len);
+
+  // append the new names and lengths
+  for (int i = 0; i < n_sequences; ++i) {
+    int len_name = strlen(names[i]);
+    new_names[i + header->n_targets] = (char*)calloc(len_name, sizeof(char_a));
+    memcpy(new_names[i + header->n_targets], names[i], len_name);
+    new_lens[i + header->n_targets] = lens[i];
+  }
+  header->target_name = new_names;
+  header->target_len  = new_lens;
+  
+  header->n_targets += n_sequences;
+
+  return true;
 }
 
 } // namespace BamUtilities
