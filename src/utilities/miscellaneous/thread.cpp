@@ -68,7 +68,7 @@ void ConvertAlignments(const vector<Alignment>& als,
 void* RunThread (void* thread_data_) {
   ThreadData *td = (ThreadData*) thread_data_;
   Aligner aligner(td->reference, td->hash_table, td->reference_special, 
-                  td->hash_table_special, td->fragment_length);
+                  td->hash_table_special, td->reference_header, td->fragment_length);
 
   while (true) { // until bam != SR_OK
     SR_Status bam_status;
@@ -201,6 +201,7 @@ void Thread::InitThreadData() {
     thread_data_[i].hash_table               = hash_table_;
     thread_data_[i].reference_special        = reference_special_;
     thread_data_[i].hash_table_special       = hash_table_special_;
+    thread_data_[i].reference_header         = reference_header_;
     thread_data_[i].bam_writer               = bam_writer_;
     thread_data_[i].alignments.clear();
     FreeAlignmentBam(&thread_data_[i].alignments_bam);

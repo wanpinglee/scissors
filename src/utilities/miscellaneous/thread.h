@@ -28,6 +28,7 @@ struct ThreadData{
   SR_InHashTable*     hash_table;
   SR_Reference*       reference_special;
   SR_InHashTable*     hash_table_special;
+  SR_RefHeader*       reference_header;
   bamFile*            bam_writer;
   vector<Alignment>   alignments;
   vector<bam1_t*>     alignments_bam;
