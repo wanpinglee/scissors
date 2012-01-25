@@ -252,6 +252,9 @@ void AppendReferenceSequence(bam_header_t* const bam_header, const string& refer
     // delete
     delete [] names;
     delete [] lens;
+    for (int i = 0; i < n_special; ++i)
+      delete [] md5s[i];
+    delete [] md5s;
   }
   
   // close the file

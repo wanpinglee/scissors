@@ -65,11 +65,15 @@ Aligner::Aligner(const SR_Reference* reference,
 		 const SR_InHashTable* hash_table_special,
 		 const SR_RefHeader* reference_header,
 		 const int& fragment_length)
-    : reference_(reference)
+    : search_region_type_()
+    , anchor_region_()
+    , reference_(reference)
     , hash_table_(hash_table)
     , reference_special_(reference_special)
     , hash_table_special_(hash_table_special)
-    , reference_header_(reference_header){
+    , reference_header_(reference_header)
+    , sw_aligner_(){
+  
   query_region_   = SR_QueryRegionAlloc();
   hashes_         = HashRegionTableAlloc();
   hashes_special_ = HashRegionTableAlloc();
@@ -168,8 +172,8 @@ void Aligner::AlignCandidate(const bool& detect_special,
 	  int32_t s_ref_id;
 	  uint32_t s_pos;
 	  SR_GetRefFromSpecialPos(special_ref_view, &s_ref_id, &s_pos, reference_header_, reference_special_, al2.reference_begin);
-	  //al2_bam->core.tid = s_ref_id;
-	  //al2_bam->core.pos = s_pos;
+	  al2_bam->core.tid = s_ref_id;
+	  al2_bam->core.pos = s_pos;
 	  alignments->push_back(al1_bam);
 	  alignments->push_back(al2_bam);
       } else {

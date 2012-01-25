@@ -17,23 +17,23 @@ using namespace std;
 
 struct BandedSmithWatermanHashRegion {
 	uint32_t reference_begin;
-	uint32_t reference_end;   // is not used in current design 
+	//uint32_t reference_end;   // is not used in current design 
 	uint32_t query_begin;
-	uint32_t query_end;       // is not used in current design
+	//uint32_t query_end;       // is not used in current design
 
 	BandedSmithWatermanHashRegion()
 		: reference_begin(0)
-		, reference_end(0)
+	//	, reference_end(0)
 		, query_begin(0)
-		, query_end(0)
+	//	, query_end(0)
 	{}
 
 };
 
 class CBandedSmithWaterman {
-
 public:
 	// constructor
+	CBandedSmithWaterman();
 	CBandedSmithWaterman(float matchScore, float mismatchScore, 
 		float gapOpenPenalty, float gapExtendPenalty, unsigned int bandWidth);
 	// destructor
@@ -79,7 +79,7 @@ private:
 	// =========
 	// functions
 	// =========
-	
+        void Init();	
 	// calculates the score during the forward algorithm
 	float CalculateScore
 		( const char* s1

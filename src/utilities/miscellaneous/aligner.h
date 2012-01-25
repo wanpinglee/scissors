@@ -13,6 +13,7 @@ extern "C" {
 #include "dataStructures/alignment.h"
 #include "dataStructures/anchor_region.h"
 #include "dataStructures/search_region_type.h"
+#include "utilities/smithwaterman/BandedSmithWaterman.h"
 
 class HashesCollection;
 
@@ -41,6 +42,8 @@ class Aligner {
   HashRegionTable*      hashes_;
   HashRegionTable*      hashes_special_;
   SR_SearchArgs         hash_length_;
+
+  CBandedSmithWaterman  sw_aligner_;
 
   void LoadRegionType(const bam1_t& anchor);
   inline const char* GetSequence(const size_t& start) const;

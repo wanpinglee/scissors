@@ -4,7 +4,32 @@
 //const float CBandedSmithWaterman::AlignmentConstant::FLOAT_NEGATIVE_INFINITY = (float)-1e+30;
 //const char  CBandedSmithWaterman::AlignmentConstant::GAP = '-';
 
+const unsigned int kBandWidth = 9;
+const float kMatchScore = 10.0;
+const float kMismatchScore = -9.0;
+const float kGapOpenPenalty = 15.0;
+const float kGapExtendPenalty = 6.66;
+
 // constructor
+CBandedSmithWaterman::CBandedSmithWaterman() 
+: mCurrentMatrixSize(0)
+, mCurrentAnchorSize(0)
+, mCurrentAQSumSize(0)
+, mBandwidth(kBandWidth)
+, mPointers(NULL)
+, mMatchScore(kMatchScore)
+, mMismatchScore(kMismatchScore)
+, mGapOpenPenalty(kGapOpenPenalty)
+, mGapExtendPenalty(kGapExtendPenalty)
+, mAnchorGapScores(NULL)
+, mBestScores(NULL)
+, mReversedAnchor(NULL)
+, mReversedQuery(NULL)
+, mUseHomoPolymerGapOpenPenalty(false)
+{
+  Init();
+}
+
 CBandedSmithWaterman::CBandedSmithWaterman(float matchScore, float mismatchScore, float gapOpenPenalty, float gapExtendPenalty, unsigned int bandWidth) 
 : mCurrentMatrixSize(0)
 , mCurrentAnchorSize(0)
@@ -21,20 +46,7 @@ CBandedSmithWaterman::CBandedSmithWaterman(float matchScore, float mismatchScore
 , mReversedQuery(NULL)
 , mUseHomoPolymerGapOpenPenalty(false)
 {
-	CreateScoringMatrix();
-
-	//if((bandWidth % 2) != 1) {
-		//printf("ERROR: The bandwidth must be an odd number.\n");
-		//exit(1);
-	//}
-
-	try {
-		mBestScores	 = new float[bandWidth + 2];
-		mAnchorGapScores = new float[bandWidth + 2];
-	} catch(bad_alloc) {
-		printf("ERROR: Unable to allocate enough memory for the banded Smith-Waterman algorithm.\n");
-		exit(1);
-	}
+  Init();
 }
 
 // destructor
@@ -44,6 +56,17 @@ CBandedSmithWaterman::~CBandedSmithWaterman(void) {
 	if(mBestScores)            delete [] mBestScores;
 	if(mReversedAnchor)        delete [] mReversedAnchor;
 	if(mReversedQuery)         delete [] mReversedQuery;
+}
+
+void CBandedSmithWaterman::Init() {
+  CreateScoringMatrix();
+  try {
+    mBestScores      = new float[mBandwidth + 2];
+    mAnchorGapScores = new float[mBandwidth + 2];
+  } catch(bad_alloc) {
+    printf("ERROR: Unable to allocate enough memory for the banded Smith-Waterman algorithm.\n");
+    exit(1);
+  }
 }
 
 // returns the maximum floating point number
