@@ -5,10 +5,10 @@
 //const char  CBandedSmithWaterman::AlignmentConstant::GAP = '-';
 
 const unsigned int kBandWidth = 9;
-const float kMatchScore = 10.0;
-const float kMismatchScore = -9.0;
-const float kGapOpenPenalty = 15.0;
-const float kGapExtendPenalty = 6.66;
+const float kMatchScore = 10.0f;
+const float kMismatchScore = -9.0f;
+const float kGapOpenPenalty = 15.0f;
+const float kGapExtendPenalty = 6.66f;
 
 // constructor
 CBandedSmithWaterman::CBandedSmithWaterman() 
@@ -92,9 +92,9 @@ inline void CBandedSmithWaterman::UpdateBestScore(unsigned int& bestRow, unsigne
 void CBandedSmithWaterman::Align(
 	  Alignment& alignment
 	, const char* s1
-	, const unsigned int s1Length
+	, const unsigned int& s1Length
 	, const char* s2
-	, const unsigned int s2Length
+	, const unsigned int& s2Length
 	, const BandedSmithWatermanHashRegion& hash_region ) {
 
 	
@@ -649,6 +649,12 @@ void CBandedSmithWaterman::Traceback(
 	
 	
 	alignment.num_mismatches = numMismatches;
+
+	cout << "Alignment:" << endl
+	     << alignment.reference_begin << "\t" << alignment.reference_end << endl
+	     << alignment.query_begin << "\t" << alignment.query_end << endl
+	     << alignment.reference << endl
+	     << alignment.query << endl;
 
 
 	// correct the homopolymer gap order

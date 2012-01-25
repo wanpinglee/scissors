@@ -237,16 +237,23 @@ bool Aligner::GetAlignment(
     int hash_begin = (hashes_collection.Get(id))->refBegins[0];
     int begin, end;
     GetTargetRefRegion(read_length, hash_begin, special, &begin, &end);
+    int ref_length = end - begin + 1;
     const char* ref_seq = GetSequence(begin, special);
+    BandedSmithWatermanHashRegion hr;
+    hr.reference_begin = hash_begin - begin;
+    hr.query_begin = (hashes_collection.Get(id))->queryBegin;
+    sw_aligner_.Align(*al, ref_seq, ref_length, read_seq, read_length, hr);
+    al->reference_begin += begin;
     
     
-    al->reference_begin = (hashes_collection.Get(id))->refBegins[0];
-    al->reference_end   = (hashes_collection.Get(id))->refBegins[0] + (hashes_collection.Get(id))->length - 1;
-    al->query_begin     = (hashes_collection.Get(id))->queryBegin;
-    al->query_end       = (hashes_collection.Get(id))->queryBegin + (hashes_collection.Get(id))->length - 1;
-    const char* bases = GetSequence((hashes_collection.Get(id))->refBegins[0], special);
-    al->reference.assign(bases, (hashes_collection.Get(id))->length);
-    al->query.assign(bases, (hashes_collection.Get(id))->length);
+    //al->reference_begin = (hashes_collection.Get(id))->refBegins[0];
+    //al->reference_end   = (hashes_collection.Get(id))->refBegins[0] + (hashes_collection.Get(id))->length - 1;
+    //al->query_begin     = (hashes_collection.Get(id))->queryBegin;
+    //al->query_end       = (hashes_collection.Get(id))->queryBegin + (hashes_collection.Get(id))->length - 1;
+    //const char* bases = GetSequence((hashes_collection.Get(id))->refBegins[0], special);
+    //al->reference.assign(bases, (hashes_collection.Get(id))->length);
+    //al->query.assign(bases, (hashes_collection.Get(id))->length);
+    
 
     return true;
   }

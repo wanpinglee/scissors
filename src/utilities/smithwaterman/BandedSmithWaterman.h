@@ -42,9 +42,9 @@ public:
 	void Align 
 		( Alignment& al
 		, const char* s1
-		, const unsigned int s1Length
+		, const unsigned int& s1Length
 		, const char* s2
-		, const unsigned int s2Length
+		, const unsigned int& s2Length
 		, const BandedSmithWatermanHashRegion& hash_region);
 	// enables homo-polymer scoring
 	void EnableHomoPolymerGapPenalty(float hpGapOpenPenalty);
