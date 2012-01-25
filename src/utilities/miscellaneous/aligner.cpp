@@ -74,9 +74,10 @@ Aligner::Aligner(const SR_Reference* reference,
     , reference_header_(reference_header)
     , sw_aligner_(){
   
-  query_region_   = SR_QueryRegionAlloc();
-  hashes_         = HashRegionTableAlloc();
-  hashes_special_ = HashRegionTableAlloc();
+  query_region_     = SR_QueryRegionAlloc();
+  hashes_           = HashRegionTableAlloc();
+  hashes_special_   = HashRegionTableAlloc();
+  special_ref_view_ = SR_RefViewAlloc();
 
   hash_length_.fragLen = fragment_length;
   hash_length_.closeRange = 2000;
@@ -87,6 +88,7 @@ Aligner::~Aligner() {
   SR_QueryRegionFree(query_region_);
   HashRegionTableFree(hashes_);
   HashRegionTableFree(hashes_special_);
+  SR_RefViewFree(special_ref_view_);
 }
 
 void Aligner::LoadRegionType(const bam1_t& anchor) {
@@ -105,11 +107,6 @@ void Aligner::LoadRegionType(const bam1_t& anchor) {
 void Aligner::AlignCandidate(const bool& detect_special,
                              SR_BamInStreamIter* al_ite,
                              vector<bam1_t*>* alignments) {
-    SR_RefView* special_ref_view;
-    if (detect_special)
-      special_ref_view = SR_RefViewAlloc();
-
-
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
       // TODO@WP: it may be removed later
       if (query_region_->algnType != SR_UNIQUE_ORPHAN) continue;
@@ -117,7 +114,6 @@ void Aligner::AlignCandidate(const bool& detect_special,
       const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
       // Convert 4-bit representive sequence into chars
       SR_QueryRegionLoadSeq(query_region_);
-      int read_length = query_region_->pOrphan->core.l_qseq;
 
       LoadRegionType(*(query_region_->pAnchor));
 
@@ -134,6 +130,7 @@ void Aligner::AlignCandidate(const bool& detect_special,
       // For MEI first
       search_region_type_.GetStandardType(is_anchor_forward, &region_type);
       SetTargetSequence(region_type, query_region_);
+      int read_length = query_region_->pOrphan->core.l_qseq;
       HashRegionTableInit(hashes_, read_length);
       SR_QueryRegionSetRange(query_region_, &hash_length_, reference_->seqLen,
                              region_type.upstream ? SR_DOWNSTREAM : SR_UPSTREAM);
@@ -156,8 +153,9 @@ void Aligner::AlignCandidate(const bool& detect_special,
         best_pair_found = hashes_collection_special.GetBestCoverPair(&hashes_collection, &best2, &best1);
       Alignment al1, al2;
       if (best_pair_found) {
-        GetAlignment(hashes_collection, best1, &al1);
-	GetAlignment(hashes_collection_special, best2, &al2);
+        const char* read_seq = query_region_->orphanSeq;
+	GetAlignment(hashes_collection, best1, false, read_length, read_seq, &al1); // non-special
+	GetAlignment(hashes_collection_special, best2, true, read_length, read_seq, &al2); // special
 	al1.is_seq_inverse    = region_type.sequence_inverse;
 	al2.is_seq_inverse    = region_type.sequence_inverse;
 	al1.is_seq_complement = region_type.sequence_complement;
@@ -169,11 +167,6 @@ void Aligner::AlignCandidate(const bool& detect_special,
 	  al2_bam = bam_init1(); // Thread.cpp will free it
 	  BamUtilities::ConvertAlignmentToBam1(al1, *query_region_->pOrphan, al1_bam);
 	  BamUtilities::ConvertAlignmentToBam1(al2, *query_region_->pOrphan, al2_bam);
-	  int32_t s_ref_id;
-	  uint32_t s_pos;
-	  SR_GetRefFromSpecialPos(special_ref_view, &s_ref_id, &s_pos, reference_header_, reference_special_, al2.reference_begin);
-	  al2_bam->core.tid = s_ref_id;
-	  al2_bam->core.pos = s_pos;
 	  alignments->push_back(al1_bam);
 	  alignments->push_back(al2_bam);
       } else {
@@ -226,8 +219,6 @@ void Aligner::AlignCandidate(const bool& detect_special,
     } // end while
 
     al_ite = NULL;
-    if (detect_special)
-      SR_RefViewFree(special_ref_view);
 }
 
 //@description:
@@ -235,18 +226,56 @@ void Aligner::AlignCandidate(const bool& detect_special,
 bool Aligner::GetAlignment(
     const HashesCollection& hashes_collection, 
     const unsigned int& id,
-    Alignment* al) {
+    const bool& special,
+    const int& read_length,
+    const char* read_seq,
+    Alignment* al){
+  
   if (static_cast<int>(id) >= hashes_collection.GetSize()) {
     return false;
   } else {
+    int hash_begin = (hashes_collection.Get(id))->refBegins[0];
+    int begin, end;
+    GetTargetRefRegion(read_length, hash_begin, special, &begin, &end);
+    const char* ref_seq = GetSequence(begin, special);
+    
+    
     al->reference_begin = (hashes_collection.Get(id))->refBegins[0];
     al->reference_end   = (hashes_collection.Get(id))->refBegins[0] + (hashes_collection.Get(id))->length - 1;
     al->query_begin     = (hashes_collection.Get(id))->queryBegin;
     al->query_end       = (hashes_collection.Get(id))->queryBegin + (hashes_collection.Get(id))->length - 1;
-    const char* bases = GetSequence((hashes_collection.Get(id))->refBegins[0]);
+    const char* bases = GetSequence((hashes_collection.Get(id))->refBegins[0], special);
     al->reference.assign(bases, (hashes_collection.Get(id))->length);
     al->query.assign(bases, (hashes_collection.Get(id))->length);
 
     return true;
   }
+}
+
+void Aligner::GetTargetRefRegion(const int& read_length, const int& hash_begin, 
+    const bool& special, int* begin, int* end) {
+  uint32_t pos = hash_begin;
+  int32_t ref_id = 0;
+  if (special)
+    SR_GetRefFromSpecialPos(special_ref_view_, &ref_id, &pos, reference_header_, reference_special_, hash_begin);
+
+  int seq_length = special ? special_ref_view_->seqLen : reference_->seqLen;
+
+  int forward_shift;
+  if (pos < static_cast<uint32_t>(read_length)) forward_shift = pos;
+  else forward_shift = read_length;
+
+  int backward_shift;
+  if ((pos + read_length + 1) > seq_length) backward_shift = seq_length - pos - 1;
+  else backward_shift = read_length;
+  
+  *begin = hash_begin - forward_shift;
+  *end   = hash_begin + backward_shift;
+}
+
+inline const char* Aligner::GetSequence(const size_t& start, const bool& special) const {
+  if (special)
+    return (reference_special_->sequence + start);
+  else
+    return (reference_->sequence + start);
 }

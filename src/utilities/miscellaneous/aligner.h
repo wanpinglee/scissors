@@ -42,24 +42,20 @@ class Aligner {
   HashRegionTable*      hashes_;
   HashRegionTable*      hashes_special_;
   SR_SearchArgs         hash_length_;
+  SR_RefView*           special_ref_view_;
 
   CBandedSmithWaterman  sw_aligner_;
 
   void LoadRegionType(const bam1_t& anchor);
-  inline const char* GetSequence(const size_t& start) const;
+  const char* GetSequence(const size_t& start, const bool& special) const;
   bool GetAlignment(const HashesCollection& hashes_collection, 
-      const unsigned int& id, Alignment* al);
+      const unsigned int& id, const bool& special, const int& read_length,
+      const char* read_seq, Alignment* al);
+  void GetTargetRefRegion(const int& read_length, const int& hash_begin,
+      const bool& special, int* begin, int* end);
 
   Aligner (const Aligner&);
   Aligner& operator= (const Aligner&);
 };
-
-
-inline const char* Aligner::GetSequence(const size_t& start) const {
-  if (start >= reference_->seqLen)
-    return NULL;
-  else
-    return (reference_->sequence + start);
-}
 
 #endif // _ALIGNER_H_
