@@ -151,6 +151,7 @@ void Aligner::AlignCandidate(const bool& detect_special,
         best_pair_found = hashes_collection.GetBestCoverPair(&hashes_collection_special, &best1, &best2);
       else 
         best_pair_found = hashes_collection_special.GetBestCoverPair(&hashes_collection, &best2, &best1);
+      
       Alignment al1, al2;
       if (best_pair_found) {
         const char* read_seq = query_region_->orphanSeq;
@@ -165,8 +166,14 @@ void Aligner::AlignCandidate(const bool& detect_special,
 	  bam1_t *al1_bam, *al2_bam;
 	  al1_bam = bam_init1(); // Thread.cpp will free it
 	  al2_bam = bam_init1(); // Thread.cpp will free it
+
 	  BamUtilities::ConvertAlignmentToBam1(al1, *query_region_->pOrphan, al1_bam);
 	  BamUtilities::ConvertAlignmentToBam1(al2, *query_region_->pOrphan, al2_bam);
+	  uint32_t s_pos;
+	  int32_t s_ref_id;
+	  SR_GetRefFromSpecialPos(special_ref_view_, &s_ref_id, &s_pos, reference_header_, reference_special_, al2_bam->core.pos);
+	  al2_bam->core.pos = s_pos;
+	  al2_bam->core.tid = s_ref_id + 2;
 	  alignments->push_back(al1_bam);
 	  alignments->push_back(al2_bam);
       } else {
@@ -244,7 +251,6 @@ bool Aligner::GetAlignment(
     hr.query_begin = (hashes_collection.Get(id))->queryBegin;
     sw_aligner_.Align(*al, ref_seq, ref_length, read_seq, read_length, hr);
     al->reference_begin += begin;
-    
     
     //al->reference_begin = (hashes_collection.Get(id))->refBegins[0];
     //al->reference_end   = (hashes_collection.Get(id))->refBegins[0] + (hashes_collection.Get(id))->length - 1;
