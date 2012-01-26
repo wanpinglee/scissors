@@ -650,12 +650,13 @@ void CBandedSmithWaterman::Traceback(
 	
 	alignment.num_mismatches = numMismatches;
 
+	/*
 	cout << "Alignment:" << endl
 	     << alignment.reference_begin << "\t" << alignment.reference_end << endl
 	     << alignment.query_begin << "\t" << alignment.query_end << endl
 	     << alignment.reference << endl
 	     << alignment.query << endl;
-
+	*/
 
 	// correct the homopolymer gap order
 	//uint32_t alignment_length = alignment.reference.size();

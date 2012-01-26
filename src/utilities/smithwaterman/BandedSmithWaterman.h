@@ -71,9 +71,12 @@ private:
 	};
 
 	struct ElementInfo {
-		unsigned int Direction             : 2;
-		unsigned int mSizeOfVerticalGaps   : 15;
-		unsigned int mSizeOfHorizontalGaps : 15;
+		//unsigned int Direction             : 2;
+		//unsigned int mSizeOfVerticalGaps   : 15;
+		//unsigned int mSizeOfHorizontalGaps : 15;
+		unsigned int Direction;
+		unsigned int mSizeOfVerticalGaps;
+		unsigned int mSizeOfHorizontalGaps;
 	};
 
 	// =========

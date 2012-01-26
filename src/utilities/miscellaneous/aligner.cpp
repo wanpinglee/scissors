@@ -108,6 +108,7 @@ void Aligner::AlignCandidate(const bool& detect_special,
                              SR_BamInStreamIter* al_ite,
                              vector<bam1_t*>* alignments) {
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
+      
       // TODO@WP: it may be removed later
       if (query_region_->algnType != SR_UNIQUE_ORPHAN) continue;
       
@@ -154,7 +155,7 @@ void Aligner::AlignCandidate(const bool& detect_special,
       
       Alignment al1, al2;
       if (best_pair_found) {
-        const char* read_seq = query_region_->orphanSeq;
+	const char* read_seq = query_region_->orphanSeq;
 	GetAlignment(hashes_collection, best1, false, read_length, read_seq, &al1); // non-special
 	GetAlignment(hashes_collection_special, best2, true, read_length, read_seq, &al2); // special
 	al1.is_seq_inverse    = region_type.sequence_inverse;
@@ -166,7 +167,6 @@ void Aligner::AlignCandidate(const bool& detect_special,
 	  bam1_t *al1_bam, *al2_bam;
 	  al1_bam = bam_init1(); // Thread.cpp will free it
 	  al2_bam = bam_init1(); // Thread.cpp will free it
-
 	  BamUtilities::ConvertAlignmentToBam1(al1, *query_region_->pOrphan, al1_bam);
 	  BamUtilities::ConvertAlignmentToBam1(al2, *query_region_->pOrphan, al2_bam);
 	  uint32_t s_pos;
@@ -174,11 +174,13 @@ void Aligner::AlignCandidate(const bool& detect_special,
 	  SR_GetRefFromSpecialPos(special_ref_view_, &s_ref_id, &s_pos, reference_header_, reference_special_, al2_bam->core.pos);
 	  al2_bam->core.pos = s_pos;
 	  al2_bam->core.tid = s_ref_id + 2;
+
 	  alignments->push_back(al1_bam);
 	  alignments->push_back(al2_bam);
       } else {
         // nothing
       }
+      
       
 
       // For normal detection

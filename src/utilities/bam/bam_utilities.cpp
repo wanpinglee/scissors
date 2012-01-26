@@ -315,7 +315,7 @@ void ConvertAlignmentToBam1(const Alignment& al,
   new_record->m_data   = data_length;
 
   // set data
-  uint8_t* data = new uint8_t[data_length];  // Thread.cpp will delete those
+  uint8_t* data = (uint8_t*)calloc(data_length, sizeof(uint8_t));  // Thread.cpp will delete those
   uint8_t* data_ptr = data;
   // copy the read name
   memcpy(data_ptr, original_record.data, new_record->core.l_qname);

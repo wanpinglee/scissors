@@ -36,8 +36,10 @@ bool HashesCollection::GetBestCoverPair(HashesCollection* hc,
   int best_cover = INT_MIN;
   bool found = false;
   for (unsigned int i = 0; i < hash_regions_.size(); ++i) {
+    if (hash_regions_[i]->length == 0) continue;;
     int end_i = hash_regions_[i]->queryBegin + hash_regions_[i]->length - 1;
     for (unsigned int j = 0; j < hc->hash_regions_.size(); ++j) {
+      if (hc->hash_regions_[j]->length == 0) continue;
       if (hash_regions_[i]->queryBegin > hc->hash_regions_[j]->queryBegin) break;
 
       int overlap = end_i - hc->hash_regions_[j]->queryBegin + 1;
