@@ -173,7 +173,7 @@ void Aligner::AlignCandidate(const bool& detect_special,
 	  int32_t s_ref_id;
 	  SR_GetRefFromSpecialPos(special_ref_view_, &s_ref_id, &s_pos, reference_header_, reference_special_, al2_bam->core.pos);
 	  al2_bam->core.pos = s_pos;
-	  al2_bam->core.tid = s_ref_id + 2;
+	  al2_bam->core.tid = s_ref_id;
 
 	  alignments->push_back(al1_bam);
 	  alignments->push_back(al2_bam);
