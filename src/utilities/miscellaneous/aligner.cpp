@@ -253,6 +253,7 @@ bool Aligner::GetAlignment(
     hr.query_begin = (hashes_collection.Get(id))->queryBegin;
     sw_aligner_.Align(*al, ref_seq, ref_length, read_seq, read_length, hr);
     al->reference_begin += begin;
+    al->TrimAlignment();
     
     //al->reference_begin = (hashes_collection.Get(id))->refBegins[0];
     //al->reference_end   = (hashes_collection.Get(id))->refBegins[0] + (hashes_collection.Get(id))->length - 1;
