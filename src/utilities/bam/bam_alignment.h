@@ -5,25 +5,10 @@
 #include <vector>
 
 #include <stdint.h>
+#include "bam_constant.h"
 
 using std::string;
 using std::vector;
-
-namespace BamAlignmentConstant {
-
-const unsigned char kBamCoreSize   = 32;
-const unsigned char kBamCigarShift = 4;
-
-// cigar operator for bam packed cigar
-const unsigned char kBamCmatch     = 0;
-const unsigned char kBamCins       = 1;
-const unsigned char kBamCdel       = 2;
-const unsigned char kBamCrefSkip   = 3;
-const unsigned char kBamCsoftClip  = 4;
-const unsigned char kBamChardClip  = 5;
-const unsigned char kBamCpad       = 6;
-
-} // namespace BamAlignmentConstant
 
 struct BamAlignment {
 	string           query_name;

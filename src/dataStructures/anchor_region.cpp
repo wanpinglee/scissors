@@ -11,7 +11,7 @@ uint32_t AnchorRegion::CalculateEndPosition(const uint32_t* packed_cigar, const 
   if (packed_cigar_length == 0)
     return begin;
   
-  namespace Constant = BamAlignmentConstant;
+  namespace Constant = BamCigarConstant;
   uint32_t end = begin;
   
   for (uint32_t i = 0; i < packed_cigar_length; ++i) {

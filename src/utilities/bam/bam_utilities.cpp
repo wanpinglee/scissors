@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include "outsources/samtools/sam_header.h"
+#include "bam_constant.h"
 
 using std::string;
 using std::cout;
@@ -121,7 +122,7 @@ bool GetPackedCigar( vector<uint32_t>& packed_cigar,
         	const uint32_t& query_end,
 		const uint32_t& read_length) {
 
-	namespace Constant = BamAlignmentConstant;
+	namespace Constant = BamCigarConstant;
 
 	packed_cigar.clear();
 

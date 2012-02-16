@@ -1,4 +1,5 @@
 #include "aligner.h"
+#include "utilities/bam/bam_constant.h"
 #include "utilities/bam/bam_utilities.h"
 #include "utilities/miscellaneous/hashes_collection.h"
 
@@ -56,6 +57,27 @@ void SetTargetSequence(const SearchRegionType::RegionType& region_type,
     query_region->isOrphanInversed = FALSE;
   } // end if-else
   
+}
+
+void AdjustBamFlag(bam1_t* al_bam_anchor, bam1_t* partial_al1, bam1_t* partial_al2) {
+  namespace Constant = BamFlagConstant;
+  bool anchor_mate1 = al_bam_anchor->core.flag & Constant::kBamFMate1;
+  bool anchor_reverse = al_bam_anchor->core.flag & Constant::kBamFReverse;
+
+  // set anchor's flag
+  al_bam_anchor->core.flag &= 0xfff7; // mate is not unmapped
+  if (anchor_reverse) al_bam_anchor->core.flag &= 0xffdf; // mate is not reverse
+  else al_bam_anchor->core.flag |= Constant::kBamFReverseMate;
+
+  //set partial alignments flags
+  int16_t partial_flag = 0;
+  partial_flag |= Constant::kBamFPaired;
+  if (anchor_reverse) partial_flag |= Constant::kBamFReverseMate;
+  else partial_flag |= Constant::kBamFReverse;
+  if (anchor_mate1) partial_flag |= Constant::kBamFMate2;
+  else partial_flag |= Constant::kBamFMate1;
+  partial_al1->core.flag = partial_flag;
+  partial_al2->core.flag = partial_flag;
 }
 }
 
@@ -177,6 +199,7 @@ void Aligner::AlignCandidate(const bool& detect_special,
 
 	  alignments->push_back(al1_bam);
 	  alignments->push_back(al2_bam);
+	  AdjustBamFlag(al_bam_anchor, al1_bam, al2_bam);
       } else {
         // nothing
       }
