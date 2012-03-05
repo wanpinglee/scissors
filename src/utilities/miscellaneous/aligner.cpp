@@ -145,10 +145,12 @@ void Aligner::AlignCandidate(const bool& detect_special,
       HashesCollection hashes_collection_special;
       
       // store the anchor in output bam
+      /*
       bam1_t* al_bam_anchor;
       al_bam_anchor = bam_init1(); // Thread.cpp will free it
       al_bam_anchor = bam_copy1(al_bam_anchor, query_region_->pAnchor);
       alignments->push_back(al_bam_anchor);
+      */
 
       // For MEI first
       search_region_type_.GetStandardType(is_anchor_forward, &region_type);
@@ -199,7 +201,7 @@ void Aligner::AlignCandidate(const bool& detect_special,
 
 	  alignments->push_back(al1_bam);
 	  alignments->push_back(al2_bam);
-	  AdjustBamFlag(al_bam_anchor, al1_bam, al2_bam);
+	  //AdjustBamFlag(al_bam_anchor, al1_bam, al2_bam);
       } else {
         // nothing
       }
