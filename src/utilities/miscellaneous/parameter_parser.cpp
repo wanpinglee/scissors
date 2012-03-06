@@ -206,12 +206,12 @@ void PrintHelp(const string& program) {
 		<< endl
 		<< "   -i --input <FILE>     Input BAM-format file." << endl
 		<< "   -o --output <FILE>    Output BAM-format file." << endl
-		<< "   -r --reference-hash-table <FILE>" << endl 
-		<< "                         Hash table of the genome. A reference file (FILE.ref)" << endl
-		<< "                         and a hash table (FILE.ht) will be loaded." << endl
+		<< "   -r --reference-hash-table <FILE_PREFIX>" << endl 
+		<< "                         Hash table of the genome. A reference file (FILE_PREFIX.ref)" << endl
+		<< "                         and a hash table (FILE_PREFIX.ht) will be loaded." << endl
 		<< endl
 		
-		<< "Operations" << endl
+		<< "Operations:" << endl
 		<< endl
 		<< "   -l --fragment-length <INT>" << endl
 		<< "                         Fragment length." << endl
@@ -225,25 +225,22 @@ void PrintHelp(const string& program) {
 		<< "   -p --processors <INT> Use # of processors." << endl
 		<< "   -S --special-reference" << endl
 		<< "                         Detect special references, e.g. MEI." << endl
+		<< endl
 
-		<< "Alignment filter" << endl
+		<< "Alignment filters:" << endl
 		<< endl
 		<< "   -C --alignment-coverage-rate <FLOAT>" << endl
-		<< "                         Minimum coverage rate of original reads covered by " << endl
-		<< "                         split-read alignments." << endl
-		<< "                         Default: 0.9" << endl
+		<< "                         Minimum coverage rate [0.0 - 1.0] of original reads " << endl
+		<< "                         that should be covered by split-read alignments. Default: 0.9" << endl
 		<< "   -M --allowed-mismatch-rate <FLOAT>" << endl
-		<< "                         Maximum mismatch rate in split-read alignments." << endl
-		<< "                         Default: 0.1"
+		<< "                         Maximum mismatch rate [0.0 - 1.0] in split-read alignments." << endl
+		<< "                         Default: 0.1" << endl
 		<< "   -X --trimming-match-score <INT>" << endl
-		<< "                         Match score for alignment trimming." << endl
-		<< "                         Default: 1" << endl
+		<< "                         Match score for alignment trimming. Default: 1" << endl
 		<< "   -Y --trimming-match-penalty <INT>" << endl
-		<< "                         Mismatch penalty for alignment trimming." << endl
-		<< "                         Default: 2" << endl
+		<< "                         Mismatch penalty for alignment trimming. Default: 2" << endl
 		<< "   -Z --trimming-gap-penalty <INT>" << endl
-		<< "                         Gap penalty for alignment trimming." << endl
-		<< "                         Default: 2" << endl
+		<< "                         Gap penalty for alignment trimming. Default: 2" << endl
 
 		<< endl;
 }
