@@ -12,7 +12,7 @@ extern "C" {
 
 #include "utilities/bam/bam_reference.h"
 #include "utilities/bam/bam_utilities.h"
-//#include "utilities/bam/bam_writer.h"
+#include "utilities/miscellaneous/alignment_filter.h"
 #include "utilities/miscellaneous/parameter_parser.h"
 #include "utilities/miscellaneous/thread.h"
 
@@ -31,6 +31,8 @@ struct MainVars{
   // for bam
   SR_BamHeader*    bam_header;
   SR_StreamMode    bam_record_mode;
+  // alignment
+  AlignmentFilter::Filter alignment_filter;
 };
 
 
@@ -45,9 +47,11 @@ void CheckFileOrDie(const Parameters& parameters,
 void ResetSoBamHeader(bam_header_t* const bam_header);
 void AppendReferenceSequence(bam_header_t* const bam_header,
                              const string& reference_filename);
+void SetAlignmentFilter(const Parameters& parameters, 
+                        AlignmentFilter::Filter* filter);
 
 
-int main ( int argc, char** argv ) {
+int main (int argc, char** argv) {
 	
   // Parse the arguments and store them
   // The program will exit(1) with printing error message 
@@ -162,6 +166,8 @@ void InitVariablesOrDie(const Parameters& parameters,
 
   IsInputBamSortedOrDie(parameters, *(vars->bam_header));
 
+  SetAlignmentFilter(parameters, &(vars->alignment_filter));
+
   // print bam header
   /*
   int n_target = vars->bam_header->pOrigHeader->n_targets;
@@ -264,6 +270,12 @@ void AppendReferenceSequence(bam_header_t* const bam_header, const string& refer
 
 void ResetSoBamHeader(bam_header_t* const bam_header) {
   // Replace SO:coordinate or SO:queryname by SO:unsorted
-  BamUtilities::ReplaceHeaderSoText( bam_header );
+  BamUtilities::ReplaceHeaderSoText(bam_header);
 }
 
+void SetAlignmentFilter(const Parameters& parameters,
+                        AlignmentFilter::Filter* filter) {
+  filter->trimming_match_score    = parameters.trimming_match_score;
+  filter->trimming_mismatch_score = 0 - parameters.trimming_mismatch_penalty;
+  filter->trimming_gap_score      = 0 - parameters.trimming_gap_penalty;
+}

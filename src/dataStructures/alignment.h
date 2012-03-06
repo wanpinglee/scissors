@@ -2,7 +2,6 @@
 #define DATASTRUCTURES_ALIGNMENT_H_
 
 #include <string>
-
 #include <stdint.h>
 
 using std::string;
@@ -41,11 +40,6 @@ struct Alignment{
 		, is_seq_inverse(false)
 		, is_seq_complement(false)
 	{}
-
-	bool TrimAlignment(
-	    const int& match_score = 1,
-	    const int& mismatch_score = 1,
-	    const int& gap_score = 1);
 }; // Alignment
 
 #endif // DATASTRUCTURES_ALIGNMENT_H_
