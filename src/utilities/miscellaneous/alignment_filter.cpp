@@ -1,10 +1,9 @@
+#include "alignment_filter.h"
 #include "dataStructures/alignment.h"
 
-namespace AlignmentFilter {
+namespace AlignmentFilterApplication {
 bool TrimAlignment(
-    const int& match_score,
-    const int& mismatch_score,
-    const int& gap_score,
+    const AlignmentFilter& filter,
     Alignment* al){
 
   // find the sublist whose scores is max
@@ -13,10 +12,10 @@ bool TrimAlignment(
     // get score
     int score = 0;
     if ((al->reference[i] == AlignmentConstant::GAP) || (al->query[i] == AlignmentConstant::GAP)) {
-      score = gap_score;
+      score = filter.trimming_gap_score;
     } else {
-      if (al->reference[i] != al->query[i]) score = mismatch_score;
-      else score = match_score;
+      if (al->reference[i] != al->query[i]) score = filter.trimming_mismatch_score;
+      else score = filter.trimming_match_score;
     }
 
     // find max

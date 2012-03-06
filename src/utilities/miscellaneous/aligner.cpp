@@ -1,6 +1,7 @@
 #include "aligner.h"
 #include "utilities/bam/bam_constant.h"
 #include "utilities/bam/bam_utilities.h"
+#include "utilities/miscellaneous/alignment_filter.h"
 #include "utilities/miscellaneous/hashes_collection.h"
 
 namespace {
@@ -127,7 +128,8 @@ void Aligner::LoadRegionType(const bam1_t& anchor) {
 
 
 void Aligner::AlignCandidate(const bool& detect_special,
-                             SR_BamInStreamIter* al_ite,
+                             const AlignmentFilter& alignment_filter,
+			     SR_BamInStreamIter* al_ite,
                              vector<bam1_t*>* alignments) {
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
       
@@ -182,6 +184,8 @@ void Aligner::AlignCandidate(const bool& detect_special,
 	const char* read_seq = query_region_->orphanSeq;
 	GetAlignment(hashes_collection, best1, false, read_length, read_seq, &al1); // non-special
 	GetAlignment(hashes_collection_special, best2, true, read_length, read_seq, &al2); // special
+	AlignmentFilterApplication::TrimAlignment(alignment_filter, &al1);
+	AlignmentFilterApplication::TrimAlignment(alignment_filter, &al2);
 	al1.is_seq_inverse    = region_type.sequence_inverse;
 	al2.is_seq_inverse    = region_type.sequence_inverse;
 	al1.is_seq_complement = region_type.sequence_complement;

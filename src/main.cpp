@@ -32,7 +32,7 @@ struct MainVars{
   SR_BamHeader*    bam_header;
   SR_StreamMode    bam_record_mode;
   // alignment
-  AlignmentFilter::Filter alignment_filter;
+  AlignmentFilter alignment_filter;
 };
 
 
@@ -48,7 +48,7 @@ void ResetSoBamHeader(bam_header_t* const bam_header);
 void AppendReferenceSequence(bam_header_t* const bam_header,
                              const string& reference_filename);
 void SetAlignmentFilter(const Parameters& parameters, 
-                        AlignmentFilter::Filter* filter);
+                        AlignmentFilter* filter);
 
 
 int main (int argc, char** argv) {
@@ -275,7 +275,7 @@ void ResetSoBamHeader(bam_header_t* const bam_header) {
 }
 
 void SetAlignmentFilter(const Parameters& parameters,
-                        AlignmentFilter::Filter* filter) {
+                        AlignmentFilter* filter) {
   filter->trimming_match_score    = parameters.trimming_match_score;
   filter->trimming_mismatch_score = 0 - parameters.trimming_mismatch_penalty;
   filter->trimming_gap_score      = 0 - parameters.trimming_gap_penalty;

@@ -10,11 +10,13 @@ extern "C" {
 #include "utilities/hashTable/SR_Reference.h"
 }
 
-#include "dataStructures/alignment.h"
 #include "dataStructures/anchor_region.h"
 #include "dataStructures/search_region_type.h"
 #include "utilities/smithwaterman/BandedSmithWaterman.h"
 
+
+struct Alignment;
+struct AlignmentFilter;
 class HashesCollection;
 
 class Aligner {
@@ -26,7 +28,8 @@ class Aligner {
 	  const SR_RefHeader* reference_header,
 	  const int& fragment_length);
   ~Aligner();
-  void AlignCandidate(const bool& detect_special, 
+  void AlignCandidate(const bool& detect_special,
+                      const AlignmentFilter& alignment_filter,
                       SR_BamInStreamIter* al_ite, 
                       vector<bam1_t*>* alignments);
  private:
