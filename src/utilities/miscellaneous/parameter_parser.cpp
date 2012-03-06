@@ -9,6 +9,7 @@
 #include "parameter_parser.h"
 
 using std::cout;
+using std::cerr;
 using std::endl;
 using std::string;
 
@@ -30,7 +31,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		param->command_line += argv[i];
 	}
 
-	const char *short_option = "hi:r:o:l:w:c:sp:S";
+	const char *short_option = "hi:r:o:l:w:c:sp:SCM";
 
 	const struct option long_option[] = {
 		{ "help", no_argument, NULL, 'h' },
@@ -44,6 +45,9 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		{ "is-input-sorted", no_argument, NULL, 's'},
 		{ "processors", required_argument, NULL, 'p'},
 		{ "special", no_argument, NULL, 'S'},
+
+		{ "alignment-coverage-rate", no_argument, NULL, 'C'},
+		{ "allowed-mismatch-rate", no_argument, NULL, 'M'},
 
 		{ 0, 0, 0, 0 }
 	};
@@ -78,25 +82,35 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 				break;
 			// operation parameters
 			case 'l':
-				if (!convert_from_string( optarg, param->fragment_length))
-					cout << "WARNING: Cannot parse -l --fragment-length." << endl;
+				if (!convert_from_string(optarg, param->fragment_length))
+					cerr << "WARNING: Cannot parse -l --fragment-length." << endl;
 				break;
 			case 'w':
-				if (!convert_from_string( optarg, param->mate_window_size))
-					cout << "WARNING: Cannot parse -w --window-size." << endl;
+				if (!convert_from_string(optarg, param->mate_window_size))
+					cerr << "WARNING: Cannot parse -w --window-size." << endl;
 				break;
 			case 'c':
-				if (!convert_from_string( optarg, param->allowed_clip))
-					cout << "WARNING: Cannot parse -c --allowed-clip." << endl;
+				if (!convert_from_string(optarg, param->allowed_clip))
+					cerr << "WARNING: Cannot parse -c --allowed-clip." << endl;
 				break;
 			case 's':
 				param->is_input_sorted = true;
 			case 'p':
-				if (!convert_from_string( optarg, param->processors))
-					cout << "WARNING: Cannot parse -p --processors." << endl;
+				if (!convert_from_string(optarg, param->processors))
+					cerr << "WARNING: Cannot parse -p --processors." << endl;
 				break;
 			case 'S':
 				param->detect_special = true;
+				break;
+
+			case 'C':
+				if (!convert_from_string(optarg, param->alignment_coverage_rate))
+					cerr << "WARNING: Cannot parse -C --alignment-coverage-rate." << endl;
+				break;
+			case 'M':
+				if (!convert_from_string(optarg, param->allowed_mismatch_rate))
+					cerr << "WARNING: Cannot parse -M --allowed-mismatch-rate." << endl;
+				break;
 			default:
 				break;
 		}
@@ -117,33 +131,33 @@ bool CheckParameters(Parameters* param) {
 	bool errorFound = false;
 	// necessary parameters
 	if ( param->input_bam.empty() ) {
-		cout << "ERROR: Please specific an input file, -i." << endl;
+		cerr << "ERROR: Please specific an input file, -i." << endl;
 		errorFound = true;
 	}
 	
 	if ( param->output_bam.empty() ) {
-		cout << "ERROR: Please specific an output file, -o." << endl;
+		cerr << "ERROR: Please specific an output file, -o." << endl;
 		errorFound = true;
 	}
 	
 	if ( param->input_reference_hash.empty() ) {
-		cout << "ERROR: Please specific a reference hash table, -r." << endl;
+		cerr << "ERROR: Please specific a reference hash table, -r." << endl;
 		errorFound = true;
 	}
 
 	if ( param->fragment_length == -1 ) {
-		cout << "ERROR: Please specific fragment length, -l." << endl;
+		cerr << "ERROR: Please specific fragment length, -l." << endl;
 		errorFound = true;
 	}
 
 	// unnecessary parameters
 	if ( ( param->allowed_clip < 0.0 ) || ( param->allowed_clip > 1.0 ) ) {
-		cout << "WARNING: -c should be in [0.0 - 1.0]. Set it to default, 0.2." << endl;
+		cerr << "WARNING: -c should be in [0.0 - 1.0]. Set it to default, 0.2." << endl;
 		param->allowed_clip = 0.2;
 	}
 
 	if ( param->mate_window_size == 0 ) {
-		cout << "WARNING: -w should not be zero. Set it to default, 2." << endl;
+		cerr << "WARNING: -w should not be zero. Set it to default, 2." << endl;
 		param->mate_window_size = 2;
 	}
 
@@ -154,12 +168,12 @@ bool CheckParameters(Parameters* param) {
 void PrintHelp(const string& program) {
 	cout
 		<< endl
-		<< "usage: " << program << " [OPTIONS] -i <FILE> -o <FILE> -r <FILE>"
+		<< "usage: " << program << " [OPTIONS] -i <FILE> -o <FILE> -r <FILE_PREFIX> -l <INT>"
 		<< endl
 		<< endl
 		<< "Help:" << endl
 		<< endl
-		<< "   -h --help                 Print this help dialog." << endl
+		<< "   -h --help             Print this help dialog." << endl
 		<< endl
 		<< "Input & Output:" << endl
 		<< endl
@@ -169,6 +183,7 @@ void PrintHelp(const string& program) {
 		<< "                         Hash table of the genome. A reference file (FILE.ref)" << endl
 		<< "                         and a hash table (FILE.ht) will be loaded." << endl
 		<< endl
+		
 		<< "Operations" << endl
 		<< endl
 		<< "   -l --fragment-length <INT>" << endl
@@ -177,12 +192,22 @@ void PrintHelp(const string& program) {
 		<< "                         Window size (-w x -l) for searching mates in bam." << endl
 		<< "                         Default: 2" << endl
 		<< "   -c --allowed-clip <FLOAT>"  << endl
-		<< "                         Percentage [0.0 - 1.0] of allowed soft clip." << endl
+		<< "                         Percentage [0.0 - 1.0] of allowed soft clip of anchors." << endl
 		<< "                         Default: 0.2" << endl
 		<< "   -s --is-input-sorted" << endl
 		<< "   -p --processors <INT> Use # of processors." << endl
 		<< "   -S --special-reference" << endl
 		<< "                         Detect special references, e.g. MEI." << endl
+
+		<< "Alignment filter" << endl
+		<< endl
+		<< "   -C --alignment-coverage-rate <FLOAT>" << endl
+		<< "                         Minimum coverage rate of original reads covered by " << endl
+		<< "                         split-read alignments." << endl
+		<< "                         Default: 0.9" << endl
+		<< "   -M --allowed-mismatch-rate <FLOAT>" << endl
+		<< "                         Maximum mismatch rate in split-read alignments." << endl
+		<< "                         Default: 0.1"
 
 		<< endl;
 }

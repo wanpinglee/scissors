@@ -22,6 +22,10 @@ struct Parameters {
   bool  is_input_sorted;  // -s --is-input-sorted
   int   processors;       // -p --processors
   bool  detect_special;   // -S --special-reference
+
+  // alignment filter
+  float alignment_coverage_rate;
+  float allowed_mismatch_rate;
 	
   // command line
   string command_line;
@@ -39,7 +43,8 @@ struct Parameters {
       , is_input_sorted(false)
       , processors(1)
       , detect_special(false)
-
+      , alignment_coverage_rate(0.9)
+      , allowed_mismatch_rate(0.1)
   {}
 };
 
