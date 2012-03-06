@@ -4,7 +4,8 @@ OBJ_DIR = ../../../obj
 SOURCES = hashes_collection.cpp \
 		parameter_parser.cpp \
 		thread.cpp \
-		aligner.cpp
+		aligner.cpp \
+		alignment_filter.cpp
 
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES) )
 LIBS = -lz
