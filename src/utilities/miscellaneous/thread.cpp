@@ -191,19 +191,6 @@ Thread::~Thread() {
   }
 }
 
-void Thread::ResetThreadData() {
-  for (int i = 0; i < thread_count_; ++i) {
-    thread_data_[i].alignment_list.pBamNode  = NULL;
-    thread_data_[i].alignment_list.pAlgnType = NULL;
-    thread_data_[i].bam_status               = &bam_status_;
-    thread_data_[i].reference                = reference_;
-    thread_data_[i].hash_table               = hash_table_;
-    thread_data_[i].alignments.clear();
-    FreeAlignmentBam(&thread_data_[i].alignments_bam);
-    SR_BamInStreamClearRetList(bam_reader_, i);
-  }
-}
-
 void Thread::InitThreadData() {
   thread_data_.resize(thread_count_);
   for (int i = 0; i < thread_count_; ++i) {
@@ -213,12 +200,19 @@ void Thread::InitThreadData() {
     thread_data_[i].detect_special           = detect_special_;
     thread_data_[i].alignment_filter         = alignment_filter_;
     thread_data_[i].bam_reader               = bam_reader_;
+    thread_data_[i].alignment_list.pBamNode  = NULL;
+    thread_data_[i].alignment_list.pAlgnType = NULL;
+    thread_data_[i].bam_status               = &bam_status_;
+    thread_data_[i].reference                = reference_;
+    thread_data_[i].hash_table               = hash_table_;
     thread_data_[i].reference_special        = reference_special_;
     thread_data_[i].hash_table_special       = hash_table_special_;
     thread_data_[i].reference_header         = reference_header_;
     thread_data_[i].bam_writer               = bam_writer_;
+    thread_data_[i].alignments.clear();
+    FreeAlignmentBam(&thread_data_[i].alignments_bam);
+    SR_BamInStreamClearRetList(bam_reader_, i);
   }
-  ResetThreadData();
 }
 
 // Note: we need to load an alignment to know which reference and 
@@ -287,7 +281,7 @@ bool Thread::Start() {
   pthread_attr_t attr;
 
   while (true) { // break when bam_status != SR_OUT_OF_RANGE
-    ResetThreadData();
+    InitThreadData();
     if (!LoadReference()) // load the next first chunk of alignments
       return false;       // and based on the chr id in alignments
 		          // load reference and hash table

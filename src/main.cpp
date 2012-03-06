@@ -243,7 +243,6 @@ void AppendReferenceSequence(bam_header_t* const bam_header, const string& refer
   } else {
     int n_special = reference_header->pSpecialRefInfo->numRefs;
     int n_normal  = reference_header->numRefs - reference_header->pSpecialRefInfo->numRefs;
-    cout << n_special << "\t"  << n_normal << endl;
     char** names   = new char* [n_special];
     uint32_t* lens = new uint32_t [n_special];
     char** md5s    = new char* [n_special];

@@ -70,11 +70,4 @@ bool TrimAlignment(
   }
 } // TrimAlignment
 
-/*
-inline bool FilterByMismatch(const AlignmentFilter& filter, const Alignment& al) {
-  float mismatches = al.num_mismatches * filter.allowed_mismatch_rate;
-  if (al.num_mismatches > mismatches) return true;
-  else return false;
-}
-*/
 } // namespace AlignmentFilter

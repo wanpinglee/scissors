@@ -20,7 +20,9 @@ bool FilterByCoverage(const AlignmentFilter& filter, const int& original_length,
                       const Alignment& al);
 } // AlignmentFilterApplication
 
-bool AlignmentFilterApplication::FilterByMismatch(const AlignmentFilter& filter, const Alignment& al) {
+bool AlignmentFilterApplication::FilterByMismatch(
+    const AlignmentFilter& filter, 
+    const Alignment& al) {
   float mismatches = al.num_mismatches * filter.allowed_mismatch_rate;
   if (al.num_mismatches > mismatches) return true;
   else return false;

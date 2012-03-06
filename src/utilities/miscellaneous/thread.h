@@ -71,7 +71,6 @@ class Thread {
 
   void Init();
   void InitThreadData();
-  void ResetThreadData();
   bool LoadReference();
   Thread (const Thread&);
   Thread& operator=(const Thread&);
