@@ -26,6 +26,9 @@ struct Parameters {
   // alignment filter
   float alignment_coverage_rate;
   float allowed_mismatch_rate;
+  int   trimming_match_score;
+  int   trimming_mismatch_penalty;
+  int   trimming_gap_penalty;
 	
   // command line
   string command_line;
@@ -45,6 +48,9 @@ struct Parameters {
       , detect_special(false)
       , alignment_coverage_rate(0.9)
       , allowed_mismatch_rate(0.1)
+      , trimming_match_score(1)
+      , trimming_mismatch_penalty(2)
+      , trimming_gap_penalty(2)
   {}
 };
 

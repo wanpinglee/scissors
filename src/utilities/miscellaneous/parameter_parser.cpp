@@ -31,7 +31,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		param->command_line += argv[i];
 	}
 
-	const char *short_option = "hi:r:o:l:w:c:sp:SCM";
+	const char *short_option = "hi:r:o:l:w:c:sp:SCMXYZ";
 
 	const struct option long_option[] = {
 		{ "help", no_argument, NULL, 'h' },
@@ -48,6 +48,9 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 
 		{ "alignment-coverage-rate", no_argument, NULL, 'C'},
 		{ "allowed-mismatch-rate", no_argument, NULL, 'M'},
+		{ "trimming-match-score", no_argument, NULL, 'X'},
+		{ "trimming-mismatch-penalty", no_argument, NULL, 'Y'},
+		{ "trimming-gap-penalty", no_argument, NULL, 'Z'},
 
 		{ 0, 0, 0, 0 }
 	};
@@ -103,6 +106,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 				param->detect_special = true;
 				break;
 
+			// alignment filter
 			case 'C':
 				if (!convert_from_string(optarg, param->alignment_coverage_rate))
 					cerr << "WARNING: Cannot parse -C --alignment-coverage-rate." << endl;
@@ -111,6 +115,19 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 				if (!convert_from_string(optarg, param->allowed_mismatch_rate))
 					cerr << "WARNING: Cannot parse -M --allowed-mismatch-rate." << endl;
 				break;
+			case 'X':
+				if (!convert_from_string(optarg, param->trimming_match_score))
+					cerr << "WARNING: Cannot parse -X --trimming-match-score." << endl;
+				break;
+			case 'Y':
+				if (!convert_from_string(optarg, param->trimming_mismatch_penalty))
+					cerr << "WARNING: Cannot parse -Y --trimming-mismatch-penalty." << endl;
+				break;
+			case 'Z':
+				if (!convert_from_string(optarg, param->trimming_gap_penalty))
+					cerr << "WARNING: Cannot parse -Z --trimming-gap-penalty." << endl;
+				break;
+
 			default:
 				break;
 		}
@@ -130,35 +147,45 @@ bool CheckParameters(Parameters* param) {
 	
 	bool errorFound = false;
 	// necessary parameters
-	if ( param->input_bam.empty() ) {
+	if (param->input_bam.empty()) {
 		cerr << "ERROR: Please specific an input file, -i." << endl;
 		errorFound = true;
 	}
 	
-	if ( param->output_bam.empty() ) {
+	if (param->output_bam.empty()) {
 		cerr << "ERROR: Please specific an output file, -o." << endl;
 		errorFound = true;
 	}
 	
-	if ( param->input_reference_hash.empty() ) {
+	if (param->input_reference_hash.empty()) {
 		cerr << "ERROR: Please specific a reference hash table, -r." << endl;
 		errorFound = true;
 	}
 
-	if ( param->fragment_length == -1 ) {
+	if (param->fragment_length == -1) {
 		cerr << "ERROR: Please specific fragment length, -l." << endl;
 		errorFound = true;
 	}
 
 	// unnecessary parameters
-	if ( ( param->allowed_clip < 0.0 ) || ( param->allowed_clip > 1.0 ) ) {
+	if ((param->allowed_clip < 0.0) || (param->allowed_clip > 1.0)) {
 		cerr << "WARNING: -c should be in [0.0 - 1.0]. Set it to default, 0.2." << endl;
 		param->allowed_clip = 0.2;
 	}
 
-	if ( param->mate_window_size == 0 ) {
+	if (param->mate_window_size == 0) {
 		cerr << "WARNING: -w should not be zero. Set it to default, 2." << endl;
 		param->mate_window_size = 2;
+	}
+
+	if ((param->alignment_coverage_rate < 0.0) || (param->alignment_coverage_rate > 1.0)) {
+		cerr << "WARNING: -C should be in [0.0 - 1.0]. Set it to default, 0.9." << endl;
+		param->alignment_coverage_rate = 0.9;
+	}
+
+	if ((param->allowed_mismatch_rate < 0.0) || (param->allowed_mismatch_rate > 1.0)) {
+		cerr << "WARNING: -M should be in [0.0 - 1.0]. Set it to default, 0.1." << endl;
+		param->allowed_mismatch_rate = 0.1;
 	}
 
 	return !errorFound;
@@ -208,6 +235,15 @@ void PrintHelp(const string& program) {
 		<< "   -M --allowed-mismatch-rate <FLOAT>" << endl
 		<< "                         Maximum mismatch rate in split-read alignments." << endl
 		<< "                         Default: 0.1"
+		<< "   -X --trimming-match-score <INT>" << endl
+		<< "                         Match score for alignment trimming." << endl
+		<< "                         Default: 1" << endl
+		<< "   -Y --trimming-match-penalty <INT>" << endl
+		<< "                         Mismatch penalty for alignment trimming." << endl
+		<< "                         Default: 2" << endl
+		<< "   -Z --trimming-gap-penalty <INT>" << endl
+		<< "                         Gap penalty for alignment trimming." << endl
+		<< "                         Default: 2" << endl
 
 		<< endl;
 }
