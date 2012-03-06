@@ -155,18 +155,18 @@ void CBandedSmithWaterman::Align(
 
 	//cout << numBlankElements << endl;
 	// upper triangle matrix in Banded Smith-Waterman
-	for( ; numBlankElements > 0; numBlankElements--, rowNum++){
+	for( ; numBlankElements > 0; --numBlankElements, ++rowNum){
 		// in the upper triangle matrix, we always start at the 0th column
 		columnNum = 0;
 
 		// columnEnd indicates how many columns which should be dealt with in the current row
 		unsigned int columnEnd = min((mBandwidth - numBlankElements), (s1Length - columnNum + 1) );
 		currentQueryGapScore = AlignmentConstant::FLOAT_NEGATIVE_INFINITY;
-		for( unsigned int j = 0; j < columnEnd; j++){
+		for( unsigned int j = 0; j < columnEnd; ++j){
 			float score = CalculateScore(s1, s2, rowNum, columnNum, currentQueryGapScore, rowOffset, columnOffset);
 			//cout << s1[columnNum] << s2[rowNum] << score << endl;
 			UpdateBestScore(bestRow, bestColumn, bestScore, rowNum, columnNum, score);
-			columnNum++;
+			++columnNum;
 		}
 
 		// replace the columnNum to the middle column in the Smith-Waterman matrix
@@ -175,17 +175,17 @@ void CBandedSmithWaterman::Align(
 	// complete matrix in Banded Smith-Waterman
 	unsigned int completeNum = min((s1Length - columnNum - (mBandwidth / 2)), (s2Length - rowNum));
 	//cout << completeNum << endl;
-	for(unsigned int i = 0; i < completeNum; i++, rowNum++){
+	for(unsigned int i = 0; i < completeNum; ++i, ++rowNum){
 		columnNum = columnNum - (mBandwidth / 2);
 
 		// there are mBandwidth columns which should be dealt with in each row
 		currentQueryGapScore = AlignmentConstant::FLOAT_NEGATIVE_INFINITY;
 
-		for(unsigned int j = 0; j < mBandwidth; j++){
+		for(unsigned int j = 0; j < mBandwidth; ++j){
 			float score = CalculateScore(s1, s2, rowNum, columnNum, currentQueryGapScore, rowOffset, columnOffset);
 			UpdateBestScore(bestRow, bestColumn, bestScore, rowNum, columnNum, score);
 			//cout << s1[columnNum] << s2[rowNum] << score << endl;
-			columnNum++;
+			++columnNum;
 		}
 
 		// replace the columnNum to the middle column in the Smith-Waterman matrix
@@ -196,17 +196,17 @@ void CBandedSmithWaterman::Align(
 	// lower triangle matrix
 	numBlankElements = min(mBandwidth, (s2Length - rowNum));
 	columnNum = columnNum - (mBandwidth / 2);
-	for(unsigned int i = 0; numBlankElements > 0; i++, rowNum++, numBlankElements--) {
+	for(unsigned int i = 0; numBlankElements > 0; ++i, ++rowNum, --numBlankElements) {
 
 		mBestScores[ mBandwidth - i ] = AlignmentConstant::FLOAT_NEGATIVE_INFINITY;;
 		// columnEnd indicates how many columns which should be dealt with
 		currentQueryGapScore = AlignmentConstant::FLOAT_NEGATIVE_INFINITY;
 
-		for( unsigned int j = columnNum; j < s1Length; j++){
+		for( unsigned int j = columnNum; j < s1Length; ++j){
 			float score = CalculateScore(s1, s2, rowNum, columnNum, currentQueryGapScore, rowOffset, columnOffset);
 			UpdateBestScore(bestRow, bestColumn, bestScore, rowNum, columnNum, score);
 			//cout << s1[columnNum] << s2[rowNum] << score << endl;
-			columnNum++;
+			++columnNum;
 		}
 
 		// replace the columnNum to the middle column in the Smith-Waterman matrix
@@ -307,7 +307,7 @@ void CBandedSmithWaterman::CorrectHomopolymerGapOrder(const unsigned int numBase
 	char nonGapBase  = 'J';
 
 	// identify gapped regions
-	for(unsigned int i = 0; i < numBases; i++) {
+	for(unsigned int i = 0; i < numBases; ++i) {
 
 		// check if the current position is gapped
 		hasReferenceGap = false;
@@ -349,9 +349,9 @@ void CBandedSmithWaterman::CorrectHomopolymerGapOrder(const unsigned int numBase
 			if(((gs == nonGapBase) || (gs == AlignmentConstant::GAP)) && (ngs == nonGapBase)) isPartofHomopolymer = true;
 			if(!isPartofHomopolymer) break;
 
-			if(gs == AlignmentConstant::GAP) numGappedBases++;
-			else nonGapLength++;
-			testPos++;
+			if(gs == AlignmentConstant::GAP) ++numGappedBases;
+			else ++nonGapLength;
+			++testPos;
 		}
 
 		// fix the gap order
@@ -377,8 +377,8 @@ void CBandedSmithWaterman::CreateScoringMatrix(void) {
 	//const short nScore = mMismatchScore + (short)(((mMatchScore - mMismatchScore) / 4.0) + 0.5);
 
 	// calculate the scoring matrix
-	for(unsigned char i = 0; i < MOSAIK_NUM_NUCLEOTIDES; i++) {
-		for(unsigned char j = 0; j < MOSAIK_NUM_NUCLEOTIDES; j++) {
+	for(unsigned char i = 0; i < MOSAIK_NUM_NUCLEOTIDES; ++i) {
+		for(unsigned char j = 0; j < MOSAIK_NUM_NUCLEOTIDES; ++j) {
 
 			// N.B. matching N to everything (while conceptually correct) leads to some
 			// bad alignments, lets make N be a mismatch instead.
@@ -573,16 +573,16 @@ void CBandedSmithWaterman::Traceback(
 		switch(mPointers[currentPosition].Direction){
 			case Directions_DIAGONAL:
 				nVerticalGap = mPointers[currentPosition].mSizeOfVerticalGaps;
-				for(unsigned int i = 0; i < nVerticalGap; i++){
+				for(unsigned int i = 0; i < nVerticalGap; ++i){
 					mReversedAnchor[gappedAnchorLen++] = AlignmentConstant::GAP;
 					mReversedQuery[gappedQueryLen++]   = s2[currentRow];
 
-					numMismatches++;
+					++numMismatches;
 
 					previousRow = currentRow;
 					previousColumn = currentColumn;
 
-					currentRow--;
+					--currentRow;
 				}
 				break;
 
@@ -597,28 +597,28 @@ void CBandedSmithWaterman::Traceback(
 				mReversedAnchor[gappedAnchorLen++] = s1[currentColumn];
 				mReversedQuery[gappedQueryLen++]   = s2[currentRow];
 
-				if(s1[currentColumn] != s2[currentRow]) numMismatches++;
+				if(s1[currentColumn] != s2[currentRow]) ++numMismatches;
 				previousRow = currentRow;
 				previousColumn = currentColumn;
 
-				currentRow--;
-				currentColumn--;
+				--currentRow;
+				--currentColumn;
 				break;
 
 			case Directions_LEFT:
 				nHorizontalGap =  mPointers[currentPosition].mSizeOfHorizontalGaps;
-				for(unsigned int i = 0; i < nHorizontalGap; i++){
+				for(unsigned int i = 0; i < nHorizontalGap; ++i){
 
 					mReversedAnchor[gappedAnchorLen++] = s1[currentColumn];
 					mReversedQuery[gappedQueryLen++]   = AlignmentConstant::GAP;
 
-					numMismatches++;
+					++numMismatches;
 
 					previousRow = currentRow;
 					previousColumn = currentColumn;
 
 
-					currentColumn--;
+					--currentColumn;
 				}
 				break;
 		}
