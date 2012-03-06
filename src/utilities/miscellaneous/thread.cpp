@@ -20,6 +20,7 @@ using std::endl;
 pthread_mutex_t bam_in_mutex;
 pthread_mutex_t bam_out_mutex;
 
+namespace {
 // Given a SR_BamListIter containing alignments,
 //  reports the chromosome id of the alignments.
 // Note: Alignments in the list should be located in the same chromosome
@@ -119,12 +120,15 @@ void* RunThread (void* thread_data_) {
 
   pthread_exit(NULL);
 }
+} // namespace
+
 
 Thread::Thread(const BamReference* bam_reference,
 	       const float& allowed_clip,
 	       const int& thread_count,
 	       const int& fragment_length,
 	       const bool& detect_special,
+	       const AlignmentFilter::Filter& alignment_filter,
 	       FILE* ref_reader,
 	       FILE* hash_reader,
 	       SR_BamInStream* bam_reader,
@@ -134,6 +138,7 @@ Thread::Thread(const BamReference* bam_reference,
     , thread_count_(thread_count)
     , fragment_length_(fragment_length)
     , detect_special_(detect_special)
+    , alignment_filter_(alignment_filter)
     , ref_reader_(ref_reader)
     , hash_reader_(hash_reader)
     , bam_reader_(bam_reader)

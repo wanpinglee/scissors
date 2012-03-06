@@ -90,6 +90,7 @@ int main (int argc, char** argv) {
 		parameters.processors,
 		parameters.fragment_length,
 		parameters.detect_special,
+		vars.alignment_filter,
 		files.ref_reader,
 		files.hash_reader,
 		files.bam_reader,
