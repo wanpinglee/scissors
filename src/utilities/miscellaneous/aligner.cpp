@@ -184,12 +184,22 @@ void Aligner::AlignCandidate(const bool& detect_special,
 	const char* read_seq = query_region_->orphanSeq;
 	GetAlignment(hashes_collection, best1, false, read_length, read_seq, &al1); // non-special
 	GetAlignment(hashes_collection_special, best2, true, read_length, read_seq, &al2); // special
-	AlignmentFilterApplication::TrimAlignment(alignment_filter, &al1);
-	AlignmentFilterApplication::TrimAlignment(alignment_filter, &al2);
-	al1.is_seq_inverse    = region_type.sequence_inverse;
-	al2.is_seq_inverse    = region_type.sequence_inverse;
-	al1.is_seq_complement = region_type.sequence_complement;
-	al2.is_seq_complement = region_type.sequence_complement;
+	
+	namespace filter_app = AlignmentFilterApplication;
+	bool trimming_al_okay = true;
+	trimming_al_okay &= filter_app::TrimAlignment(alignment_filter, &al1);
+	trimming_al_okay &= filter_app::TrimAlignment(alignment_filter, &al2);
+	trimming_al_okay &= ((al1.reference.size() > 0) && (al2.reference.size() > 0));
+
+	bool passing_filter = true;
+	passing_filter &= filter_app::FilterByMismatch(alignment_filter, al1);
+	passing_filter &= filter_app::FilterByMismatch(alignment_filter, al2);
+
+	if (trimming_al_okay && passing_filter) {
+  	  al1.is_seq_inverse    = region_type.sequence_inverse;
+	  al2.is_seq_inverse    = region_type.sequence_inverse;
+	  al1.is_seq_complement = region_type.sequence_complement;
+	  al2.is_seq_complement = region_type.sequence_complement;
 
 	  // store alignments
 	  bam1_t *al1_bam, *al2_bam;
@@ -206,7 +216,10 @@ void Aligner::AlignCandidate(const bool& detect_special,
 	  alignments->push_back(al1_bam);
 	  alignments->push_back(al2_bam);
 	  //AdjustBamFlag(al_bam_anchor, al1_bam, al2_bam);
-      } else {
+	} else { // !(trimming_al_okay && passing_filter)
+	  // nothing
+	}
+      } else { // !(best_pair_found)
         // nothing
       }
       

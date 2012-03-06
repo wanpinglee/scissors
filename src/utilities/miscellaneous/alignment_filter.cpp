@@ -41,24 +41,24 @@ bool TrimAlignment(
     if (end > (al->reference.size() - 1)) {
       return false;
     } else {
+      // trim from the tail
       if (end < (al->reference.size() - 1)) {
         for (unsigned int i = end + 1; i < al->reference.size(); ++i) {
-	  if (al->reference[i] != AlignmentConstant::GAP)
-	    --(al->reference_end);
-	  if (al->query[i] != AlignmentConstant::GAP)
-	    --(al->query_end);
+	  if (al->reference[i] != AlignmentConstant::GAP) --(al->reference_end);
+	  if (al->query[i] != AlignmentConstant::GAP) --(al->query_end);
+	  if (al->reference[i] != al->query[i]) --(al->num_mismatches);
 	}
 	int size = al->reference.size();
 	al->reference.erase(end + 1, size - end - 1);
 	al->query.erase(end + 1, size - end - 1);
       }
       
+      // trim from the begin
       if (start > 0) {
         for (int i = 0; i < start; ++i) {
-	  if (al->reference[i] != AlignmentConstant::GAP)
-	    ++(al->reference_begin);
-	  if (al->query[i] != AlignmentConstant::GAP)
-	    ++(al->query_begin);
+	  if (al->reference[i] != AlignmentConstant::GAP) ++(al->reference_begin);
+	  if (al->query[i] != AlignmentConstant::GAP) ++(al->query_begin);
+	  if (al->reference[i] != al->query[i]) --(al->num_mismatches);
 	}
         al->reference.erase(0, start);
         al->query.erase(0, start);
@@ -70,4 +70,11 @@ bool TrimAlignment(
   }
 } // TrimAlignment
 
+/*
+inline bool FilterByMismatch(const AlignmentFilter& filter, const Alignment& al) {
+  float mismatches = al.num_mismatches * filter.allowed_mismatch_rate;
+  if (al.num_mismatches > mismatches) return true;
+  else return false;
+}
+*/
 } // namespace AlignmentFilter
