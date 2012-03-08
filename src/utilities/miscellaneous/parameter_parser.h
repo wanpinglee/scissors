@@ -24,7 +24,7 @@ struct Parameters {
   bool  detect_special;   // -S --special-reference
 
   // alignment filter
-  float alignment_coverage_rate;
+  float aligned_base_rate;
   float allowed_mismatch_rate;
   int   trimming_match_score;
   int   trimming_mismatch_penalty;
@@ -46,7 +46,7 @@ struct Parameters {
       , is_input_sorted(false)
       , processors(1)
       , detect_special(false)
-      , alignment_coverage_rate(0.9)
+      , aligned_base_rate(0.3)
       , allowed_mismatch_rate(0.1)
       , trimming_match_score(1)
       , trimming_mismatch_penalty(2)

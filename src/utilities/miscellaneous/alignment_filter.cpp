@@ -36,9 +36,6 @@ bool TrimAlignment(
     }
   }
 
-//std::cerr << "Before trimming: " << al->num_mismatches << std::endl;
-//std::cerr << al->reference << std::endl;
-//std::cerr << al->query << std::endl;
   // trim alignment
   if (length > 0) {
     int end = start + length - 1;
@@ -68,9 +65,6 @@ bool TrimAlignment(
         al->reference.erase(0, start);
         al->query.erase(0, start);
       }
-//std::cerr << "After trimming: " << al->num_mismatches << std::endl;
-//std::cerr << al->reference << std::endl;
-//std::cerr << al->query << std::endl;
       return true;
     }
   } else {

@@ -46,7 +46,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		{ "processors", required_argument, NULL, 'p'},
 		{ "special", no_argument, NULL, 'S'},
 
-		{ "alignment-coverage-rate", no_argument, NULL, 'C'},
+		{ "aligned-base-rate", no_argument, NULL, 'B'},
 		{ "allowed-mismatch-rate", no_argument, NULL, 'M'},
 		{ "trimming-match-score", no_argument, NULL, 'X'},
 		{ "trimming-mismatch-penalty", no_argument, NULL, 'Y'},
@@ -107,9 +107,9 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 				break;
 
 			// alignment filter
-			case 'C':
-				if (!convert_from_string(optarg, param->alignment_coverage_rate))
-					cerr << "WARNING: Cannot parse -C --alignment-coverage-rate." << endl;
+			case 'B':
+				if (!convert_from_string(optarg, param->aligned_base_rate))
+					cerr << "WARNING: Cannot parse -B --aligned-base-rate." << endl;
 				break;
 			case 'M':
 				if (!convert_from_string(optarg, param->allowed_mismatch_rate))
@@ -178,9 +178,9 @@ bool CheckParameters(Parameters* param) {
 		param->mate_window_size = 2;
 	}
 
-	if ((param->alignment_coverage_rate < 0.0) || (param->alignment_coverage_rate > 1.0)) {
-		cerr << "WARNING: -C should be in [0.0 - 1.0]. Set it to default, 0.9." << endl;
-		param->alignment_coverage_rate = 0.9;
+	if ((param->aligned_base_rate < 0.0) || (param->aligned_base_rate > 1.0)) {
+		cerr << "WARNING: -B should be in [0.0 - 1.0]. Set it to default, 0.3." << endl;
+		param->aligned_base_rate = 0.3;
 	}
 
 	if ((param->allowed_mismatch_rate < 0.0) || (param->allowed_mismatch_rate > 1.0)) {
@@ -229,9 +229,9 @@ void PrintHelp(const string& program) {
 
 		<< "Alignment filters:" << endl
 		<< endl
-		<< "   -C --alignment-coverage-rate <FLOAT>" << endl
-		<< "                         Minimum coverage rate [0.0 - 1.0] of original reads " << endl
-		<< "                         that should be covered by split-read alignments. Default: 0.9" << endl
+		<< "   -B --aligned-base-rate <FLOAT>" << endl
+		<< "                         Minimum aligned-base rate [0.0 - 1.0] of split-read alignments." << endl
+		<< "                         Default: 0.3" << endl
 		<< "   -M --allowed-mismatch-rate <FLOAT>" << endl
 		<< "                         Maximum mismatch rate [0.0 - 1.0] in split-read alignments." << endl
 		<< "                         Default: 0.1" << endl

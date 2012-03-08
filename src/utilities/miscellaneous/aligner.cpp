@@ -194,6 +194,8 @@ void Aligner::AlignCandidate(const bool& detect_special,
 	bool passing_filter = true;
 	passing_filter &= filter_app::FilterByMismatch(alignment_filter, al1);
 	passing_filter &= filter_app::FilterByMismatch(alignment_filter, al2);
+	passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, al1, read_length);
+	passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, al2, read_length);
 
 	if (trimming_al_okay && passing_filter) {
   	  al1.is_seq_inverse    = region_type.sequence_inverse;
