@@ -31,7 +31,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		param->command_line += argv[i];
 	}
 
-	const char *short_option = "hi:r:o:l:w:c:sp:SCMXYZ";
+	const char *short_option = "hi:r:o:l:w:c:sp:SC:M:X:Y:Z:";
 
 	const struct option long_option[] = {
 		{ "help", no_argument, NULL, 'h' },

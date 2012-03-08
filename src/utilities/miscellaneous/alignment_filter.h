@@ -1,6 +1,8 @@
 #ifndef UTILITY_MISCELLANEOUS_ALIGNMENT_FILTER_H_
 #define UTILITY_MISCELLANEOUS_ALIGNMENT_FILTER_H_
 
+#include <math.h>
+
 #include "dataStructures/alignment.h"
 
 struct AlignmentFilter {
@@ -23,8 +25,8 @@ bool FilterByCoverage(const AlignmentFilter& filter, const int& original_length,
 bool AlignmentFilterApplication::FilterByMismatch(
     const AlignmentFilter& filter, 
     const Alignment& al) {
-  float mismatches = al.num_mismatches * filter.allowed_mismatch_rate;
-  if (al.num_mismatches > mismatches) return true;
+  float allowed_mismatches = ceil(al.reference.size() * filter.allowed_mismatch_rate);
+  if (al.num_mismatches < static_cast<unsigned int>(allowed_mismatches)) return true;
   else return false;
 }
 

@@ -280,4 +280,6 @@ void SetAlignmentFilter(const Parameters& parameters,
   filter->trimming_match_score    = parameters.trimming_match_score;
   filter->trimming_mismatch_score = 0 - parameters.trimming_mismatch_penalty;
   filter->trimming_gap_score      = 0 - parameters.trimming_gap_penalty;
+
+  //std::cerr << filter->trimming_mismatch_score << "\t" << filter->trimming_gap_score << endl;
 }
