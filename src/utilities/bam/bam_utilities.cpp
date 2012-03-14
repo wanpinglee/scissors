@@ -10,7 +10,7 @@
 #include "bam_constant.h"
 
 using std::string;
-using std::cout;
+using std::cerr;
 using std::endl;
 
 static const char COMPLEMENT_BASE_MAP[16] = {0x0, 0x8, 0x4, 0xf, 0x2,0xf,0xf,0xf,0x1,0xf,0xf,0xf,0xf,0xf,0xf,0xf};
@@ -194,8 +194,8 @@ bool GetPackedCigar( vector<uint32_t>& packed_cigar,
 		     	              | Constant::kBamCdel;
 		} // else if
 		else {
-			cout << "ERROR: Generating the packed cigar failed." << endl;
-			cout << "       Unknown char(" << reference[i] << "," << query[i] 
+			cerr << "ERROR: Generating the packed cigar failed." << endl;
+			cerr << "       Unknown char(" << reference[i] << "," << query[i] 
 			     << ")." << endl;
 
 			return false;

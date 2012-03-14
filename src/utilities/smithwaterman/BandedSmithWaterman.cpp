@@ -1,5 +1,14 @@
 #include "BandedSmithWaterman.h"
 
+#include <algorithm>
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <string>
+
+#include <string.h>
+#include <stdio.h>
+
 // define our static constants
 //const float CBandedSmithWaterman::AlignmentConstant::FLOAT_NEGATIVE_INFINITY = (float)-1e+30;
 //const char  CBandedSmithWaterman::AlignmentConstant::GAP = '-';
@@ -153,7 +162,6 @@ void CBandedSmithWaterman::Align(
 	// indicates how many rows including blank elements in the Banded SmithWaterman
 	int numBlankElements = (mBandwidth / 2) - columnNum;
 
-	//cout << numBlankElements << endl;
 	// upper triangle matrix in Banded Smith-Waterman
 	for( ; numBlankElements > 0; --numBlankElements, ++rowNum){
 		// in the upper triangle matrix, we always start at the 0th column
@@ -164,7 +172,6 @@ void CBandedSmithWaterman::Align(
 		currentQueryGapScore = AlignmentConstant::FLOAT_NEGATIVE_INFINITY;
 		for( unsigned int j = 0; j < columnEnd; ++j){
 			float score = CalculateScore(s1, s2, rowNum, columnNum, currentQueryGapScore, rowOffset, columnOffset);
-			//cout << s1[columnNum] << s2[rowNum] << score << endl;
 			UpdateBestScore(bestRow, bestColumn, bestScore, rowNum, columnNum, score);
 			++columnNum;
 		}
@@ -174,7 +181,6 @@ void CBandedSmithWaterman::Align(
 	}
 	// complete matrix in Banded Smith-Waterman
 	unsigned int completeNum = min((s1Length - columnNum - (mBandwidth / 2)), (s2Length - rowNum));
-	//cout << completeNum << endl;
 	for(unsigned int i = 0; i < completeNum; ++i, ++rowNum){
 		columnNum = columnNum - (mBandwidth / 2);
 
@@ -184,7 +190,6 @@ void CBandedSmithWaterman::Align(
 		for(unsigned int j = 0; j < mBandwidth; ++j){
 			float score = CalculateScore(s1, s2, rowNum, columnNum, currentQueryGapScore, rowOffset, columnOffset);
 			UpdateBestScore(bestRow, bestColumn, bestScore, rowNum, columnNum, score);
-			//cout << s1[columnNum] << s2[rowNum] << score << endl;
 			++columnNum;
 		}
 
@@ -205,7 +210,6 @@ void CBandedSmithWaterman::Align(
 		for( unsigned int j = columnNum; j < s1Length; ++j){
 			float score = CalculateScore(s1, s2, rowNum, columnNum, currentQueryGapScore, rowOffset, columnOffset);
 			UpdateBestScore(bestRow, bestColumn, bestScore, rowNum, columnNum, score);
-			//cout << s1[columnNum] << s2[rowNum] << score << endl;
 			++columnNum;
 		}
 

@@ -448,7 +448,7 @@ void CSmithWatermanGotoh::CorrectHomopolymerGapOrder(const unsigned int numBases
 
 		// sanity check
 		if(hasReferenceGap && hasQueryGap) {
-			printf("ERROR: Found a gap in both the reference sequence and query sequence.\n");
+			cerr << "ERROR: Found a gap in both the reference sequence and query sequence." << endl;
 			exit(1);
 		}
 

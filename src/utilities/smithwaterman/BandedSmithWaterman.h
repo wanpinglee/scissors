@@ -1,14 +1,7 @@
 #ifndef _BANDEDSMITHWATERMAN_H_
 #define _BANDEDSMITHWATERMAN_H_
 
-#include <algorithm>
-#include <iostream>
-#include <memory>
-#include <sstream>
-#include <string>
-
-#include <string.h>
-#include <stdio.h>
+#include <stdint.h>
 
 #include "dataStructures/alignment.h"
 
