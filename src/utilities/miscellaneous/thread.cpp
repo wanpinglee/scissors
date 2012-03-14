@@ -160,7 +160,7 @@ void Thread::Init() {
   
   // check the compatibility between reference file and the hash table file
   if (reference_seal != hash_seal) {
-    printf("ERROR: The reference file is not compatible with the hash table file.\n");
+    fprintf(stderr, "ERROR: The reference file is not compatible with the hash table file.\n");
     exit(1);
   }
 
@@ -169,11 +169,11 @@ void Thread::Init() {
     // load special references
     reference_special_ = SR_ReferenceAlloc();
     if (SR_SpecialRefRead(reference_special_, reference_header_, ref_reader_) == SR_ERR)
-      printf("ERROR: Cannot read special sequence.\n");
+      fprintf(stderr, "ERROR: Cannot read special sequence.\n");
     // load special hash tables
     hash_table_special_ = SR_InHashTableAlloc(hash_size);
     if (SR_InHashTableReadSpecial(hash_table_special_, reference_header_, hash_reader_) == SR_ERR)
-      printf("ERROR: Cannot read special hash table.\n");
+      fprintf(stderr, "ERROR: Cannot read special hash table.\n");
   }
 
   hash_table_ = SR_InHashTableAlloc(hash_size);
@@ -263,7 +263,7 @@ bool Thread::LoadReference() {
   int32_t ref_id = SR_RefHeaderGetRefID(reference_header_, ref_name);
 
   if (ref_id < 0) {  // Cannot find the reference
-    printf("ERROR: The reference, %s, is not found in reference file.\n", ref_name);
+    fprintf(stderr, "ERROR: The reference, %s, is not found in reference file.\n", ref_name);
 	exit(1);
   } else {
     SR_ReferenceJump(ref_reader_, reference_header_, ref_id);
@@ -296,7 +296,7 @@ bool Thread::Start() {
     for (int i = 0; i < thread_count_; ++i) {
       int rc = pthread_create(&threads[i], &attr, RunThread, (void*)&thread_data_[i]);
       if (rc) {
-        printf("ERROR: Return code from pthread_create is %d.", rc);
+        fprintf(stderr, "ERROR: Return code from pthread_create is %d.", rc);
         return false;
       } // end if
     } // end for
@@ -306,7 +306,7 @@ bool Thread::Start() {
       void* status;
       int rc = pthread_join(threads[i], &status);
       if (rc) {
-        printf("ERROR: Return code from pthread_join is %d.", rc);
+        fprintf(stderr, "ERROR: Return code from pthread_join is %d.", rc);
         return false;
       }
     } // end for

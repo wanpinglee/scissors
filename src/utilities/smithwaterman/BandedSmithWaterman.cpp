@@ -73,7 +73,7 @@ void CBandedSmithWaterman::Init() {
     mBestScores      = new float[mBandwidth + 2];
     mAnchorGapScores = new float[mBandwidth + 2];
   } catch(bad_alloc) {
-    printf("ERROR: Unable to allocate enough memory for the banded Smith-Waterman algorithm.\n");
+    fprintf(stderr, "ERROR: Unable to allocate enough memory for the banded Smith-Waterman algorithm.\n");
     exit(1);
   }
 }
@@ -336,7 +336,7 @@ void CBandedSmithWaterman::CorrectHomopolymerGapOrder(const unsigned int numBase
 
 		// sanity check
 		if(hasReferenceGap && hasQueryGap) {
-			printf("ERROR: Found a gap in both the reference sequence and query sequence.\n");
+			fprintf(stderr, "ERROR: Found a gap in both the reference sequence and query sequence.\n");
 			exit(1);
 		}
 
@@ -509,7 +509,7 @@ void CBandedSmithWaterman::ReinitializeMatrices(
 		try {
 			mPointers = new ElementInfo[mCurrentMatrixSize];
 		} catch(bad_alloc) {
-			printf("ERROR: Unable to allocate enough memory for the banded Smith-Waterman algorithm.\n");
+			fprintf(stderr, "ERROR: Unable to allocate enough memory for the banded Smith-Waterman algorithm.\n");
 			exit(1);
 		}
 	}
@@ -533,7 +533,7 @@ void CBandedSmithWaterman::ReinitializeMatrices(
 			mReversedAnchor	= new char[mCurrentAQSumSize + 1]; // reversed sequence #1
 			mReversedQuery	= new char[mCurrentAQSumSize + 1]; // reversed sequence #2
 		} catch(bad_alloc) {
-			printf("ERROR: Unable to allocate enough memory for the banded Smith-Waterman algorithm.\n");
+			fprintf(stderr, "ERROR: Unable to allocate enough memory for the banded Smith-Waterman algorithm.\n");
 			exit(1);
 		}
 	}

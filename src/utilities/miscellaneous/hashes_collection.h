@@ -3,7 +3,9 @@
 
 #include <vector>
 
-#include "utilities/hashTable/SR_HashRegionTable.h"
+//#include "utilities/hashTable/SR_HashRegionTable.h"
+struct BestRegionArray;
+struct BestRegion;
 
 using std::vector;
 

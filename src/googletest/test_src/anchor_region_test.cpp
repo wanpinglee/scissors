@@ -25,7 +25,7 @@ void ConvertCigarToPackedCigar( vector<uint32_t>* packed_cigar, const string& ci
 		} else {
 			uint32_t current_cigar = 0;
 			if ( !digit_found )
-				printf("ERROR: A cigar operator should follow a number.\n");
+				fprintf(stderr, "ERROR: A cigar operator should follow a number.\n");
 			else {
 				current_cigar = atoi( cigar.substr( digit_begin, digit_length ).c_str() ) << Constant::kBamCigarShift;
 				
@@ -35,7 +35,7 @@ void ConvertCigarToPackedCigar( vector<uint32_t>* packed_cigar, const string& ci
 					case 'D': current_cigar |= Constant::kBamCdel;      break;
 					case 'M': current_cigar |= Constant::kBamCmatch;    break;
 					default:
-					  printf("ERROR: An unknown cigar operator, %c.\n", cigar[i]);
+					 fprintf(stderr, "ERROR: An unknown cigar operator, %c.\n", cigar[i]);
 				}
 			}
 			

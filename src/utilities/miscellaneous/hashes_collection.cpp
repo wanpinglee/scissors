@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <algorithm>
 
+#include "utilities/hashTable/SR_HashRegionTable.h"
+
 bool OperatorLength(const BestRegion* r1, const BestRegion* r2) {
   return (r1->length) < (r2->length);
 }
@@ -105,6 +107,6 @@ const BestRegion* HashesCollection::Get (const unsigned int& index) const {
 void HashesCollection::Print(void) const {
   for (vector<BestRegion*>::const_iterator ite = hash_regions_.begin();
       ite != hash_regions_.end(); ++ite) {
-    printf("%u %u %u %u %u %u\n", (*ite)->refBegins[0], (*ite)->refBegins[1], (*ite)->refBegins[2], (*ite)->queryBegin, (*ite)->length, (*ite)->numPos);
+    fprintf(stderr, "%u %u %u %u %u %u\n", (*ite)->refBegins[0], (*ite)->refBegins[1], (*ite)->refBegins[2], (*ite)->queryBegin, (*ite)->length, (*ite)->numPos);
   }
 }
