@@ -17,7 +17,7 @@ extern "C" {
 #include "utilities/miscellaneous/thread.h"
 
 using std::string;
-using std::cout;
+using std::cerr;
 using std::endl;
 
 struct MainFiles {
@@ -97,13 +97,11 @@ int main (int argc, char** argv) {
 		&files.bam_writer);
   bool thread_status = thread.Start();
   if (!thread_status)
-    cout << "threads fail" << endl;
+    cerr << "threads fail" << endl;
   //StartThreadOrDie(parameters.processors, files.bam_reader);
 
   // free memory and close files
   Deconstruct(&files, &vars);
-
-  cout << "Program done." << endl;
 
   return 0;
 
@@ -132,8 +130,8 @@ void InitFiles(const Parameters& parameters, MainFiles* files) {
       parameters.input_bam.c_str(), 
       parameters.fragment_length * parameters.mate_window_size,
       parameters.processors,  // number of processors
-      2, // the number of alignments can be stored in each chunk of the memory pool
-      2, // number of alignments should be cached before report
+      2000, // the number of alignments can be stored in each chunk of the memory pool
+      2000, // number of alignments should be cached before report
       &streamMode);
 
   // Initialize bam output writer
@@ -151,7 +149,7 @@ void IsInputBamSortedOrDie(const Parameters& parameters,
   if (!parameters.is_input_sorted &&
       !BamUtilities::IsFileSorted(bam_header.pOrigHeader)) {
     // The input bam is unsorted, exit
-    cout << "ERROR: The input bam seems unsorted. "
+    cerr << "ERROR: The input bam seems unsorted. "
          << "Please use bamtools sort to sort the bam" << endl
 	 << "       or type -s to ignore this checker." << endl;
 	 exit(1);
@@ -196,7 +194,7 @@ void CheckFileOrDie(const Parameters& parameters,
 	bool error_found = false;
 
 	if (files.bam_writer == NULL) {
-		cout << "ERROR: Cannot open " 
+		cerr << "ERROR: Cannot open " 
 		     << parameters.output_bam 
 		     << " for writing." 
 		     << endl
@@ -206,7 +204,7 @@ void CheckFileOrDie(const Parameters& parameters,
 	}
 
 	if (files.ref_reader == NULL) {
-		cout << "ERROR: Cannot open " 
+		cerr << "ERROR: Cannot open " 
 		     << parameters.reference_filename 
 		     << " for reading." 
 		     << endl
@@ -215,7 +213,7 @@ void CheckFileOrDie(const Parameters& parameters,
 	}
 
 	if (files.hash_reader == NULL) {
-		cout << "ERROR: Cannot open " 
+		cerr << "ERROR: Cannot open " 
 		     << parameters.hash_filename 
 		     << " for reading." 
 		     << endl

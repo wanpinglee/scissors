@@ -5,8 +5,8 @@ BIN_DIR = ../bin
 export CXX = g++
 export CC = gcc
 export MAKE = make
-export CFLAGS = -Wall -std=gnu99 -O2 -g
-export CXXFLAGS = -Wall -O2 -g
+export CFLAGS = -Wall -std=gnu99 -O3 
+export CXXFLAGS = -Wall -O3 
 
 # define our sources
 SOURCES = main.cpp
