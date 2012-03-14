@@ -14,7 +14,7 @@ extern "C" {
 #include "utilities/miscellaneous/aligner.h"
 
 using std::vector;
-using std::cout;
+using std::cerr;
 using std::endl;
 
 pthread_mutex_t bam_in_mutex;
@@ -232,7 +232,7 @@ bool Thread::LoadReference() {
 				      0.1, // maxMismatchRate
 				      1); // min mapping quality
     if (bam_status_ == SR_ERR) { // cannot load alignments from bam
-      cout << "ERROR: Cannot load alignments from the input bam." << endl;
+      cerr << "ERROR: Cannot load alignments from the input bam." << endl;
       return false;
     }
 
@@ -255,7 +255,7 @@ bool Thread::LoadReference() {
 
   if (chromosome_id > bam_reference_->GetCount()) {
   // the obtained chr id is invalid
-    cout << "ERROR: Reference id is larger than total references." << endl;
+    cerr << "ERROR: Reference id is larger than total references." << endl;
     return false;
   }
   

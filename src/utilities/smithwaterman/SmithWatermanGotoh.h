@@ -1,16 +1,6 @@
 #ifndef _SMITHWATERMANGOTOH_H_
 #define _SMITHWATERMANGOTOH_H_
 
-#include <iostream>
-#include <algorithm>
-#include <memory>
-#include <stdio.h>
-#include <string.h>
-#include <sstream>
-#include <string>
-
-using namespace std;
-
 #include "dataStructures/alignment.h"
 
 class CSmithWatermanGotoh {

@@ -1,5 +1,17 @@
 #include "SmithWatermanGotoh.h"
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <algorithm>
+#include <iostream>
+#include <memory>
+#include <sstream>
+
+using std::cerr;
+using std::endl;
+using std::bad_alloc;
+
 const char CSmithWatermanGotoh::Directions_STOP     = 0;
 const char CSmithWatermanGotoh::Directions_LEFT     = 1;
 const char CSmithWatermanGotoh::Directions_DIAGONAL = 2;
@@ -40,7 +52,7 @@ CSmithWatermanGotoh::~CSmithWatermanGotoh(void) {
 void CSmithWatermanGotoh::Align(Alignment& alignment, const char* s1, const unsigned int s1Length, const char* s2, const unsigned int s2Length) {
 
 	if((s1Length == 0) || (s2Length == 0)) {
-		cout << "ERROR: Found a read with a zero length." << endl;
+		cerr << "ERROR: Found a read with a zero length." << endl;
 		exit(1);
 	}
 
@@ -68,7 +80,7 @@ void CSmithWatermanGotoh::Align(Alignment& alignment, const char* s1, const unsi
 			mSizesOfHorizontalGaps = new short[mCurrentMatrixSize];
 
 		} catch(bad_alloc) {
-			cout << "ERROR: Unable to allocate enough memory for the Smith-Waterman algorithm." << endl;
+			cerr << "ERROR: Unable to allocate enough memory for the Smith-Waterman algorithm." << endl;
 			exit(1);
 		}
 	}
@@ -78,8 +90,8 @@ void CSmithWatermanGotoh::Align(Alignment& alignment, const char* s1, const unsi
 	for(unsigned int i = 1; i < referenceLen; i++) mPointers[i * queryLen] = 0;
 
 	// initialize the gap matrices to 1
-	uninitialized_fill(mSizesOfVerticalGaps, mSizesOfVerticalGaps + mCurrentMatrixSize, 1);
-	uninitialized_fill(mSizesOfHorizontalGaps, mSizesOfHorizontalGaps + mCurrentMatrixSize, 1);
+	std::uninitialized_fill(mSizesOfVerticalGaps, mSizesOfVerticalGaps + mCurrentMatrixSize, 1);
+	std::uninitialized_fill(mSizesOfHorizontalGaps, mSizesOfHorizontalGaps + mCurrentMatrixSize, 1);
 
 	//
 	// construct
@@ -102,7 +114,7 @@ void CSmithWatermanGotoh::Align(Alignment& alignment, const char* s1, const unsi
 			mBestScores     = new float[mCurrentQuerySize + 1];
 
 		} catch(bad_alloc) {
-			cout << "ERROR: Unable to allocate enough memory for the Smith-Waterman algorithm." << endl;
+			cerr << "ERROR: Unable to allocate enough memory for the Smith-Waterman algorithm." << endl;
 			exit(1);
 		}
 	}
@@ -124,13 +136,13 @@ void CSmithWatermanGotoh::Align(Alignment& alignment, const char* s1, const unsi
 			mReversedQuery  = new char[mCurrentAQSumSize + 1];	// reversed sequence #2
 
 		} catch(bad_alloc) {
-			cout << "ERROR: Unable to allocate enough memory for the Smith-Waterman algorithm." << endl;
+			cerr << "ERROR: Unable to allocate enough memory for the Smith-Waterman algorithm." << endl;
 			exit(1);
 		}
 	}
 
 	// initialize the gap score and score vectors
-	uninitialized_fill(mQueryGapScores, mQueryGapScores + queryLen, AlignmentConstant::FLOAT_NEGATIVE_INFINITY);
+	std::uninitialized_fill(mQueryGapScores, mQueryGapScores + queryLen, AlignmentConstant::FLOAT_NEGATIVE_INFINITY);
 	memset( ( char* ) mBestScores, 0, sizeof( float ) * queryLen);
 
 	float similarityScore, totalSimilarityScore, bestScoreDiagonal;
@@ -267,13 +279,13 @@ void CSmithWatermanGotoh::Align(Alignment& alignment, const char* s1, const unsi
 
 	// catch sequences with different lengths
 	if(gappedAnchorLen != gappedQueryLen) {
-		cout << "ERROR: The aligned sequences have different lengths after Smith-Waterman-Gotoh algorithm." << endl;
+		cerr << "ERROR: The aligned sequences have different lengths after Smith-Waterman-Gotoh algorithm." << endl;
 		exit(1);
 	}
 
 	// reverse the strings and assign them to our alignment structure
-	reverse(mReversedAnchor, mReversedAnchor + gappedAnchorLen);
-	reverse(mReversedQuery,  mReversedQuery  + gappedQueryLen);
+	std::reverse(mReversedAnchor, mReversedAnchor + gappedAnchorLen);
+	std::reverse(mReversedQuery,  mReversedQuery  + gappedQueryLen);
 
 	alignment.reference = mReversedAnchor;
 	alignment.query     = mReversedQuery;
