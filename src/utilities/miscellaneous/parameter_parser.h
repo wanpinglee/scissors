@@ -23,12 +23,15 @@ struct Parameters {
   int   processors;       // -p --processors
   bool  detect_special;   // -S --special-reference
 
-  // alignment filter
-  float aligned_base_rate;
-  float allowed_mismatch_rate;
-  int   trimming_match_score;
-  int   trimming_mismatch_penalty;
-  int   trimming_gap_penalty;
+  // original alignment filters
+  int mapping_quality_threshold; // -Q --mapping-quality-threshold
+
+  // split-read alignment filters
+  float aligned_base_rate;         // -B --aligned-base-rate
+  float allowed_mismatch_rate;     // -M --allowed-mismatch-rate
+  int   trimming_match_score;      // -X --trimming-match-score
+  int   trimming_mismatch_penalty; // -Y --trimming-mismatch-penalty
+  int   trimming_gap_penalty;      // -Z --trimming-gap-penalty
 	
   // command line
   string command_line;
@@ -46,6 +49,7 @@ struct Parameters {
       , is_input_sorted(false)
       , processors(1)
       , detect_special(false)
+      , mapping_quality_threshold(10)
       , aligned_base_rate(0.3)
       , allowed_mismatch_rate(0.1)
       , trimming_match_score(1)

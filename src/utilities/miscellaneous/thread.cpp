@@ -89,7 +89,7 @@ void* RunThread (void* thread_data_) {
                                              td->id, 
                                              td->allowed_clip,
 					     0.1, //maxMismatchRate
-					     1 // min mapping quality
+					     td->bam_mq_threshold // min mapping quality
 					     );
         *(td->bam_status) = bam_status;
         SR_BamInStreamSetIter(&td->alignment_list,
@@ -128,6 +128,7 @@ Thread::Thread(const BamReference* bam_reference,
 	       const int& thread_count,
 	       const int& fragment_length,
 	       const bool& detect_special,
+	       const int& bam_mq_threshold,
 	       const AlignmentFilter& alignment_filter,
 	       FILE* ref_reader,
 	       FILE* hash_reader,
@@ -138,6 +139,7 @@ Thread::Thread(const BamReference* bam_reference,
     , thread_count_(thread_count)
     , fragment_length_(fragment_length)
     , detect_special_(detect_special)
+    , bam_mq_threshold_(bam_mq_threshold)
     , alignment_filter_(alignment_filter)
     , ref_reader_(ref_reader)
     , hash_reader_(hash_reader)
@@ -198,6 +200,7 @@ void Thread::InitThreadData() {
     thread_data_[i].allowed_clip             = allowed_clip_;
     thread_data_[i].fragment_length          = fragment_length_;
     thread_data_[i].detect_special           = detect_special_;
+    thread_data_[i].bam_mq_threshold         = bam_mq_threshold_;
     thread_data_[i].alignment_filter         = alignment_filter_;
     thread_data_[i].bam_reader               = bam_reader_;
     thread_data_[i].alignment_list.pBamNode  = NULL;

@@ -31,7 +31,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		param->command_line += argv[i];
 	}
 
-	const char *short_option = "hi:r:o:l:w:c:sp:SB:M:X:Y:Z:";
+	const char *short_option = "hi:r:o:l:w:c:sp:SQ:B:M:X:Y:Z:";
 
 	const struct option long_option[] = {
 		{ "help", no_argument, NULL, 'h' },
@@ -45,6 +45,8 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		{ "is-input-sorted", no_argument, NULL, 's'},
 		{ "processors", required_argument, NULL, 'p'},
 		{ "special", no_argument, NULL, 'S'},
+
+		{ "mapping-quality-threshold", no_argument, NULL, 'Q'},
 
 		{ "aligned-base-rate", no_argument, NULL, 'B'},
 		{ "allowed-mismatch-rate", no_argument, NULL, 'M'},
@@ -106,7 +108,13 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 				param->detect_special = true;
 				break;
 
-			// alignment filter
+			// original bam alignment filters
+			case 'Q':
+				if (!convert_from_string(optarg, param->mapping_quality_threshold))
+					cerr << "WARNING: Cannot parse -Q --mapping-quality-threshold." << endl;
+				break;
+
+			// split-read alignment filters
 			case 'B':
 				if (!convert_from_string(optarg, param->aligned_base_rate))
 					cerr << "WARNING: Cannot parse -B --aligned-base-rate." << endl;
@@ -227,7 +235,12 @@ void PrintHelp(const string& program) {
 		<< "                         Detect special references, e.g. MEI." << endl
 		<< endl
 
-		<< "Alignment filters:" << endl
+		<< "Original BAM alignments filters:" << endl
+		<< endl
+		<< "   -Q --mapping-quality-threshold <INT>" << endl
+		<< "                         Mapping quality threshold [0 - 255] of candidate alignments." << endl
+
+		<< "Split-read alignment filters:" << endl
 		<< endl
 		<< "   -B --aligned-base-rate <FLOAT>" << endl
 		<< "                         Minimum aligned-base rate [0.0 - 1.0] of split-read alignments." << endl

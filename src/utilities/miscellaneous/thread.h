@@ -22,6 +22,7 @@ struct ThreadData{
   float allowed_clip;
   int   fragment_length;
   bool  detect_special;
+  int   bam_mq_threshold;
   AlignmentFilter alignment_filter;
   SR_BamInStream*     bam_reader;
   SR_BamInStreamIter  alignment_list;
@@ -43,6 +44,7 @@ class Thread {
          const int&      thread_count,
 	 const int&      fragment_length,
 	 const bool&     detect_special,
+	 const int&      bam_mq_threshold,
 	 const AlignmentFilter& alignment_filter,
 	 FILE*           ref_reader,
          FILE*           hash_reader,
@@ -56,6 +58,7 @@ class Thread {
   const int             thread_count_;
   const int             fragment_length_;
   const bool            detect_special_;
+  const int             bam_mq_threshold_;
   const AlignmentFilter alignment_filter_;
   FILE*           ref_reader_;
   FILE*           hash_reader_;
