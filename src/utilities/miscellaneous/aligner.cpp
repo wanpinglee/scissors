@@ -1,4 +1,8 @@
 #include "aligner.h"
+
+#include <list>
+
+#include "dataStructures/optional_tag.h"
 #include "utilities/bam/bam_constant.h"
 #include "utilities/bam/bam_utilities.h"
 #include "utilities/miscellaneous/alignment_filter.h"
@@ -209,6 +213,12 @@ void Aligner::AlignCandidate(const bool& detect_special,
 	  al2_bam = bam_init1(); // Thread.cpp will free it
 	  BamUtilities::ConvertAlignmentToBam1(al1, *query_region_->pOrphan, al1_bam);
 	  BamUtilities::ConvertAlignmentToBam1(al2, *query_region_->pOrphan, al2_bam);
+	  // add optional tags
+	  std::list<bam1_t*> al_list;
+	  al_list.push_back(al1_bam);
+	  al_list.push_back(al2_bam);
+	  OptionalTag::AddOptionalTags(*(query_region_->pAnchor), al_list);
+
 	  uint32_t s_pos;
 	  int32_t s_ref_id;
 	  SR_GetRefFromSpecialPos(special_ref_view_, &s_ref_id, &s_pos, reference_header_, reference_special_, al2_bam->core.pos);

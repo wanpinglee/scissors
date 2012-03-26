@@ -2,7 +2,8 @@ OBJ_DIR = ../../obj
 
 # C++
 SOURCES = search_region_type.cpp \
-		anchor_region.cpp 
+		anchor_region.cpp \
+		optional_tag.cpp
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES))
 INCLUDE = -I..
 
