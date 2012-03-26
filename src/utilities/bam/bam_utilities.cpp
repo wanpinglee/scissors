@@ -314,9 +314,10 @@ void ConvertAlignmentToBam1(const Alignment& al,
   // set data length
   new_record->data_len = data_length;
   new_record->m_data   = data_length;
+  kroundup32(new_record->m_data);
 
   // set data
-  uint8_t* data = (uint8_t*)calloc(data_length, sizeof(uint8_t));  // Thread.cpp will delete those
+  uint8_t* data = (uint8_t*) calloc(new_record->m_data, sizeof(uint8_t));  // Thread.cpp will delete those
   uint8_t* data_ptr = data;
   // copy the read name
   memcpy(data_ptr, original_record.data, new_record->core.l_qname);
@@ -363,7 +364,7 @@ bool AppendReferenceSequence(const char** names,
   // for sizing
   char char_a;
   uint32_t uint32_t_a;
-  
+
   int total_names = header->n_targets + n_sequences;
   char** new_names = (char**)calloc(total_names, sizeof(&char_a));
   uint32_t* new_lens = (uint32_t*)calloc(total_names, sizeof(uint32_t_a));
@@ -414,7 +415,6 @@ bool AppendReferenceSequence(const char** names,
   header->text = (char*) calloc(new_text.size(), sizeof(char_a));
   memcpy(header->text, new_text.c_str(), new_text.size());
   header->l_text = new_text.size();
-  
 
   return true;
 }
