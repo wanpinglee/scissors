@@ -381,7 +381,7 @@ bool AppendReferenceSequence(const char** names,
   free(header->target_len);
 
   std::ostringstream additional_text;
-  additional_text << "\n";
+  additional_text << endl;
   // append the new names and lengths
   for (int i = 0; i < n_sequences; ++i) {
     int len_name = strlen(names[i]);
@@ -390,6 +390,7 @@ bool AppendReferenceSequence(const char** names,
     new_lens[i + header->n_targets] = lens[i];
     additional_text << "@SQ\tSN:" << names[i] << "\tLN:" << lens[i] << "\tM5:" << md5s[i] << endl;
   }
+  header->n_targets += n_sequences;
   header->target_name = new_names;
   header->target_len  = new_lens;
 
@@ -406,7 +407,6 @@ bool AppendReferenceSequence(const char** names,
       break;
     }
   }
-  header->n_targets += n_sequences;
   
   string new_text = original_text.substr(0, sq_end);
   new_text += additional_text.str();

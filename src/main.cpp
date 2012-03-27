@@ -250,8 +250,9 @@ void AppendReferenceSequence(bam_header_t* const bam_header, const string& refer
       uint32_t begin = SR_SpecialRefGetBeginPos(reference_header, i);
       uint32_t end = reference_header->pSpecialRefInfo->endPos[i];
       lens[i] = end - begin + 1;
-      md5s[i] = new char[32];
+      md5s[i] = new char[33];
       memcpy(md5s[i], SR_RefHeaderGetMD5(reference_header, i + n_normal), 32);
+      md5s[i][32] = 0;
     }
     BamUtilities::AppendReferenceSequence((const char**)names, lens, (const char**)md5s, n_special, bam_header);
     // delete
