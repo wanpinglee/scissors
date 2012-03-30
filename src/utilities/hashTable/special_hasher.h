@@ -30,12 +30,17 @@ class SpecialHasher {
   //            and hashing them.
   bool Load(void);
 
+  const SR_Reference* GetReference(void) const {return(is_loaded ? references_ : NULL);};
+  const SR_RefHeader* GetReferenceHeader(void) const {return(is_loaded ? reference_header_ : NULL);};
+  const SR_InHashTable* GetHashTable(void) const {return(is_loaded ? hash_table_ : NULL);};
+
  private:
   std::string fasta_;
   SR_RefHeader* reference_header_;
   SR_Reference* references_;
   SR_InHashTable* hash_table_;
   int hash_size_;
+  bool is_loaded;
 
   void Init(void);
   SpecialHasher (const SpecialHasher&);

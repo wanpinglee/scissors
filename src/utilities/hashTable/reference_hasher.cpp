@@ -55,7 +55,6 @@ bool ReferenceHasher::Load(void) {
     fprintf(stderr, "ERROR: Please set the reference sequence before loading.\n");
     return false;
   }
-  is_loaded_ = true;
 
   // index every possible hash position in the current chromosome
   // and write the results into hash position index file and hash position file
@@ -68,5 +67,6 @@ bool ReferenceHasher::Load(void) {
 
   SR_OutHashTableFree(out_hash_table);
 
+  is_loaded_ = true;
   return true;
 }
