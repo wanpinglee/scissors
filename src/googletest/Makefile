@@ -8,11 +8,21 @@ TESTS_DIR = test_src
 # *************************************
 TESTS_SOURCES_ = bam_utilities_GetPackedCigar_test.cpp \
 		anchor_region_test.cpp \
-		search_region_type_test.cpp
+		search_region_type_test.cpp \
+		special_hasher_test.cpp
 
 TARGET_SOURCES = bam_utilities.cpp \
 			anchor_region.cpp \
-			search_region_type.cpp
+			search_region_type.cpp \
+			special_hasher.cpp
+
+REQUIRED_OBJS_ = SR_Reference.o \
+		SR_OutHashTable.o \
+		SR_InHashTable.o \
+		SR_Error.o
+
+SAMDIR = ../outsources/samtools
+SAMOBJS_ = misc/md5.o
 
 # *********************************************
 # YOU MAY NOT NEED TO CHANGE THE FOLLOWING CODE
@@ -39,6 +49,8 @@ GTEST_BUILD = $(GTEST_OBJS) $(OBJ_DIR)/gtest_main.a
 # ==========================
 TESTS_SOURCES = $(patsubst %, $(TESTS_DIR)/%, $(TESTS_SOURCES_) )
 TESTS_OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(TESTS_SOURCES_) )
+REQUIRED_OBJS = $(patsubst %.o, $(OBJ_DIR)/%.o, $(REQUIRED_OBJS_) )
+SAMOBJS = $(patsubst %.o, $(SAMDIR)/%.o, $(SAMOBJS_))
 TESTS_INCLUDES = ..
 TEST_EXE = aligner_test
 # end //define my own test sources
@@ -53,7 +65,7 @@ all: $(TEST_EXE)
 
 $(TEST_EXE): $(GTEST_BUILD) $(TESTS_OBJECTS) | $(BIN_DIR)
 	@echo "  * linking" $(TEST_EXE)
-	@$(CXX) -I$(GINCLUDES) -I$(GTEST_DIR) $^ $(TARGET_OBJECTS) -lpthread -o $(BIN_DIR)/$@
+	@$(CXX) -I$(GINCLUDES) -I$(GTEST_DIR) $^ $(TARGET_OBJECTS) $(REQUIRED_OBJS) $(SAMOBJS) -lpthread -o $(BIN_DIR)/$@
 
 
 # Builds gtest library
