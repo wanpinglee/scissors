@@ -10,39 +10,11 @@ extern "C" {
 #include "SR_Reference.h"
 }
 
+#include "ConvertHashTableOutToIn.h"
+
 using std::string;
 
-namespace {
-void ConvertHashTableOutToIn(const SR_OutHashTable* out, SR_InHashTable* in) {
-  in->id = out->id;
-
-  // indices are already allocated in SR_InHashTableAlloc
-  // copy indices from out hash table
-  uint32_t index = 1;
-  for (unsigned int i = 0; i != out->numHashes; ++i) {
-    in->indices[i] = index;
-    index += (out->hashPosTable)[i].size;
-  }
-
-  // total number of hash positons that are found in the references
-  in->numPos = out->numPos;
-
-  free(in->hashPos);
-  in->hashPos = (uint32_t*) malloc(sizeof(uint32_t) * in->numPos);
-  // sanity checker
-  if (in->hashPos == NULL)
-    fprintf(stderr, "ERROR: Not enough memory for the storage \
-            of hash positions in the hash table object.\n");
-  uint32_t* ptr = in->hashPos;
-  for (unsigned int i = 0; i != out->numHashes; ++i) {
-    uint32_t size = (out->hashPosTable)[i].size;
-    memcpy(ptr, (out->hashPosTable)[i].data, sizeof(uint32_t) * size);
-    ptr += size;
-  }
-}
-}
-
-SpecialHasher::SpecialHasher()
+SpecialHasher::SpecialHasher(void)
     : fasta_("")
     , reference_header_(NULL)
     , references_(NULL)
@@ -60,7 +32,7 @@ SpecialHasher::SpecialHasher(const char* fasta, const int& hash_size)
   Init();
 }
 
-SpecialHasher::~SpecialHasher() {
+SpecialHasher::~SpecialHasher(void) {
   // SR_RefHeaderFree also frees memory 
   //   that is allocated by SR_SpecialRefInfoAlloc
   SR_RefHeaderFree(reference_header_);
@@ -68,7 +40,7 @@ SpecialHasher::~SpecialHasher() {
   SR_InHashTableFree(hash_table_);
 }
 
-void SpecialHasher::Init() {
+void SpecialHasher::Init(void) {
   // allocate memory for the header and special info
   reference_header_ = SR_RefHeaderAlloc(1,0);
   const int initial_reference_number = 30;
@@ -78,7 +50,7 @@ void SpecialHasher::Init() {
   references_ = SR_ReferenceAlloc();
 }
 
-bool SpecialHasher::Load() {
+bool SpecialHasher::Load(void) {
   if (fasta_.empty()) {
     fprintf(stderr, "ERROR: Please set fasta filename before loading.\n");
     return false;

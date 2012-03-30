@@ -1,7 +1,10 @@
 OBJ_DIR = ../../../obj
 
 # C++
-SOURCES = special_hasher.cpp
+SOURCES = special_hasher.cpp \
+		reference_hasher.cpp \
+		ConvertHashTableOutToIn.cpp
+
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES))
 INCLUDE = -I../..
 
