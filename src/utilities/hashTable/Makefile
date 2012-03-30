@@ -1,16 +1,26 @@
 OBJ_DIR = ../../../obj
 
-SOURCES = SR_InHashTable.c\
+# C++
+SOURCES = special_hasher.cpp
+OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES))
+INCLUDE = -I../..
+
+CSOURCES = SR_InHashTable.c\
+		SR_OutHashTable.c \
 		SR_Reference.c \
 		SR_HashRegionTable.c
 
-OBJECTS = $(patsubst %.c, $(OBJ_DIR)/%.o, $(SOURCES) )
-INCLUDE = -I../..
+COBJECTS = $(patsubst %.c, $(OBJ_DIR)/%.o, $(CSOURCES) )
+CINCLUDE = -I../..
 
-all: $(OBJECTS)
+all: $(OBJECTS) $(COBJECTS)
 
-$(OBJECTS): $(SOURCES) $(HEADERS)
+$(OBJECTS): $(SOURCES)
+	@echo "  * compiling" $(*F).cpp
+	@$(CXX) -c $(CXXFLAGS) $(*F).cpp $(INCLUDE) -o $@
+
+$(COBJECTS): $(CSOURCES)
 	@echo "  * compliing" $(*F).c
-	@$(CC) -c $(CFLAGS) $(*F).c $(INCLUDE) -o $@
+	@$(CC) -c $(CFLAGS) $(*F).c $(CINCLUDE) -o $@
 
 .PHONY: all

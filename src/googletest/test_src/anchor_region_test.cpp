@@ -5,11 +5,12 @@
 #include "gtest/gtest.h"
 
 #include "utilities/bam/bam_alignment.h"
+#include "utilities/bam/bam_constant.h"
 
 namespace {
 // convert the readable cigar string into the packed string
 void ConvertCigarToPackedCigar( vector<uint32_t>* packed_cigar, const string& cigar){
-	namespace Constant = BamAlignmentConstant;
+	namespace Constant = BamCigarConstant;
 	packed_cigar->clear();
 	uint32_t digit_begin  = 0;
 	uint32_t digit_length = 0;
