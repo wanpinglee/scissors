@@ -130,7 +130,6 @@ void Aligner::LoadRegionType(const bam1_t& anchor) {
     search_region_type_.RewindRegionTypeList();
 }
 
-
 void Aligner::AlignCandidate(const bool& detect_special,
                              const AlignmentFilter& alignment_filter,
 			     SR_BamInStreamIter* al_ite,
@@ -139,7 +138,26 @@ void Aligner::AlignCandidate(const bool& detect_special,
       
       // TODO@WP: it may be removed later
       if (query_region_->algnType != SR_UNIQUE_ORPHAN) continue;
+
+      Align(detect_special, alignment_filter, query_region_, alignments);
+    } // end while
+
+    al_ite = NULL;
+}
+
+void Aligner::AlignCandidate(const bool& detect_special,
+                    const AlignmentFilter& alignment_filter,
+		    const SR_QueryRegion* query_region,
+		    vector<bam1_t*>* alignments) {
+  Align(detect_special, alignment_filter, query_region, alignments);
+}
+
+void Aligner::Align(const bool& detect_special,
+                    const AlignmentFilter& alignment_filter,
+		    const SR_QueryRegion* query_region,
+		    vector<bam1_t*>* alignments) {
       
+      query_region_ = (SR_QueryRegion*) query_region;
       const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
       // Convert 4-bit representive sequence into chars
       SR_QueryRegionLoadSeq(query_region_);
@@ -279,9 +297,7 @@ void Aligner::AlignCandidate(const bool& detect_special,
 	}
       } // end while
       */
-    } // end while
-
-    al_ite = NULL;
+    //} // end while
 }
 
 //@description:

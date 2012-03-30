@@ -32,6 +32,16 @@ class Aligner {
                       const AlignmentFilter& alignment_filter,
                       SR_BamInStreamIter* al_ite, 
                       vector<bam1_t*>* alignments);
+
+  // @function Aligns the orphan bam1_t in query_region_
+  // @param  detect_special    detects second partial in special references
+  // @param  alignment_filter  the filter for split-read alignment
+  // @param  alignments        all obtained split-read alignments are stored here
+  //         [NOTICE]          Users should free bam1_t in the vector
+  void AlignCandidate(const bool& detect_special,
+                      const AlignmentFilter& alignment_filter,
+		      const SR_QueryRegion* query_region_,
+		      vector<bam1_t*>* alignments);
  private:
   SearchRegionType search_region_type_;
   AnchorRegion     anchor_region_;
@@ -52,10 +62,14 @@ class Aligner {
   void LoadRegionType(const bam1_t& anchor);
   const char* GetSequence(const size_t& start, const bool& special) const;
   bool GetAlignment(const HashesCollection& hashes_collection, 
-      const unsigned int& id, const bool& special, const int& read_length,
-      const char* read_seq, Alignment* al);
+                    const unsigned int& id, const bool& special, const int& read_length,
+                    const char* read_seq, Alignment* al);
   void GetTargetRefRegion(const int& read_length, const int& hash_begin,
-      const bool& special, int* begin, int* end);
+                          const bool& special, int* begin, int* end);
+  void Align(const bool& detect_special,
+             const AlignmentFilter& alignment_filter,
+	     const SR_QueryRegion* query_region_,
+	     vector<bam1_t*>* alignments);
 
   Aligner (const Aligner&);
   Aligner& operator= (const Aligner&);
