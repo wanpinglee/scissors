@@ -2,8 +2,7 @@ OBJ_DIR = ../../../obj
 
 # C++
 SOURCES = special_hasher.cpp \
-		reference_hasher.cpp \
-		ConvertHashTableOutToIn.cpp
+		reference_hasher.cpp 
 
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES))
 INCLUDE = -I../..
@@ -11,7 +10,8 @@ INCLUDE = -I../..
 CSOURCES = SR_InHashTable.c\
 		SR_OutHashTable.c \
 		SR_Reference.c \
-		SR_HashRegionTable.c
+		SR_HashRegionTable.c \
+		ConvertHashTableOutToIn.c
 
 COBJECTS = $(patsubst %.c, $(OBJ_DIR)/%.o, $(CSOURCES) )
 CINCLUDE = -I../..

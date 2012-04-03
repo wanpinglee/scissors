@@ -8,9 +8,8 @@ extern "C" {
 #include "SR_InHashTable.h"
 #include "SR_OutHashTable.h"
 #include "SR_Reference.h"
-}
-
 #include "ConvertHashTableOutToIn.h"
+}
 
 using std::string;
 

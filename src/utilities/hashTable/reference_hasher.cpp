@@ -9,9 +9,8 @@ extern "C" {
 #include "SR_InHashTable.h"
 #include "SR_OutHashTable.h"
 #include "SR_Reference.h"
-}
-
 #include "ConvertHashTableOutToIn.h"
+}
 
 using std::string;
 
@@ -34,7 +33,11 @@ ReferenceHasher::ReferenceHasher(const char* sequence)
 
 ReferenceHasher::~ReferenceHasher(void) {
   delete references_;
-  SR_InHashTableFree(hash_table_);
+  // solve the seg fault caused by SR_InHashTableFree
+  if (hash_table_ != NULL) {
+    SR_InHashTableFree(hash_table_);
+    hash_table_ = NULL;
+  }
 }
 
 void ReferenceHasher::Init(void) {
@@ -45,15 +48,27 @@ void ReferenceHasher::Init(void) {
   references_->seqCap   = 0;
 }
 
-void ReferenceHasher::SetSequence(const char* sequence) {
+bool ReferenceHasher::SetSequence(const char* sequence) {
+  if (is_loaded_) {
+    fprintf(stderr, "WARNING: Please use Clear before setting the new sequence.\n");
+    return false;
+  }
   references_->sequence = (char*)sequence;
   references_->seqLen   = strlen(sequence);
+
+  return true;
 }
 
 void ReferenceHasher::Clear(void) {
   delete references_;
-  SR_InHashTableFree(hash_table_);
+  // solve the seg fault caused by SR_InHashTableFree
+  if (hash_table_ != NULL) {
+    SR_InHashTableFree(hash_table_);
+    hash_table_ = NULL;
+  }
   Init();
+
+  is_loaded_ = false;
 }
 
 bool ReferenceHasher::Load(void) {
