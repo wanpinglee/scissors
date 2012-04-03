@@ -82,15 +82,15 @@ void* RunThread (void* thread_data_) {
       if (bam_status == SR_OK) {
         // TODO @WP: make sure each field of Jiantao
         bam_status = SR_LoadAlgnPairs(td->bam_reader,
-					     NULL, 
-					     // the pointer to frag length 
-					     // distribution; NULL means
-					     // we don't want to load it
-                                             td->id, 
-                                             td->allowed_clip,
-					     0.1, //maxMismatchRate
-					     td->bam_mq_threshold // min mapping quality
-					     );
+				      NULL, 
+			              // the pointer to frag length 
+				      // distribution; NULL means
+				      // we don't want to load it
+                                      td->id, 
+                                      td->allowed_clip,
+				      0.1, //maxMismatchRate
+			              // min mapping quality
+			              td->bam_mq_threshold);
         *(td->bam_status) = bam_status;
         SR_BamInStreamSetIter(&td->alignment_list,
 	                      td->bam_reader,
@@ -226,14 +226,15 @@ bool Thread::LoadReference() {
   while ((thread_data_[0].alignment_list.pBamNode == NULL) &&
         (bam_status_ != SR_EOF)) {
     bam_status_ = SR_LoadAlgnPairs(bam_reader_,
-                                      NULL,
-				      // the pointer to frag length
-				      // distribution; NULL means
-				      // we don't want to load it
-                                      thread_id,
-  				      allowed_clip_,
-				      0.1, // maxMismatchRate
-				      1); // min mapping quality
+                                   NULL,
+				   // the pointer to frag length
+				   // distribution; NULL means
+				   // we don't want to load it
+                                   thread_id,
+  				   allowed_clip_,
+				   0.1, // maxMismatchRate
+				   // min mapping quality
+				   thread_data_[thread_id].bam_mq_threshold);
     if (bam_status_ == SR_ERR) { // cannot load alignments from bam
       cerr << "ERROR: Cannot load alignments from the input bam." << endl;
       return false;

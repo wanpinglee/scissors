@@ -28,6 +28,12 @@ class Aligner {
 	  const SR_RefHeader* reference_header,
 	  const int& fragment_length);
   ~Aligner();
+  // @function Aligns the orphan bam1_t in query_region_
+  // @param  detect_special    detects second partial in special references
+  // @param  alignment_filter  the filter for split-read alignment
+  // @param  al_ite            all target pairs are stored here
+  // @param  alignments        all obtained split-read alignments are stored here
+  //         [NOTICE]          Users should free bam1_t in the vector
   void AlignCandidate(const bool& detect_special,
                       const AlignmentFilter& alignment_filter,
                       SR_BamInStreamIter* al_ite, 
@@ -36,11 +42,14 @@ class Aligner {
   // @function Aligns the orphan bam1_t in query_region_
   // @param  detect_special    detects second partial in special references
   // @param  alignment_filter  the filter for split-read alignment
+  // @param  anchor            anchor (mapped) mate
+  // @param  target            target (unmapped) mate which is the split-read target
   // @param  alignments        all obtained split-read alignments are stored here
   //         [NOTICE]          Users should free bam1_t in the vector
   void AlignCandidate(const bool& detect_special,
                       const AlignmentFilter& alignment_filter,
-		      const SR_QueryRegion* query_region_,
+		      const bam1_t& anchor,
+		      const bam1_t& target,
 		      vector<bam1_t*>* alignments);
  private:
   SearchRegionType search_region_type_;
