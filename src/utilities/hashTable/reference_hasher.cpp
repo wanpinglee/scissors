@@ -50,6 +50,12 @@ void ReferenceHasher::SetSequence(const char* sequence) {
   references_->seqLen   = strlen(sequence);
 }
 
+void ReferenceHasher::Clear(void) {
+  delete references_;
+  SR_InHashTableFree(hash_table_);
+  Init();
+}
+
 bool ReferenceHasher::Load(void) {
   if ((references_->sequence == NULL) || (references_->seqLen == 0)) {
     fprintf(stderr, "ERROR: Please set the reference sequence before loading.\n");
