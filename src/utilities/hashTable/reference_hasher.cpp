@@ -53,6 +53,7 @@ void ReferenceHasher::SetSequence(const char* sequence) {
 bool ReferenceHasher::Load(void) {
   if ((references_->sequence == NULL) || (references_->seqLen == 0)) {
     fprintf(stderr, "ERROR: Please set the reference sequence before loading.\n");
+    fprintf(stderr, "       The reference length is %u.\n", references_->seqLen);
     return false;
   }
 

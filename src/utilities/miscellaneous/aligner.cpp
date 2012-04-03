@@ -135,7 +135,6 @@ void Aligner::AlignCandidate(const bool& detect_special,
 			     SR_BamInStreamIter* al_ite,
                              vector<bam1_t*>* alignments) {
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
-      
       // TODO@WP: it may be removed later
       if (query_region_->algnType != SR_UNIQUE_ORPHAN) continue;
 

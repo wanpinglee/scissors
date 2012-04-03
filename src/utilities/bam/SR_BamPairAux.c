@@ -270,3 +270,4 @@ SR_Status SR_LoadAlgnPairs(SR_BamInStream* pBamInStream, SR_FragLenDstrb* pDstrb
 
     return readerStatus;
 }
+

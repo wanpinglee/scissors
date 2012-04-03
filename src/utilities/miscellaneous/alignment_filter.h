@@ -11,6 +11,14 @@ struct AlignmentFilter {
   int trimming_match_score;
   int trimming_mismatch_score;
   int trimming_gap_score;
+
+  AlignmentFilter()
+      : aligned_base_rate(0.1)
+      , allowed_mismatch_rate(0.1)
+      , trimming_match_score(1)
+      , trimming_mismatch_score(-2)
+      , trimming_gap_score(-2)
+  {}
 };
 
 namespace AlignmentFilterApplication {
