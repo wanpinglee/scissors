@@ -5,11 +5,17 @@
 
 #include "dataStructures/alignment.h"
 
+// The filter is used for split-read (SR) alignments.
 struct AlignmentFilter {
+  // the ratio of SR bases to orignal mate bases [0.0-1.0]
   float aligned_base_rate;
+  // the ratio of mismatches to SR bases [0.0-1.0]
   float allowed_mismatch_rate;
+  // the score of matches for TrimAlignment function
   int trimming_match_score;
+  // the score of mismatches for TrimAlignment function
   int trimming_mismatch_score;
+  // the score of gaps for TrimAlignment function
   int trimming_gap_score;
 
   AlignmentFilter()
