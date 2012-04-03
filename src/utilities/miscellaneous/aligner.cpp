@@ -150,11 +150,9 @@ void Aligner::AlignCandidate(const bool& detect_special,
 		    const bam1_t& target,
 		    vector<bam1_t*>* alignments) {
 
-  SR_QueryRegion* query_region = SR_QueryRegionAlloc();
-  query_region->pAnchor = (bam1_t*) &anchor;
-  query_region->pOrphan = (bam1_t*) &target;
-  Align(detect_special, alignment_filter, query_region, alignments);
-  SR_QueryRegionFree(query_region);
+  query_region_->pAnchor = (bam1_t*) &anchor;
+  query_region_->pOrphan = (bam1_t*) &target;
+  Align(detect_special, alignment_filter, query_region_, alignments);
 }
 
 void Aligner::Align(const bool& detect_special,
