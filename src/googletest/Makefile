@@ -9,7 +9,6 @@ TESTS_DIR = test_src
 TESTS_SOURCES_ = bam_utilities_GetPackedCigar_test.cpp \
 		anchor_region_test.cpp \
 		search_region_type_test.cpp \
-		special_hasher_test.cpp \
 		aligner_api_test.cpp
 
 TARGET_OBJECTS_ = bam_utilities.o \

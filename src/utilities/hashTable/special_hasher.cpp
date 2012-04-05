@@ -19,7 +19,7 @@ SpecialHasher::SpecialHasher(void)
     , references_(NULL)
     , hash_table_(NULL)
     , hash_size_(7)
-    , is_loaded(false){
+    , is_loaded_(false){
   Init();
 }
 
@@ -29,7 +29,7 @@ SpecialHasher::SpecialHasher(const char* fasta, const int& hash_size)
     , references_(NULL)
     , hash_table_(NULL)
     , hash_size_(hash_size)
-    , is_loaded(false){
+    , is_loaded_(false){
   Init();
 }
 
@@ -76,6 +76,6 @@ bool SpecialHasher::Load(void) {
 
   SR_OutHashTableFree(out_hash_table);
 
-  is_loaded = true;
+  is_loaded_ = true;
   return true;
 }
