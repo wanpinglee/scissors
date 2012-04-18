@@ -16,7 +16,7 @@ TEST(AlignmentFilter, NoTrim) {
   Alignment golden = al;
 
   AlignmentFilter filter;
-  ASSERT_FALSE(AlignmentFilterApplication::TrimAlignment(filter, &al));
+  AlignmentFilterApplication::TrimAlignment(filter, &al);
   
   ASSERT_EQ(golden.reference_begin, al.reference_begin);
   ASSERT_EQ(golden.reference_end, al.reference_end);
@@ -48,7 +48,7 @@ TEST(AlignmentFilter, TrimBegin) {
 
 
   AlignmentFilter filter;
-  ASSERT_TRUE(AlignmentFilterApplication::TrimAlignment(filter, &al));
+  AlignmentFilterApplication::TrimAlignment(filter, &al);
   
   ASSERT_EQ(golden.reference_begin, al.reference_begin);
   ASSERT_EQ(golden.reference_end, al.reference_end);
@@ -80,7 +80,7 @@ TEST(AlignmentFilter, TrimBeginGap) {
 
 
   AlignmentFilter filter;
-  ASSERT_TRUE(AlignmentFilterApplication::TrimAlignment(filter, &al));
+  AlignmentFilterApplication::TrimAlignment(filter, &al);
   
   ASSERT_EQ(golden.reference_begin, al.reference_begin);
   ASSERT_EQ(golden.reference_end, al.reference_end);
@@ -113,7 +113,7 @@ TEST(AlignmentFilter, TrimEnd) {
 
 
   AlignmentFilter filter;
-  ASSERT_TRUE(AlignmentFilterApplication::TrimAlignment(filter, &al));
+  AlignmentFilterApplication::TrimAlignment(filter, &al);
   
   ASSERT_EQ(golden.reference_begin, al.reference_begin);
   ASSERT_EQ(golden.reference_end, al.reference_end);
@@ -145,7 +145,7 @@ TEST(AlignmentFilter, TrimEndGap) {
 
 
   AlignmentFilter filter;
-  ASSERT_TRUE(AlignmentFilterApplication::TrimAlignment(filter, &al));
+  AlignmentFilterApplication::TrimAlignment(filter, &al);
   
   ASSERT_EQ(golden.reference_begin, al.reference_begin);
   ASSERT_EQ(golden.reference_end, al.reference_end);
@@ -177,7 +177,7 @@ TEST(AlignmentFilter, TrimBoth) {
 
 
   AlignmentFilter filter;
-  ASSERT_TRUE(AlignmentFilterApplication::TrimAlignment(filter, &al));
+  AlignmentFilterApplication::TrimAlignment(filter, &al);
   
   ASSERT_EQ(golden.reference_begin, al.reference_begin);
   ASSERT_EQ(golden.reference_end, al.reference_end);

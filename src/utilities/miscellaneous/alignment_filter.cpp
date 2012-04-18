@@ -4,7 +4,7 @@
 #include "dataStructures/alignment.h"
 
 namespace AlignmentFilterApplication {
-bool TrimAlignment(
+void TrimAlignment(
     const AlignmentFilter& filter,
     Alignment* al){
 
@@ -42,7 +42,7 @@ bool TrimAlignment(
     int end = best_start + best_length - 1;
     //sanity check
     if (end > (al->reference.size() - 1)) {
-      return false;
+      //nothing
     } else {
       // trim from the tail
       if (end < (al->reference.size() - 1)) {
@@ -66,10 +66,9 @@ bool TrimAlignment(
         al->reference.erase(0, best_start);
         al->query.erase(0, best_start);
       }
-      return true;
     }
   } else {
-    return false;
+    // nothing
   }
 } // TrimAlignment
 

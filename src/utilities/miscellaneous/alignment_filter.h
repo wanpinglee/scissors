@@ -28,7 +28,7 @@ struct AlignmentFilter {
 };
 
 namespace AlignmentFilterApplication {
-bool TrimAlignment(const AlignmentFilter& filter, Alignment* al);
+void TrimAlignment(const AlignmentFilter& filter, Alignment* al);
 
 inline bool FilterByMismatch(const AlignmentFilter& filter, const Alignment& al);
 
