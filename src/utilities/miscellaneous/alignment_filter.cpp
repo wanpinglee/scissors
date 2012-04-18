@@ -37,7 +37,8 @@ bool TrimAlignment(
   }
 
   // trim alignment
-  if ((best_length > 0) && (best_length < al->reference.size())) {
+  if ((best_length > 0) 
+  && (static_cast<unsigned int>(best_length) < al->reference.size())) {
     int end = best_start + best_length - 1;
     //sanity check
     if (end > (al->reference.size() - 1)) {

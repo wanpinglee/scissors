@@ -212,8 +212,10 @@ void Aligner::Align(const bool& detect_special,
 	
 	namespace filter_app = AlignmentFilterApplication;
 	bool trimming_al_okay = true;
-	trimming_al_okay &= filter_app::TrimAlignment(alignment_filter, &al1);
-	trimming_al_okay &= filter_app::TrimAlignment(alignment_filter, &al2);
+	//trimming_al_okay &= filter_app::TrimAlignment(alignment_filter, &al1);
+	//trimming_al_okay &= filter_app::TrimAlignment(alignment_filter, &al2);
+	filter_app::TrimAlignment(alignment_filter, &al1);
+	filter_app::TrimAlignment(alignment_filter, &al2);
 	trimming_al_okay &= ((al1.reference.size() > 0) && (al2.reference.size() > 0));
 
 	bool passing_filter = true;
