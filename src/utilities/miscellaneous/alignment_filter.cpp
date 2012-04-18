@@ -37,8 +37,8 @@ bool TrimAlignment(
   }
 
   // trim alignment
-  if (length > 0) {
-    int end = start + length - 1;
+  if ((best_length > 0) && (best_length < al->reference.size())) {
+    int end = best_start + best_length - 1;
     //sanity check
     if (end > (al->reference.size() - 1)) {
       return false;
@@ -56,14 +56,14 @@ bool TrimAlignment(
       }
       
       // trim from the begin
-      if (start > 0) {
-        for (int i = 0; i < start; ++i) {
+      if (best_start > 0) {
+        for (int i = 0; i < best_start; ++i) {
 	  if (al->reference[i] != AlignmentConstant::GAP) ++(al->reference_begin);
 	  if (al->query[i] != AlignmentConstant::GAP) ++(al->query_begin);
 	  if (al->reference[i] != al->query[i]) --(al->num_mismatches);
 	}
-        al->reference.erase(0, start);
-        al->query.erase(0, start);
+        al->reference.erase(0, best_start);
+        al->query.erase(0, best_start);
       }
       return true;
     }

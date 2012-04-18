@@ -505,6 +505,7 @@ void CBandedSmithWaterman::ReinitializeMatrices(
 
 		mCurrentMatrixSize = numColumns * numRows;
 		if(mPointers) delete [] mPointers;
+		mPointers = NULL;
 
 		try {
 			mPointers = new ElementInfo[mCurrentMatrixSize];
@@ -528,6 +529,8 @@ void CBandedSmithWaterman::ReinitializeMatrices(
 		mCurrentAQSumSize = s1Length + s2Length;
 		if(mReversedAnchor)	delete [] mReversedAnchor;
 		if(mReversedQuery)	delete [] mReversedQuery;
+		mReversedAnchor = NULL;
+		mReversedQuery  = NULL;
 
 		try {
 			mReversedAnchor	= new char[mCurrentAQSumSize + 1]; // reversed sequence #1

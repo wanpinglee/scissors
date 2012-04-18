@@ -239,6 +239,7 @@ void PrintHelp(const string& program) {
 		<< endl
 		<< "   -Q --mapping-quality-threshold <INT>" << endl
 		<< "                         Mapping quality threshold [0 - 255] of candidate alignments." << endl
+		<< endl
 
 		<< "Split-read alignment filters:" << endl
 		<< endl
