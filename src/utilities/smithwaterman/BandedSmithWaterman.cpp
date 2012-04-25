@@ -19,6 +19,7 @@ const float kMismatchScore = -9.0f;
 const float kGapOpenPenalty = 15.0f;
 const float kGapExtendPenalty = 6.66f;
 
+namespace Scissors {
 // constructor
 CBandedSmithWaterman::CBandedSmithWaterman() 
 : mCurrentMatrixSize(0)
@@ -670,3 +671,4 @@ void CBandedSmithWaterman::Traceback(
 	//CorrectHomopolymerGapOrder( alignment_length, numMismatches );
 
 }
+} //namespace Scissors

@@ -14,13 +14,14 @@ using std::endl;
 using std::string;
 
 bool CheckParameters(Parameters* param);
-void PrintHelp(const string& program);
+void PrintLongHelp(const string& program);
+void PrintBriefHelp(const string& program);
 
 void ParseArgumentsOrDie(const int argc, char* const * argv, 
     Parameters* param) {
 
 	if (argc == 1) { // no argument
-		PrintHelp(argv[0]);
+		PrintBriefHelp(argv[0]);
 		exit(1);
 	}
 
@@ -31,45 +32,60 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		param->command_line += argv[i];
 	}
 
-	const char *short_option = "hi:r:o:l:w:c:sp:SQ:B:M:X:Y:Z:";
+	const char *short_option = "hi:r:o:l:w:c:sp:SQ:B:M:";
 
 	const struct option long_option[] = {
-		{ "help", no_argument, NULL, 'h' },
-		{ "input", required_argument, NULL, 'i' },
-		{ "output", required_argument, NULL, 'o' },
-		{ "reference-hash-table", required_argument, NULL, 'r' },
+		// long help
+		{"help", no_argument, NULL, 1},
 
-		{ "fragment-length", required_argument, NULL, 'l' },
-		{ "window-size", required_argument, NULL, 'w' },
-		{ "allowed-clip", required_argument, NULL, 'c' },
-		{ "is-input-sorted", no_argument, NULL, 's'},
-		{ "processors", required_argument, NULL, 'p'},
-		{ "special", no_argument, NULL, 'S'},
+		// i/o parameters
+		{"input", required_argument, NULL, 'i'},
+		{"output", required_argument, NULL, 'o'},
+		{"reference-hash-table", required_argument, NULL, 'r'},
 
-		{ "mapping-quality-threshold", no_argument, NULL, 'Q'},
+		// operation parameters
+		{"fragment-length", required_argument, NULL, 'l'},
+		{"window-size", required_argument, NULL, 'w'},
+		{"allowed-clip", required_argument, NULL, 'c'},
+		{"is-input-sorted", no_argument, NULL, 's'},
+		{"processors", required_argument, NULL, 'p'},
+		{"special-insertion", no_argument, NULL, 'S'},
+		{"not-medium-sized-indel", no_argument, NULL, 5},
 
-		{ "aligned-base-rate", no_argument, NULL, 'B'},
-		{ "allowed-mismatch-rate", no_argument, NULL, 'M'},
-		{ "trimming-match-score", no_argument, NULL, 'X'},
-		{ "trimming-mismatch-penalty", no_argument, NULL, 'Y'},
-		{ "trimming-gap-penalty", no_argument, NULL, 'Z'},
+		// original bam alignment filters
+		{"mapping-quality-threshold", no_argument, NULL, 'Q'},
 
-		{ 0, 0, 0, 0 }
+		// split-read alignment filters
+		{"aligned-base-rate", no_argument, NULL, 'B'},
+		{"allowed-mismatch-rate", no_argument, NULL, 'M'},
+		{"trimming-match-score", required_argument, NULL, 2},
+		{"trimming-mismatch-penalty", required_argument, NULL, 3},
+		{"trimming-gap-penalty", required_argument, NULL, 4},
+
+
+		{0, 0, 0, 0}
 	};
 
 	int c = 0;
-	bool help = false;
+	bool brief_help = false;
+	bool long_help  = false;
 	while (true) {
-		int optionIndex = 0;
-		c = getopt_long( argc, argv, short_option, long_option, &optionIndex );
+		int option_index = 0;
+		c = getopt_long(argc, argv, short_option, long_option, &option_index);
 		
-		if ( c == -1 ) // end of options
+		if (c == -1) // end of options
 			break;
 		
-		switch ( c ) {
+		switch (c) {
+			case 0:
+				break;
 			// help
 			case 'h':
-				help = true;
+				brief_help = true;
+				break;
+			case 1:
+				brief_help = false;
+				long_help = true;
 				break;
 			// i/o parameters
 			case 'i':
@@ -107,6 +123,8 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 			case 'S':
 				param->detect_special = true;
 				break;
+			case 5:
+				param->not_medium_sized_indel = true;
 
 			// original bam alignment filters
 			case 'Q':
@@ -123,18 +141,20 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 				if (!convert_from_string(optarg, param->allowed_mismatch_rate))
 					cerr << "WARNING: Cannot parse -M --allowed-mismatch-rate." << endl;
 				break;
-			case 'X':
+
+			case 2:
 				if (!convert_from_string(optarg, param->trimming_match_score))
-					cerr << "WARNING: Cannot parse -X --trimming-match-score." << endl;
+					cerr << "WARNING: Cannot parse the argument of --trimming-match-score." << endl;
 				break;
-			case 'Y':
+			case 3:
 				if (!convert_from_string(optarg, param->trimming_mismatch_penalty))
-					cerr << "WARNING: Cannot parse -Y --trimming-mismatch-penalty." << endl;
+					cerr << "WARNING: Cannot parse the argument of --trimming-mismatch-penalty." << endl;
 				break;
-			case 'Z':
+			case 4:
 				if (!convert_from_string(optarg, param->trimming_gap_penalty))
-					cerr << "WARNING: Cannot parse -Z --trimming-gap-penalty." << endl;
+					cerr << "WARNING: Cannot parse the argument of --trimming-gap-penalty." << endl;
 				break;
+			
 
 			default:
 				break;
@@ -142,12 +162,16 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 
 	}
 
-	if (help) {
-		PrintHelp(argv[0]);
+	if (long_help) {
+		PrintLongHelp(argv[0]);
+		exit(1);
+	}
+	if (brief_help) {
+		PrintBriefHelp(argv[0]);
 		exit(1);
 	}
 
-	CheckParameters(param);
+	if (!CheckParameters(param)) exit(1);
 }
 
 // true: passing the checker
@@ -200,7 +224,36 @@ bool CheckParameters(Parameters* param) {
 
 }
 
-void PrintHelp(const string& program) {
+void PrintBriefHelp(const string& program) {
+	cout
+		<< endl
+		<< "usage: " << program << " [OPTIONS] -i <FILE> -o <FILE> -r <FILE_PREFIX> -l <INT>"
+		<< endl
+		<< endl
+		<< "Help:" << endl
+		<< "   -h                    Print this help dialog." << endl
+		<< "   --help                Print the complete help dialog." << endl
+		<< endl
+		<< "Input & Output:" << endl
+		<< endl
+		<< "   -i --input <FILE>     Input BAM file." << endl
+		<< "   -o --output <FILE>    Output BAM file." << endl
+		<< "   -r --reference-hash-table <FILE_PREFIX>" << endl 
+		<< "                         Hash table of the genome. A reference file (FILE_PREFI-" << endl
+		<< "                         X.ref) and a hash table (FILE_PREFIX.ht) will be loaded" << endl
+		<< "                         ." << endl
+		<< endl
+
+		<< "Operations:" << endl
+		<< endl
+		<< "   -l --fragment-length <INT>" << endl
+		<< "                         Fragment length." << endl
+		<< endl;
+		
+
+}
+
+void PrintLongHelp(const string& program) {
 	cout
 		<< endl
 		<< "usage: " << program << " [OPTIONS] -i <FILE> -o <FILE> -r <FILE_PREFIX> -l <INT>"
@@ -208,15 +261,17 @@ void PrintHelp(const string& program) {
 		<< endl
 		<< "Help:" << endl
 		<< endl
-		<< "   -h --help             Print this help dialog." << endl
+		<< "   -h                    Print the brief help dialog." << endl
+		<< "   --help                Print this help dialog." << endl
 		<< endl
 		<< "Input & Output:" << endl
 		<< endl
-		<< "   -i --input <FILE>     Input BAM-format file." << endl
-		<< "   -o --output <FILE>    Output BAM-format file." << endl
+		<< "   -i --input <FILE>     Input BAM file." << endl
+		<< "   -o --output <FILE>    Output BAM file." << endl
 		<< "   -r --reference-hash-table <FILE_PREFIX>" << endl 
-		<< "                         Hash table of the genome. A reference file (FILE_PREFIX.ref)" << endl
-		<< "                         and a hash table (FILE_PREFIX.ht) will be loaded." << endl
+		<< "                         Hash table of the genome. A reference file (FILE_PREFI-" << endl
+		<< "                         X.ref) and a hash table (FILE_PREFIX.ht) will be loaded" << endl
+		<< "                         ." << endl
 		<< endl
 		
 		<< "Operations:" << endl
@@ -224,38 +279,37 @@ void PrintHelp(const string& program) {
 		<< "   -l --fragment-length <INT>" << endl
 		<< "                         Fragment length." << endl
 		<< "   -w --window-size <INT>" << endl
-		<< "                         Window size (-w x -l) for searching mates in bam." << endl
-		<< "                         Default: 2" << endl
-		<< "   -c --allowed-clip <FLOAT>"  << endl
-		<< "                         Percentage [0.0 - 1.0] of allowed soft clip of anchors." << endl
-		<< "                         Default: 0.2" << endl
+		<< "                         Window size (-w x -l) for searching mates in bam. [2]" << endl
 		<< "   -s --is-input-sorted" << endl
 		<< "   -p --processors <INT> Use # of processors." << endl
-		<< "   -S --special-reference" << endl
-		<< "                         Detect special references, e.g. MEI." << endl
+		<< "   -S --special-insertion" << endl
+		<< "                         Detect insertions in special references, e.g. MEIs." << endl
 		<< endl
 
 		<< "Original BAM alignments filters:" << endl
 		<< endl
 		<< "   -Q --mapping-quality-threshold <INT>" << endl
-		<< "                         Mapping quality threshold [0 - 255] of candidate alignments." << endl
-		<< "                         Default: 10" << endl
+		<< "                         Mapping quality threshold (0 - 255) of candidatei alig-" << endl
+		<< "                         nments. [10]" << endl
+		<< "   -c --allowed-clip <FLOAT>"  << endl
+		<< "                         Percentage (0.0 - 1.0) of allowed soft clip of anchors." << endl
+		<< "                         [0.2]" << endl
 		<< endl
 
 		<< "Split-read alignment filters:" << endl
 		<< endl
 		<< "   -B --aligned-base-rate <FLOAT>" << endl
-		<< "                         Minimum aligned-base rate [0.0 - 1.0] of split-read alignments." << endl
-		<< "                         Default: 0.3" << endl
+		<< "                         Minimum aligned-base rate (0.0 - 1.0) of split-read al-" << endl
+		<< "                         ignments. [0.3]" << endl
 		<< "   -M --allowed-mismatch-rate <FLOAT>" << endl
-		<< "                         Maximum mismatch rate [0.0 - 1.0] in split-read alignments." << endl
-		<< "                         Default: 0.1" << endl
-		<< "   -X --trimming-match-score <INT>" << endl
-		<< "                         Match score for alignment trimming. Default: 1" << endl
-		<< "   -Y --trimming-match-penalty <INT>" << endl
-		<< "                         Mismatch penalty for alignment trimming. Default: 2" << endl
-		<< "   -Z --trimming-gap-penalty <INT>" << endl
-		<< "                         Gap penalty for alignment trimming. Default: 2" << endl
+		<< "                         Maximum mismatch rate (0.0 - 1.0) in split-read alignm-" << endl
+		<< "                         ents. [0.1]" << endl
+		<< "   --trimming-match-score <INT>" << endl
+		<< "                         Match score for alignment trimming. [1]" << endl
+		<< "   --trimming-match-penalty <INT>" << endl
+		<< "                         Mismatch penalty for alignment trimming. [2]" << endl
+		<< "   --trimming-gap-penalty <INT>" << endl
+		<< "                         Gap penalty for alignment trimming. [2]" << endl
 
 		<< endl;
 }

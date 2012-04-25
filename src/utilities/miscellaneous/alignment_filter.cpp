@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include "dataStructures/alignment.h"
-
+namespace Scissors {
 namespace AlignmentFilterApplication {
 void TrimAlignment(
     const AlignmentFilter& filter,
@@ -72,4 +72,5 @@ void TrimAlignment(
   }
 } // TrimAlignment
 
-} // namespace AlignmentFilter
+} //namespace AlignmentFilter
+} //namespaceScissors

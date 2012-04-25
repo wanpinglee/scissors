@@ -5,6 +5,8 @@
 
 #include "dataStructures/alignment.h"
 
+namespace Scissors {
+
 // The filter is used for split-read (SR) alignments.
 struct AlignmentFilter {
   // the ratio of SR bases to orignal mate bases [0.0-1.0]
@@ -59,5 +61,5 @@ inline bool AlignmentFilterApplication::FilterByAlignedBaseThreshold(
   if (aligned_bases > aligned_base_threshold) return true;
   else return false;
 }
-
+} // namespace
 #endif // UTILITY_MISCELLANEOUS_ALIGNMENT_FILTER_H_

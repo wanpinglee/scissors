@@ -13,6 +13,7 @@
 using std::string;
 using std::vector;
 
+namespace Scissors {
 namespace BamUtilities {
 
 bool ReplaceHeaderSoText(bam_header_t* const header);
@@ -43,5 +44,5 @@ bool AppendReferenceSequence(const char** names,
                              const int& n_sequences,
 			     bam_header_t* const header);
 } // namespace BamUtilities
-
+} // namespace Scirros
 #endif // SRC_UTILITIES_BAMUTILITIES_H_

@@ -15,6 +15,7 @@ using std::endl;
 
 static const char COMPLEMENT_BASE_MAP[16] = {0x0, 0x8, 0x4, 0xf, 0x2,0xf,0xf,0xf,0x1,0xf,0xf,0xf,0xf,0xf,0xf,0xf};
 
+namespace Scissors {
 namespace BamUtilities {
 bool ResetHeaderText( bam_header_t* const header, const string& header_string ){
 	
@@ -420,3 +421,4 @@ bool AppendReferenceSequence(const char** names,
 }
 
 } // namespace BamUtilities
+} //namespace Scissors

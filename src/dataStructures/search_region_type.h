@@ -7,6 +7,7 @@
 
 using std::vector;
 
+namespace Scissors {
 class SearchRegionType {
  public:
   struct RegionType {
@@ -68,5 +69,5 @@ inline void SearchRegionType::SetTechnology(const Technology& technology) {
   technology_ = technology;
   ResetRegionTypeList();
 }
-
+} // namespace
 #endif // DATASTRUCTURES_SEARCH_REGION_TYPE_H_

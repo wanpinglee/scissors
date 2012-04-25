@@ -18,20 +18,21 @@ struct Parameters {
   // operation parameters
   int   fragment_length;  // -l --fragmenr-length
   int   mate_window_size; // -w --window-size
-  float allowed_clip;     // -c --allowed-clip
   bool  is_input_sorted;  // -s --is-input-sorted
   int   processors;       // -p --processors
   bool  detect_special;   // -S --special-reference
+  bool  not_medium_sized_indel; // not-medium-sized-indel
 
   // original alignment filters
   int mapping_quality_threshold; // -Q --mapping-quality-threshold
+  float allowed_clip;            // -c --allowed-clip
 
   // split-read alignment filters
   float aligned_base_rate;         // -B --aligned-base-rate
   float allowed_mismatch_rate;     // -M --allowed-mismatch-rate
-  int   trimming_match_score;      // -X --trimming-match-score
-  int   trimming_mismatch_penalty; // -Y --trimming-mismatch-penalty
-  int   trimming_gap_penalty;      // -Z --trimming-gap-penalty
+  int   trimming_match_score;      // --trimming-match-score
+  int   trimming_mismatch_penalty; // --trimming-mismatch-penalty
+  int   trimming_gap_penalty;      // --trimming-gap-penalty
 	
   // command line
   string command_line;
@@ -45,11 +46,12 @@ struct Parameters {
       , hash_filename()
       , fragment_length(-1)
       , mate_window_size(2)
-      , allowed_clip(0.2)
       , is_input_sorted(false)
       , processors(1)
       , detect_special(false)
+      , not_medium_sized_indel(false)
       , mapping_quality_threshold(10)
+      , allowed_clip(0.2)
       , aligned_base_rate(0.3)
       , allowed_mismatch_rate(0.1)
       , trimming_match_score(1)

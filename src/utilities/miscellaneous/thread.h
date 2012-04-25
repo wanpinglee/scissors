@@ -13,15 +13,18 @@ extern "C" {
 }
 
 #include "dataStructures/alignment.h"
+#include "dataStructures/target_event.h"
 #include "utilities/miscellaneous/alignment_filter.h"
 
 using std::vector;
+
+namespace Scissors {
 
 struct ThreadData{
   int   id;
   float allowed_clip;
   int   fragment_length;
-  bool  detect_special;
+  TargetEvent target_event;
   int   bam_mq_threshold;
   AlignmentFilter alignment_filter;
   SR_BamInStream*     bam_reader;
@@ -43,7 +46,7 @@ class Thread {
          const float&    allowed_clip,
          const int&      thread_count,
 	 const int&      fragment_length,
-	 const bool&     detect_special,
+	 const TargetEvent& target_event,
 	 const int&      bam_mq_threshold,
 	 const AlignmentFilter& alignment_filter,
 	 FILE*           ref_reader,
@@ -57,7 +60,7 @@ class Thread {
   const float           allowed_clip_;
   const int             thread_count_;
   const int             fragment_length_;
-  const bool            detect_special_;
+  const TargetEvent     target_event_;
   const int             bam_mq_threshold_;
   const AlignmentFilter alignment_filter_;
   FILE*           ref_reader_;
@@ -78,5 +81,5 @@ class Thread {
   Thread (const Thread&);
   Thread& operator=(const Thread&);
 };
-
+} //namespace
 #endif // UTILITIES_MISCELLANEOUS_THREADDATA_H

@@ -3,6 +3,7 @@
 
 #include "dataStructures/alignment.h"
 
+namespace Scissors {
 class CSmithWatermanGotoh {
 public:
 	// constructor
@@ -71,3 +72,4 @@ inline float CSmithWatermanGotoh::MaxFloats(const float& a, const float& b, cons
 	if(c > max) max = c;
 	return max;
 }
+} //namespace Scissors

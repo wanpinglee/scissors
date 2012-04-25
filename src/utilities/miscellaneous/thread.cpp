@@ -20,7 +20,7 @@ using std::endl;
 pthread_mutex_t bam_in_mutex;
 pthread_mutex_t bam_out_mutex;
 
-namespace {
+namespace Scissors {
 // Given a SR_BamListIter containing alignments,
 //  reports the chromosome id of the alignments.
 // Note: Alignments in the list should be located in the same chromosome
@@ -105,7 +105,7 @@ void* RunThread (void* thread_data_) {
 
     if (td->alignment_list.pBamNode != NULL) {
       td->alignments.clear();
-      aligner.AlignCandidate(td->detect_special, td->alignment_filter, &td->alignment_list, &td->alignments_bam);
+      aligner.AlignCandidate(td->target_event, td->alignment_filter, &td->alignment_list, &td->alignments_bam);
       StoreAlignmentInBam(td->alignments_bam, td->bam_writer);
       FreeAlignmentBam(&td->alignments_bam);
       
@@ -120,14 +120,12 @@ void* RunThread (void* thread_data_) {
 
   pthread_exit(NULL);
 }
-} // namespace
-
 
 Thread::Thread(const BamReference* bam_reference,
 	       const float& allowed_clip,
 	       const int& thread_count,
 	       const int& fragment_length,
-	       const bool& detect_special,
+	       const TargetEvent& target_event,
 	       const int& bam_mq_threshold,
 	       const AlignmentFilter& alignment_filter,
 	       FILE* ref_reader,
@@ -138,7 +136,7 @@ Thread::Thread(const BamReference* bam_reference,
     , allowed_clip_(allowed_clip)
     , thread_count_(thread_count)
     , fragment_length_(fragment_length)
-    , detect_special_(detect_special)
+    , target_event_(target_event)
     , bam_mq_threshold_(bam_mq_threshold)
     , alignment_filter_(alignment_filter)
     , ref_reader_(ref_reader)
@@ -167,7 +165,7 @@ void Thread::Init() {
   }
 
   // load special references and their hash tables if necessary
-  if (detect_special_) {
+  if (target_event_.special_insertion) {
     // load special references
     reference_special_ = SR_ReferenceAlloc();
     if (SR_SpecialRefRead(reference_special_, reference_header_, ref_reader_) == SR_ERR)
@@ -187,7 +185,7 @@ Thread::~Thread() {
   SR_ReferenceFree(reference_);
   SR_InHashTableFree(hash_table_);
   SR_RefHeaderFree(reference_header_);
-  if (detect_special_) {
+  if (target_event_.special_insertion) {
     SR_ReferenceFree(reference_special_);
     SR_InHashTableFree(hash_table_special_);
   }
@@ -199,7 +197,7 @@ void Thread::InitThreadData() {
     thread_data_[i].id                       = i;
     thread_data_[i].allowed_clip             = allowed_clip_;
     thread_data_[i].fragment_length          = fragment_length_;
-    thread_data_[i].detect_special           = detect_special_;
+    thread_data_[i].target_event             = target_event_;
     thread_data_[i].bam_mq_threshold         = bam_mq_threshold_;
     thread_data_[i].alignment_filter         = alignment_filter_;
     thread_data_[i].bam_reader               = bam_reader_;
@@ -321,3 +319,4 @@ bool Thread::Start() {
 
   return true;
 }
+} // namespace

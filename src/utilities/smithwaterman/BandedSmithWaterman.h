@@ -7,6 +7,7 @@
 
 using namespace std;
 
+namespace Scissors {
 
 struct BandedSmithWatermanHashRegion {
 	uint32_t reference_begin;
@@ -140,5 +141,5 @@ private:
 	bool  mUseHomoPolymerGapOpenPenalty;
 	float mHomoPolymerGapOpenPenalty;
 };
-
+} //namespace Scissors
 #endif

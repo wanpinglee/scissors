@@ -12,6 +12,8 @@ using std::cerr;
 using std::endl;
 using std::bad_alloc;
 
+namespace Scissors {
+
 const char CSmithWatermanGotoh::Directions_STOP     = 0;
 const char CSmithWatermanGotoh::Directions_LEFT     = 1;
 const char CSmithWatermanGotoh::Directions_DIAGONAL = 2;
@@ -482,3 +484,5 @@ void CSmithWatermanGotoh::CorrectHomopolymerGapOrder(const unsigned int numBases
 		i += numGappedBases + nonGapLength - 1;
 	}
 }
+
+} //namespace Scissors

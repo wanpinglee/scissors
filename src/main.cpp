@@ -20,6 +20,8 @@ using std::string;
 using std::cerr;
 using std::endl;
 
+using namespace Scissors;
+
 struct MainFiles {
   SR_BamInStream* bam_reader;  // bam reader
   bamFile         bam_writer;  // bam writer
@@ -32,7 +34,8 @@ struct MainVars{
   SR_BamHeader*    bam_header;
   SR_StreamMode    bam_record_mode;
   // alignment
-  AlignmentFilter alignment_filter;
+  AlignmentFilter  alignment_filter;
+  TargetEvent      target_event;
 };
 
 
@@ -49,6 +52,8 @@ void AppendReferenceSequence(bam_header_t* const bam_header,
                              const string& reference_filename);
 void SetAlignmentFilter(const Parameters& parameters, 
                         AlignmentFilter* filter);
+void SetTargetEvent(const Parameters& parameters,
+                    TargetEvent* target_event);
 
 
 int main (int argc, char** argv) {
@@ -89,7 +94,7 @@ int main (int argc, char** argv) {
 		parameters.allowed_clip,
 		parameters.processors,
 		parameters.fragment_length,
-		parameters.detect_special,
+		vars.target_event,
 		parameters.mapping_quality_threshold,
 		vars.alignment_filter,
 		files.ref_reader,
@@ -167,6 +172,7 @@ void InitVariablesOrDie(const Parameters& parameters,
   IsInputBamSortedOrDie(parameters, *(vars->bam_header));
 
   SetAlignmentFilter(parameters, &(vars->alignment_filter));
+  SetTargetEvent(parameters, &(vars->target_event));
 
   // print bam header
   /*
@@ -280,4 +286,10 @@ void SetAlignmentFilter(const Parameters& parameters,
   filter->trimming_match_score    = parameters.trimming_match_score;
   filter->trimming_mismatch_score = 0 - parameters.trimming_mismatch_penalty;
   filter->trimming_gap_score      = 0 - parameters.trimming_gap_penalty;
+}
+
+void SetTargetEvent(const Parameters& parameters,
+                    TargetEvent* target_event) {
+  target_event->special_insertion  = parameters.detect_special;
+  target_event->medium_sized_indel = !parameters.not_medium_sized_indel;
 }

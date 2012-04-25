@@ -4,6 +4,7 @@
 
 #include <algorithm>
 
+namespace Scissors {
 // for illumina forward anchors
 // struct RegionType {bool upstream; bool sequence_inverse; bool sequence_complement;};
 const static SearchRegionType::RegionType kRegionType1 = {true, true, true};
@@ -180,4 +181,4 @@ void SearchRegionType::ResetRegionTypeList(void) {
   }
   RewindRegionTypeList();
 }
-
+} // namespace

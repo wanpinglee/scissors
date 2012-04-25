@@ -18,6 +18,8 @@ bool OperatorQueryBeginDescending(const BestRegion* r1, const BestRegion* r2) {
   return (r2->queryBegin) < (r1->queryBegin);
 }
 
+namespace Scissors {
+
 void HashesCollection::Init(const BestRegionArray& array) {
   hash_regions_.clear();
   hash_regions_.resize(array.size);
@@ -110,3 +112,4 @@ void HashesCollection::Print(void) const {
     fprintf(stderr, "%u %u %u %u %u %u\n", (*ite)->refBegins[0], (*ite)->refBegins[1], (*ite)->refBegins[2], (*ite)->queryBegin, (*ite)->length, (*ite)->numPos);
   }
 }
+} //namespace Scissors

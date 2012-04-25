@@ -9,6 +9,7 @@ struct BestRegion;
 
 using std::vector;
 
+namespace Scissors {
 class HashesCollection {
  public:
   HashesCollection(){};
@@ -30,5 +31,5 @@ class HashesCollection {
 inline const int HashesCollection::GetSize() const {
   return hash_regions_.size();
 }
-
+} //namespace Scissors
 #endif  // UTILITIES_HASH_REGION_COLLECTION_H_

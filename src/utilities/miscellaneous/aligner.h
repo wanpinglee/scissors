@@ -14,9 +14,11 @@ extern "C" {
 #include "dataStructures/search_region_type.h"
 #include "utilities/smithwaterman/BandedSmithWaterman.h"
 
+namespace Scissors {
 
 struct Alignment;
 struct AlignmentFilter;
+struct TargetEvent;
 class HashesCollection;
 
 class Aligner {
@@ -34,7 +36,7 @@ class Aligner {
   // @param  al_ite            all target pairs are stored here
   // @param  alignments        all obtained split-read alignments are stored here
   //         [NOTICE]          Users should free bam1_t in the vector
-  void AlignCandidate(const bool& detect_special,
+  void AlignCandidate(const TargetEvent& target_event,
                       const AlignmentFilter& alignment_filter,
                       SR_BamInStreamIter* al_ite, 
                       vector<bam1_t*>* alignments);
@@ -46,7 +48,7 @@ class Aligner {
   // @param  target            target (unmapped) mate which is the split-read target
   // @param  alignments        all obtained split-read alignments are stored here
   //         [NOTICE]          Users should free bam1_t in the vector
-  void AlignCandidate(const bool& detect_special,
+  void AlignCandidate(const TargetEvent& target_event,
                       const AlignmentFilter& alignment_filter,
 		      const bam1_t& anchor,
 		      const bam1_t& target,
@@ -75,7 +77,7 @@ class Aligner {
                     const char* read_seq, Alignment* al);
   void GetTargetRefRegion(const int& read_length, const int& hash_begin,
                           const bool& special, int* begin, int* end);
-  void Align(const bool& detect_special,
+  void Align(const TargetEvent& target_event,
              const AlignmentFilter& alignment_filter,
 	     const SR_QueryRegion* query_region_,
 	     vector<bam1_t*>* alignments);
@@ -83,5 +85,5 @@ class Aligner {
   Aligner (const Aligner&);
   Aligner& operator= (const Aligner&);
 };
-
+} // namespace
 #endif // _ALIGNER_H_

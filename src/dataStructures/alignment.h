@@ -8,6 +8,7 @@ using std::string;
 
 #define MOSAIK_NUM_NUCLEOTIDES 26
 
+namespace Scissors {
 namespace AlignmentConstant {
 
 const char GAP = '-';
@@ -41,5 +42,5 @@ struct Alignment{
 		, is_seq_complement(false)
 	{}
 }; // Alignment
-
+} //namespace Scissors
 #endif // DATASTRUCTURES_ALIGNMENT_H_

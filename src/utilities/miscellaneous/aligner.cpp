@@ -8,7 +8,7 @@
 #include "utilities/miscellaneous/alignment_filter.h"
 #include "utilities/miscellaneous/hashes_collection.h"
 
-namespace {
+namespace Scissors {
 void SetTargetSequence(const SearchRegionType::RegionType& region_type, 
                        SR_QueryRegion* query_region) {
   //const bool forward    = !bam1_strand(query_region->pOrphan);
@@ -84,7 +84,6 @@ void AdjustBamFlag(bam1_t* al_bam_anchor, bam1_t* partial_al1, bam1_t* partial_a
   partial_al1->core.flag = partial_flag;
   partial_al2->core.flag = partial_flag;
 }
-}
 
 Aligner::Aligner(const SR_Reference* reference, 
                  const SR_InHashTable* hash_table,
@@ -130,7 +129,7 @@ void Aligner::LoadRegionType(const bam1_t& anchor) {
     search_region_type_.RewindRegionTypeList();
 }
 
-void Aligner::AlignCandidate(const bool& detect_special,
+void Aligner::AlignCandidate(const TargetEvent& target_event,
                              const AlignmentFilter& alignment_filter,
 			     SR_BamInStreamIter* al_ite,
                              vector<bam1_t*>* alignments) {
@@ -138,13 +137,13 @@ void Aligner::AlignCandidate(const bool& detect_special,
       // TODO@WP: it may be removed later
       if (query_region_->algnType != SR_UNIQUE_ORPHAN) continue;
 
-      Align(detect_special, alignment_filter, query_region_, alignments);
+      Align(target_event, alignment_filter, query_region_, alignments);
     } // end while
 
     al_ite = NULL;
 }
 
-void Aligner::AlignCandidate(const bool& detect_special,
+void Aligner::AlignCandidate(const TargetEvent& target_event,
                     const AlignmentFilter& alignment_filter,
 		    const bam1_t& anchor,
 		    const bam1_t& target,
@@ -152,10 +151,10 @@ void Aligner::AlignCandidate(const bool& detect_special,
 
   query_region_->pAnchor = (bam1_t*) &anchor;
   query_region_->pOrphan = (bam1_t*) &target;
-  Align(detect_special, alignment_filter, query_region_, alignments);
+  Align(target_event, alignment_filter, query_region_, alignments);
 }
 
-void Aligner::Align(const bool& detect_special,
+void Aligner::Align(const TargetEvent& target_event,
                     const AlignmentFilter& alignment_filter,
 		    const SR_QueryRegion* query_region,
 		    vector<bam1_t*>* alignments) {
@@ -370,3 +369,4 @@ inline const char* Aligner::GetSequence(const size_t& start, const bool& special
   else
     return (reference_->sequence + start);
 }
+} //namespace

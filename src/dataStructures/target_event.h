@@ -2,10 +2,14 @@
 #define DATASTRUCTURES_TARGET_EVENT_H_
 
 namespace Scissors {
-enum TargetEvent {
-  ALL_EVENT,
-  SPECIAL_INSERTION,
-  MEDIUM_SIZE_INDEL
+struct TargetEvent {
+  bool special_insertion;
+  bool medium_sized_indel;
+
+  TargetEvent()
+      : special_insertion(false)
+      , medium_sized_indel(true)
+  {}
 };
 } // namespace
 #endif // DATASTRUCTURES_TARGET_EVENT_H_
