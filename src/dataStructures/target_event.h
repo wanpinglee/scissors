@@ -1,0 +1,11 @@
+#ifndef DATASTRUCTURES_TARGET_EVENT_H_
+#define DATASTRUCTURES_TARGET_EVENT_H_
+
+namespace Scissors {
+enum TargetEvent {
+  ALL_EVENT,
+  SPECIAL_INSERTION,
+  MEDIUM_SIZE_INDEL
+};
+} // namespace
+#endif // DATASTRUCTURES_TARGET_EVENT_H_
