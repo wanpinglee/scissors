@@ -16,12 +16,13 @@ struct Parameters {
   string hash_filename;
 
   // operation parameters
-  int   fragment_length;  // -l --fragmenr-length
-  int   mate_window_size; // -w --window-size
-  bool  is_input_sorted;  // -s --is-input-sorted
-  int   processors;       // -p --processors
-  bool  detect_special;   // -S --special-reference
-  bool  not_medium_sized_indel; // not-medium-sized-indel
+  int   fragment_length;        // -l --fragmenr-length
+  int   mate_window_size;       // -w --window-size; default: fragment_length * 2
+  int   discovery_window_size;  // --discovery-window-size
+  bool  is_input_sorted;        // -s --is-input-sorted
+  int   processors;             // -p --processors
+  bool  detect_special;         // -S --special-reference
+  bool  not_medium_sized_indel; // --not-medium-sized-indel
 
   // original alignment filters
   int mapping_quality_threshold; // -Q --mapping-quality-threshold
@@ -45,7 +46,8 @@ struct Parameters {
       , reference_filename()
       , hash_filename()
       , fragment_length(-1)
-      , mate_window_size(2)
+      , mate_window_size(-1)
+      , discovery_window_size(10000)
       , is_input_sorted(false)
       , processors(1)
       , detect_special(false)

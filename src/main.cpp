@@ -10,6 +10,8 @@ extern "C" {
 #include "utilities/common/SR_Types.h"
 }
 
+#include "dataStructures/target_event.h"
+#include "dataStructures/target_region.h"
 #include "utilities/bam/bam_reference.h"
 #include "utilities/bam/bam_utilities.h"
 #include "utilities/miscellaneous/alignment_filter.h"
@@ -36,6 +38,7 @@ struct MainVars{
   // alignment
   AlignmentFilter  alignment_filter;
   TargetEvent      target_event;
+  TargetRegion     target_region;
 };
 
 
@@ -54,13 +57,15 @@ void SetAlignmentFilter(const Parameters& parameters,
                         AlignmentFilter* filter);
 void SetTargetEvent(const Parameters& parameters,
                     TargetEvent* target_event);
+void SetTargetRegion(const Parameters& parameters,
+                     TargetRegion* target_region);
 
 
 int main (int argc, char** argv) {
 	
-  // Parse the arguments and store them
+  // Parse the arguments and store them.
   // The program will exit(1) with printing error message 
-  //     if any errors or missing required parameters are found
+  // if any errors or missing required parameters are found
   Parameters parameters;
   ParseArgumentsOrDie(argc, argv, &parameters);
 
@@ -97,6 +102,7 @@ int main (int argc, char** argv) {
 		vars.target_event,
 		parameters.mapping_quality_threshold,
 		vars.alignment_filter,
+		vars.target_region,
 		files.ref_reader,
 		files.hash_reader,
 		files.bam_reader,
@@ -126,15 +132,15 @@ void Deconstruct(MainFiles* files, MainVars* vars) {
 }
 
 void InitFiles(const Parameters& parameters, MainFiles* files) {
-  // set the stream mode to "UO" (unique orphan)
+  // set the stream mode to "UO" (unique orphan).
   SR_StreamMode streamMode;
   SR_SetStreamMode(&streamMode, SR_CommonFilter, NULL, SR_NO_SPECIAL_CONTROL);
-  // Initialize bam input reader
+  // Initialize bam input reader.
   // The program will be terminated with printing error message
-  //     if the given bam cannot be opened.
+  // if the given bam cannot be opened.
   files->bam_reader = SR_BamInStreamAlloc(
       parameters.input_bam.c_str(), 
-      parameters.fragment_length * parameters.mate_window_size,
+      parameters.mate_window_size,
       parameters.processors,  // number of processors
       2000, // the number of alignments can be stored in each chunk of the memory pool
       2000, // number of alignments should be cached before report
@@ -173,6 +179,7 @@ void InitVariablesOrDie(const Parameters& parameters,
 
   SetAlignmentFilter(parameters, &(vars->alignment_filter));
   SetTargetEvent(parameters, &(vars->target_event));
+  SetTargetRegion(parameters, &(vars->target_region));
 
   // print bam header
   /*
@@ -292,4 +299,11 @@ void SetTargetEvent(const Parameters& parameters,
                     TargetEvent* target_event) {
   target_event->special_insertion  = parameters.detect_special;
   target_event->medium_sized_indel = !parameters.not_medium_sized_indel;
+}
+
+void SetTargetRegion(const Parameters& parameters,
+                     TargetRegion* target_region) {
+  target_region->fragment_length       = parameters.fragment_length;
+  target_region->local_window_size     = parameters.mate_window_size;
+  target_region->discovery_window_size = parameters.discovery_window_size;
 }

@@ -19,27 +19,30 @@ namespace Scissors {
 struct Alignment;
 struct AlignmentFilter;
 struct TargetEvent;
+struct TargetRegion;
 class HashesCollection;
 
 class Aligner {
  public:
-  Aligner(const SR_Reference* reference, 
+  Aligner(const SR_Reference*   reference, 
           const SR_InHashTable* hash_table,
-	  const SR_Reference* reference_special,
+	  const SR_Reference*   reference_special,
 	  const SR_InHashTable* hash_table_special,
-	  const SR_RefHeader* reference_header,
-	  const int& fragment_length);
+	  const SR_RefHeader*   reference_header,
+	  const int&            fragment_length);
   ~Aligner();
   // @function Aligns the orphan bam1_t in query_region_
+  //           [NOTICE] Users may not use this function.
   // @param  detect_special    detects second partial in special references
   // @param  alignment_filter  the filter for split-read alignment
   // @param  al_ite            all target pairs are stored here
   // @param  alignments        all obtained split-read alignments are stored here
   //         [NOTICE]          Users should free bam1_t in the vector
-  void AlignCandidate(const TargetEvent& target_event,
+  void AlignCandidate(const TargetEvent&     target_event,
+                      const TargetRegion&    target_region,
                       const AlignmentFilter& alignment_filter,
-                      SR_BamInStreamIter* al_ite, 
-                      vector<bam1_t*>* alignments);
+                      SR_BamInStreamIter*    al_ite, 
+                      vector<bam1_t*>*       alignments);
 
   // @function Aligns the orphan bam1_t in query_region_
   // @param  detect_special    detects second partial in special references
@@ -48,11 +51,12 @@ class Aligner {
   // @param  target            target (unmapped) mate which is the split-read target
   // @param  alignments        all obtained split-read alignments are stored here
   //         [NOTICE]          Users should free bam1_t in the vector
-  void AlignCandidate(const TargetEvent& target_event,
+  void AlignCandidate(const TargetEvent&     target_event,
+                      const TargetRegion&    target_region,
                       const AlignmentFilter& alignment_filter,
-		      const bam1_t& anchor,
-		      const bam1_t& target,
-		      vector<bam1_t*>* alignments);
+		      const bam1_t&          anchor,
+		      const bam1_t&          target,
+		      vector<bam1_t*>*       alignments);
  private:
   SearchRegionType search_region_type_;
   AnchorRegion     anchor_region_;

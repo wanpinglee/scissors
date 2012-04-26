@@ -105,9 +105,9 @@ Aligner::Aligner(const SR_Reference* reference,
   hashes_special_   = HashRegionTableAlloc();
   special_ref_view_ = SR_RefViewAlloc();
 
-  hash_length_.fragLen = fragment_length;
-  hash_length_.closeRange = 2000;
-  hash_length_.farRange   = 10000;
+  //hash_length_.fragLen = fragment_length;
+  //hash_length_.closeRange = 2000;
+  //hash_length_.farRange   = 10000;
 }
 
 Aligner::~Aligner() {
@@ -130,7 +130,8 @@ void Aligner::LoadRegionType(const bam1_t& anchor) {
 }
 
 void Aligner::AlignCandidate(const TargetEvent& target_event,
-                             const AlignmentFilter& alignment_filter,
+                             const TargetRegion& target_region,
+			     const AlignmentFilter& alignment_filter,
 			     SR_BamInStreamIter* al_ite,
                              vector<bam1_t*>* alignments) {
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
@@ -144,10 +145,11 @@ void Aligner::AlignCandidate(const TargetEvent& target_event,
 }
 
 void Aligner::AlignCandidate(const TargetEvent& target_event,
-                    const AlignmentFilter& alignment_filter,
-		    const bam1_t& anchor,
-		    const bam1_t& target,
-		    vector<bam1_t*>* alignments) {
+                             const TargetRegion& target_region,
+		             const AlignmentFilter& alignment_filter,
+		             const bam1_t& anchor,
+		             const bam1_t& target,
+		             vector<bam1_t*>* alignments) {
 
   query_region_->pAnchor = (bam1_t*) &anchor;
   query_region_->pOrphan = (bam1_t*) &target;

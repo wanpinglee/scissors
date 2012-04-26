@@ -14,6 +14,7 @@ extern "C" {
 
 #include "dataStructures/alignment.h"
 #include "dataStructures/target_event.h"
+#include "dataStructures/target_region.h"
 #include "utilities/miscellaneous/alignment_filter.h"
 
 using std::vector;
@@ -21,12 +22,13 @@ using std::vector;
 namespace Scissors {
 
 struct ThreadData{
-  int   id;
-  float allowed_clip;
-  int   fragment_length;
-  TargetEvent target_event;
-  int   bam_mq_threshold;
+  int             id;
+  float           allowed_clip;
+  int             fragment_length;
+  TargetEvent     target_event;
+  int             bam_mq_threshold;
   AlignmentFilter alignment_filter;
+  TargetRegion    target_region;
   SR_BamInStream*     bam_reader;
   SR_BamInStreamIter  alignment_list;
   SR_Status*          bam_status;
@@ -43,12 +45,13 @@ struct ThreadData{
 class Thread {
  public: 
   Thread(const BamReference* bam_reference,
-         const float&    allowed_clip,
-         const int&      thread_count,
-	 const int&      fragment_length,
-	 const TargetEvent& target_event,
-	 const int&      bam_mq_threshold,
+         const float&           allowed_clip,
+         const int&             thread_count,
+	 const int&             fragment_length,
+	 const TargetEvent&     target_event,
+	 const int&             bam_mq_threshold,
 	 const AlignmentFilter& alignment_filter,
+	 const TargetRegion&    target_region,
 	 FILE*           ref_reader,
          FILE*           hash_reader,
 	 SR_BamInStream* bam_reader,
@@ -63,6 +66,7 @@ class Thread {
   const TargetEvent     target_event_;
   const int             bam_mq_threshold_;
   const AlignmentFilter alignment_filter_;
+  const TargetRegion    target_region_;
   FILE*           ref_reader_;
   FILE*           hash_reader_;
   SR_BamInStream* bam_reader_;

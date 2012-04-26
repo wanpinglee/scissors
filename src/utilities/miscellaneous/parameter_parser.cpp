@@ -162,6 +162,9 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 
 	}
 
+	if ((param->fragment_length != -1) && (param->mate_window_size == -1))
+	  param->mate_window_size = param->fragment_length * 2;
+
 	if (long_help) {
 		PrintLongHelp(argv[0]);
 		exit(1);
@@ -206,8 +209,8 @@ bool CheckParameters(Parameters* param) {
 	}
 
 	if (param->mate_window_size == 0) {
-		cerr << "WARNING: -w should not be zero. Set it to default, 2." << endl;
-		param->mate_window_size = 2;
+		cerr << "WARNING: -w should not be zero. Set it to default, fragment_length * 2." << endl;
+		param->mate_window_size = param->fragment_length * 2;
 	}
 
 	if ((param->aligned_base_rate < 0.0) || (param->aligned_base_rate > 1.0)) {
@@ -279,7 +282,9 @@ void PrintLongHelp(const string& program) {
 		<< "   -l --fragment-length <INT>" << endl
 		<< "                         Fragment length." << endl
 		<< "   -w --window-size <INT>" << endl
-		<< "                         Window size (-w x -l) for searching mates in bam. [2]" << endl
+		<< "                         Window size for searching mates. [fragment_length * 2]" << endl
+		<< "   --discovery-window-size <INT>" << endl
+		<< "                         Window size for discovering events. [10000]" << endl
 		<< "   -s --is-input-sorted" << endl
 		<< "   -p --processors <INT> Use # of processors." << endl
 		<< "   -S --special-insertion" << endl

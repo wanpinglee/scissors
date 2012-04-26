@@ -105,7 +105,11 @@ void* RunThread (void* thread_data_) {
 
     if (td->alignment_list.pBamNode != NULL) {
       td->alignments.clear();
-      aligner.AlignCandidate(td->target_event, td->alignment_filter, &td->alignment_list, &td->alignments_bam);
+      aligner.AlignCandidate(td->target_event, 
+                             td->target_region,
+			     td->alignment_filter, 
+			     &td->alignment_list, 
+			     &td->alignments_bam);
       StoreAlignmentInBam(td->alignments_bam, td->bam_writer);
       FreeAlignmentBam(&td->alignments_bam);
       
@@ -121,17 +125,18 @@ void* RunThread (void* thread_data_) {
   pthread_exit(NULL);
 }
 
-Thread::Thread(const BamReference* bam_reference,
-	       const float& allowed_clip,
-	       const int& thread_count,
-	       const int& fragment_length,
-	       const TargetEvent& target_event,
-	       const int& bam_mq_threshold,
+Thread::Thread(const BamReference*    bam_reference,
+	       const float&           allowed_clip,
+	       const int&             thread_count,
+	       const int&             fragment_length,
+	       const TargetEvent&     target_event,
+	       const int&             bam_mq_threshold,
 	       const AlignmentFilter& alignment_filter,
-	       FILE* ref_reader,
-	       FILE* hash_reader,
-	       SR_BamInStream* bam_reader,
-	       bamFile*        bam_writer)
+	       const TargetRegion&    target_region,
+	       FILE*                  ref_reader,
+	       FILE*                  hash_reader,
+	       SR_BamInStream*        bam_reader,
+	       bamFile*               bam_writer)
     : bam_reference_(bam_reference)
     , allowed_clip_(allowed_clip)
     , thread_count_(thread_count)
@@ -139,6 +144,7 @@ Thread::Thread(const BamReference* bam_reference,
     , target_event_(target_event)
     , bam_mq_threshold_(bam_mq_threshold)
     , alignment_filter_(alignment_filter)
+    , target_region_(target_region)
     , ref_reader_(ref_reader)
     , hash_reader_(hash_reader)
     , bam_reader_(bam_reader)
@@ -200,6 +206,7 @@ void Thread::InitThreadData() {
     thread_data_[i].target_event             = target_event_;
     thread_data_[i].bam_mq_threshold         = bam_mq_threshold_;
     thread_data_[i].alignment_filter         = alignment_filter_;
+    thread_data_[i].target_region            = target_region_;
     thread_data_[i].bam_reader               = bam_reader_;
     thread_data_[i].alignment_list.pBamNode  = NULL;
     thread_data_[i].alignment_list.pAlgnType = NULL;
