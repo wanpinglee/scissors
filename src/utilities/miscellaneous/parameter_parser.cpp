@@ -197,8 +197,9 @@ bool CheckParameters(Parameters* param) {
 		errorFound = true;
 	}
 
-	if (param->fragment_length == -1) {
-		cerr << "ERROR: Please specific fragment length, -l." << endl;
+	if (param->fragment_length < 1) {
+		cerr << "ERROR: Please specific the fragment length, -l." << endl
+		     << "       The value should be greater than 0." << endl;
 		errorFound = true;
 	}
 
@@ -208,9 +209,14 @@ bool CheckParameters(Parameters* param) {
 		param->allowed_clip = 0.2;
 	}
 
-	if (param->mate_window_size == 0) {
-		cerr << "WARNING: -w should not be zero. Set it to default, fragment_length * 2." << endl;
+	if ((param->mate_window_size < 1) && (param->fragment_length > 0)) {
+		cerr << "WARNING: -w should be greater 0. Set it to default, fragment_length * 2." << endl;
 		param->mate_window_size = param->fragment_length * 2;
+	}
+
+	if (param->discovery_window_size < 0) {
+		cerr << "WARNING: --discovery-window-size should be greater 0." << endl
+		     << "         Set it to default, 1000." << endl;
 	}
 
 	if ((param->aligned_base_rate < 0.0) || (param->aligned_base_rate > 1.0)) {
