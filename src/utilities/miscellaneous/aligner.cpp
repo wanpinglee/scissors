@@ -177,84 +177,39 @@ void Aligner::Align(const TargetEvent& target_event,
 		    const SR_QueryRegion* query_region,
 		    vector<bam1_t*>* alignments) {
       
-      query_region_ = (SR_QueryRegion*) query_region;
-      const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
-      // Convert 4-bit representive sequence into chars
-      SR_QueryRegionLoadSeq(query_region_);
-      StripedSmithWaterman::Alignment ssw_al;
-      SearchLocalRegion(target_region, &ssw_al);
+  query_region_ = (SR_QueryRegion*) query_region;
+  // Convert 4-bit representive sequence into chars
+  SR_QueryRegionLoadSeq(query_region_);
+  
+  // Search the local region
+  StripedSmithWaterman::Alignment ssw_al;
+  SearchLocalRegion(target_region, &ssw_al);
 
-      LoadRegionType(*(query_region_->pAnchor));
+  //if (target_event.medium_sized_indel) {
+    
+   // bool medium_indel_found = SearchMediumIndel(alignment_filter, );
+  //} else {
+    // nothing
+  //}
 
-      SearchRegionType::RegionType region_type;
-      HashesCollection hashes_collection;
-      HashesCollection hashes_collection_special;
-      
-      // store the anchor in output bam
-      /*
-      bam1_t* al_bam_anchor;
-      al_bam_anchor = bam_init1(); // Thread.cpp will free it
-      al_bam_anchor = bam_copy1(al_bam_anchor, query_region_->pAnchor);
-      alignments->push_back(al_bam_anchor);
-      */
-
-      // For MEI first
-      search_region_type_.GetStandardType(is_anchor_forward, &region_type);
-      SetTargetSequence(region_type, query_region_);
-      int read_length = query_region_->pOrphan->core.l_qseq;
-      HashRegionTableInit(hashes_, read_length);
-      SR_QueryRegionSetRange(query_region_, &hash_length_, reference_->seqLen,
-                             region_type.upstream ? SR_DOWNSTREAM : SR_UPSTREAM);
-      HashRegionTableLoad(hashes_, hash_table_, query_region_);
-      hashes_collection.Init(*(hashes_->pBestCloseRegions));
-     
-      // get special hashes
-      HashRegionTableInit(hashes_special_, read_length);
-      SR_QueryRegionSetRangeSpecial(query_region_, reference_special_->seqLen);
-      HashRegionTableLoad(hashes_special_, hash_table_special_, query_region_);
-      hashes_collection_special.Init(*(hashes_special_->pBestCloseRegions));
-      //hashes_collection_special.Print();
-
-      // get best cover
-      unsigned int best1, best2;
-      bool best_pair_found = false;
-      if (is_anchor_forward)
-        best_pair_found = hashes_collection.GetBestCoverPair(&hashes_collection_special, &best1, &best2);
-      else 
-        best_pair_found = hashes_collection_special.GetBestCoverPair(&hashes_collection, &best2, &best1);
-      
-      Alignment al1, al2;
-      if (best_pair_found) {
-	const char* read_seq = query_region_->orphanSeq;
-	GetAlignment(hashes_collection, best1, false, read_length, read_seq, &al1); // non-special
-	GetAlignment(hashes_collection_special, best2, true, read_length, read_seq, &al2); // special
-	
-	namespace filter_app = AlignmentFilterApplication;
-	bool trimming_al_okay = true;
-	//trimming_al_okay &= filter_app::TrimAlignment(alignment_filter, &al1);
-	//trimming_al_okay &= filter_app::TrimAlignment(alignment_filter, &al2);
-	filter_app::TrimAlignment(alignment_filter, &al1);
-	filter_app::TrimAlignment(alignment_filter, &al2);
-	trimming_al_okay &= ((al1.reference.size() > 0) && (al2.reference.size() > 0));
-
-	bool passing_filter = true;
-	passing_filter &= filter_app::FilterByMismatch(alignment_filter, al1);
-	passing_filter &= filter_app::FilterByMismatch(alignment_filter, al2);
-	passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, al1, read_length);
-	passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, al2, read_length);
-
-	if (trimming_al_okay && passing_filter) {
-  	  al1.is_seq_inverse    = region_type.sequence_inverse;
-	  al2.is_seq_inverse    = region_type.sequence_inverse;
-	  al1.is_seq_complement = region_type.sequence_complement;
-	  al2.is_seq_complement = region_type.sequence_complement;
-
+  // store the anchor in output bam
+  /*
+  bam1_t* al_bam_anchor;
+  al_bam_anchor = bam_init1(); // Thread.cpp will free it
+  al_bam_anchor = bam_copy1(al_bam_anchor, query_region_->pAnchor);
+  alignments->push_back(al_bam_anchor);
+  */
+ 
+  if (target_event.special_insertion) {
+    Alignment local_al, special_al;
+    bool special_found = SearchSpecialReference(alignment_filter, &local_al, &special_al);
+    if (special_found) {
 	  // store alignments
 	  bam1_t *al1_bam, *al2_bam;
 	  al1_bam = bam_init1(); // Thread.cpp will free it
 	  al2_bam = bam_init1(); // Thread.cpp will free it
-	  BamUtilities::ConvertAlignmentToBam1(al1, *query_region_->pOrphan, al1_bam);
-	  BamUtilities::ConvertAlignmentToBam1(al2, *query_region_->pOrphan, al2_bam);
+	  BamUtilities::ConvertAlignmentToBam1(local_al, *query_region_->pOrphan, al1_bam);
+	  BamUtilities::ConvertAlignmentToBam1(special_al, *query_region_->pOrphan, al2_bam);
 	  // add optional tags
 	  std::list<bam1_t*> al_list;
 	  al_list.push_back(al1_bam);
@@ -270,17 +225,16 @@ void Aligner::Align(const TargetEvent& target_event,
 	  alignments->push_back(al1_bam);
 	  alignments->push_back(al2_bam);
 	  //AdjustBamFlag(al_bam_anchor, al1_bam, al2_bam);
-	} else { // !(trimming_al_okay && passing_filter)
-	  // nothing
-	}
-      } else { // !(best_pair_found)
-        // nothing
-      }
-      
-      
+    } else { // !special_found
+      // nothing
+    }
+  }
 
       // For normal detection
       /*
+      const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
+      SearchRegionType::RegionType region_type;
+      LoadRegionType(*(query_region_->pAnchor));
       while (search_region_type_.GetNextRegionType(is_anchor_forward, 
                                                    &region_type)) {
         
@@ -291,6 +245,9 @@ void Aligner::Align(const TargetEvent& target_event,
                                region_type.upstream ? SR_DOWNSTREAM : SR_UPSTREAM);
 	HashRegionTableLoad(hashes_, hash_table_, query_region_);
 
+        HashesCollection hashes_collection;
+        HashesCollection hashes_collection_special;
+	
 	hashes_collection.Init(*(hashes_->pBestCloseRegions));
 	//printf("\nBefore sorting\n");
 	//hashes_collection.Print();
@@ -324,8 +281,8 @@ void Aligner::Align(const TargetEvent& target_event,
     //} // end while
 }
 
-//@description:
-//  Gets alignment from the hashes_collection by given id in hashes_collection
+// @function: Gets alignment from the hashes_collection by given id 
+//            in hashes_collection
 bool Aligner::GetAlignment(
     const HashesCollection& hashes_collection, 
     const unsigned int& id,
@@ -380,6 +337,75 @@ void Aligner::GetTargetRefRegion(const int& extend_length, const int& hash_begin
   *end   = hash_begin + backward_shift;
 }
 
+bool Aligner::SearchSpecialReference(const AlignmentFilter& alignment_filter,
+                                     Alignment* local_al, Alignment* special_al)
+{
+
+  SearchRegionType::RegionType region_type;
+  const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
+  // Loads hashes for the first partial alignment
+  search_region_type_.GetStandardType(is_anchor_forward, &region_type);
+  SetTargetSequence(region_type, query_region_);
+  int read_length = query_region_->pOrphan->core.l_qseq;
+  HashRegionTableInit(hashes_, read_length);
+  SR_QueryRegionSetRange(query_region_, &hash_length_, reference_->seqLen,
+                         region_type.upstream ? SR_DOWNSTREAM : SR_UPSTREAM);
+  HashRegionTableLoad(hashes_, hash_table_, query_region_);
+  HashesCollection hashes_collection;
+  hashes_collection.Init(*(hashes_->pBestCloseRegions));
+     
+  // Loads special hashes
+  HashRegionTableInit(hashes_special_, read_length);
+  SR_QueryRegionSetRangeSpecial(query_region_, reference_special_->seqLen);
+  HashRegionTableLoad(hashes_special_, hash_table_special_, query_region_);
+  HashesCollection hashes_collection_special;
+  hashes_collection_special.Init(*(hashes_special_->pBestCloseRegions));
+  //hashes_collection_special.Print();
+
+  // Gets the best pair of hashes
+  unsigned int best1, best2;
+  bool best_pair_found = false;
+  if (is_anchor_forward)
+    best_pair_found = hashes_collection.GetBestCoverPair(&hashes_collection_special, &best1, &best2);
+  else 
+    best_pair_found = hashes_collection_special.GetBestCoverPair(&hashes_collection, &best2, &best1);
+      
+  // If a pair of hashes is found
+  if (best_pair_found) {
+    const char* read_seq = query_region_->orphanSeq;
+    GetAlignment(hashes_collection, best1, false, read_length, read_seq, local_al); // non-special
+    GetAlignment(hashes_collection_special, best2, true, read_length, read_seq, special_al); // special
+	
+    namespace filter_app = AlignmentFilterApplication;
+    bool trimming_al_okay = true;
+    //trimming_al_okay &= filter_app::TrimAlignment(alignment_filter, &al1);
+    //trimming_al_okay &= filter_app::TrimAlignment(alignment_filter, &al2);
+    filter_app::TrimAlignment(alignment_filter, local_al);
+    filter_app::TrimAlignment(alignment_filter, special_al);
+    trimming_al_okay &= ((local_al->reference.size() > 0) && (special_al->reference.size() > 0));
+
+    bool passing_filter = true;
+    passing_filter &= filter_app::FilterByMismatch(alignment_filter, *local_al);
+    passing_filter &= filter_app::FilterByMismatch(alignment_filter, *special_al);
+    passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, *local_al, read_length);
+    passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, *special_al, read_length);
+
+    if (trimming_al_okay && passing_filter) {
+      local_al->  is_seq_inverse    = region_type.sequence_inverse;
+      special_al->is_seq_inverse    = region_type.sequence_inverse;
+      local_al->  is_seq_complement = region_type.sequence_complement;
+      special_al->is_seq_complement = region_type.sequence_complement;
+      return true;
+    }
+    else {
+      return false;
+    }
+  } else {
+    // !best_pair_found
+    return false;
+  }
+}
+
 void Aligner::SearchLocalRegion(const TargetRegion& target_region,
                                 StripedSmithWaterman::Alignment* ssw_al) {
   // Get the standard region type
@@ -399,6 +425,7 @@ void Aligner::SearchLocalRegion(const TargetRegion& target_region,
   GetTargetRefRegion(target_region.local_window_size, pivot, special, &begin, &end);
 
   // Get the read sequence
+  SetTargetSequence(region_type, query_region_);
   string read_seq;
   read_seq.assign(query_region_->orphanSeq, query_region_->pOrphan->core.l_qseq);
 

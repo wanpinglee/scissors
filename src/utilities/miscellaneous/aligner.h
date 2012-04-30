@@ -88,6 +88,8 @@ class Aligner {
              const AlignmentFilter& alignment_filter,
 	     const SR_QueryRegion* query_region_,
 	     vector<bam1_t*>* alignments);
+  bool SearchSpecialReference(const AlignmentFilter& alignment_filter,
+                              Alignment* local_al, Alignment* special_al);
   void SearchLocalRegion(const TargetRegion& target_region, 
                          StripedSmithWaterman::Alignment* ssw_al);
 
