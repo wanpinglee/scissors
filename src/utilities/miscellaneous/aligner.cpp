@@ -2,6 +2,7 @@
 
 #include <list>
 
+#include "dataStructures/target_region.h"
 #include "dataStructures/optional_tag.h"
 #include "utilities/bam/bam_constant.h"
 #include "utilities/bam/bam_utilities.h"
@@ -9,54 +10,30 @@
 #include "utilities/miscellaneous/hashes_collection.h"
 
 namespace Scissors {
+namespace {
+const uint32_t kMediumSizedIndelMax = 200;
+const uint32_t kMediumSizedIndelMin = 20;
+
 void SetTargetSequence(const SearchRegionType::RegionType& region_type, 
                        SR_QueryRegion* query_region) {
-  //const bool forward    = !bam1_strand(query_region->pOrphan);
-  //const bool inverse    = (forward && (query_region->isOrphanInversed == TRUE))
-  //                      ||(!forward && (query_region->isOrphanInversed == FALSE));
-  //const bool complement = !forward;
-  
   if (region_type.sequence_inverse && region_type.sequence_complement) {
-   // if (!inverse && !complement)
       SR_QueryRegionChangeSeq(query_region, SR_REVERSE_COMP);
-   // else if (!inverse)
-   //   SR_QueryRegionChangeSeq(query_region, SR_INVERSE);
-   // else if (!complement)
-   //   SR_QueryRegionChangeSeq(query_region, SR_COMP);
-
     SR_SetStrand(query_region->pOrphan, SR_REVERSE_COMP);
     query_region->isOrphanInversed = FALSE;
 
   } else if (region_type.sequence_inverse && !region_type.sequence_complement) {
-   // if (!inverse && complement)
-   //   SR_QueryRegionChangeSeq(query_region, SR_REVERSE_COMP);
-   // else if (!inverse)
-      SR_QueryRegionChangeSeq(query_region, SR_INVERSE);
-   // else if (complement)
-   //   SR_QueryRegionChangeSeq(query_region, SR_COMP);
+    SR_QueryRegionChangeSeq(query_region, SR_INVERSE);
       
     SR_SetStrand(query_region->pOrphan, SR_INVERSE);
     query_region->isOrphanInversed = TRUE;
  
   } else if (!region_type.sequence_inverse && region_type.sequence_complement) {
-   // if (inverse && !complement)
-   //   SR_QueryRegionChangeSeq(query_region, SR_REVERSE_COMP);
-   // else if (inverse)
-   //   SR_QueryRegionChangeSeq(query_region, SR_INVERSE);
-   // else if (!complement)
-      SR_QueryRegionChangeSeq(query_region, SR_COMP);
+    SR_QueryRegionChangeSeq(query_region, SR_COMP);
 
     SR_SetStrand(query_region->pOrphan, SR_REVERSE_COMP);
     query_region->isOrphanInversed = TRUE;
   
   } else {
-   // if (inverse && complement)
-   //   SR_QueryRegionChangeSeq(query_region, SR_REVERSE_COMP);
-   // else if (inverse)
-   //   SR_QueryRegionChangeSeq(query_region, SR_INVERSE);
-   // else if (complement)
-   //   SR_QueryRegionChangeSeq(query_region, SR_COMP);
-
     SR_QueryRegionChangeSeq(query_region, SR_FORWARD);
     SR_SetStrand(query_region->pOrphan, SR_FORWARD);
     query_region->isOrphanInversed = FALSE;
@@ -85,6 +62,31 @@ void AdjustBamFlag(bam1_t* al_bam_anchor, bam1_t* partial_al1, bam1_t* partial_a
   partial_al2->core.flag = partial_flag;
 }
 
+bool ExistMediumIndel(const StripedSmithWaterman::Alignment& ssw_al) {
+  for (unsigned int i = 0; i < ssw_al.cigar.size(); ++i) {
+    uint8_t  op = ssw_al.cigar[i] & 0x0f;
+    uint32_t length = 0;
+    switch(op) {
+      case 1: //I
+        length = ssw_al.cigar[i] >> 4;
+	if ((kMediumSizedIndelMin <= length) && (length <= kMediumSizedIndelMax))
+	  return true;
+	break;
+      case 2: //D
+        length = ssw_al.cigar[i] >> 4;
+	if ((kMediumSizedIndelMin <= length) && (length <= kMediumSizedIndelMax))
+	  return true;
+        break;
+      default:
+        break;
+    } // end switch
+  } // end for
+
+  return false;
+}
+
+} // unnamed namespace
+
 Aligner::Aligner(const SR_Reference* reference, 
                  const SR_InHashTable* hash_table,
 		 const SR_Reference* reference_special,
@@ -98,12 +100,15 @@ Aligner::Aligner(const SR_Reference* reference,
     , reference_special_(reference_special)
     , hash_table_special_(hash_table_special)
     , reference_header_(reference_header)
-    , sw_aligner_(){
+    , banded_sw_aligner_()
+    , stripe_sw_aligner_(){
   
   query_region_     = SR_QueryRegionAlloc();
   hashes_           = HashRegionTableAlloc();
   hashes_special_   = HashRegionTableAlloc();
   special_ref_view_ = SR_RefViewAlloc();
+
+  stripe_sw_aligner_.SetGapPenalty(3, 0);
 
   //hash_length_.fragLen = fragment_length;
   //hash_length_.closeRange = 2000;
@@ -134,14 +139,19 @@ void Aligner::AlignCandidate(const TargetEvent& target_event,
 			     const AlignmentFilter& alignment_filter,
 			     SR_BamInStreamIter* al_ite,
                              vector<bam1_t*>* alignments) {
-    while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
-      // TODO@WP: it may be removed later
-      if (query_region_->algnType != SR_UNIQUE_ORPHAN) continue;
+  // Since stripe-smith-waterman is used for local search, 
+  // closeRange may not be necessary.
+  hash_length_.fragLen    = target_region.fragment_length;
+  hash_length_.closeRange = target_region.local_window_size;
+  hash_length_.farRange   = target_region.discovery_window_size;
+  while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
+    // TODO@WP: it may be removed later
+    if (query_region_->algnType != SR_UNIQUE_ORPHAN) continue;
 
-      Align(target_event, alignment_filter, query_region_, alignments);
-    } // end while
+    Align(target_event, target_region, alignment_filter, query_region_, alignments);
+  } // end while
 
-    al_ite = NULL;
+  al_ite = NULL;
 }
 
 void Aligner::AlignCandidate(const TargetEvent& target_event,
@@ -150,13 +160,19 @@ void Aligner::AlignCandidate(const TargetEvent& target_event,
 		             const bam1_t& anchor,
 		             const bam1_t& target,
 		             vector<bam1_t*>* alignments) {
-
+  // Since stripe-smith-waterman is used for local search, 
+  // closeRange may not be necessary.
+  hash_length_.fragLen    = target_region.fragment_length;
+  hash_length_.closeRange = target_region.local_window_size;
+  hash_length_.farRange   = target_region.discovery_window_size;
+  
   query_region_->pAnchor = (bam1_t*) &anchor;
   query_region_->pOrphan = (bam1_t*) &target;
-  Align(target_event, alignment_filter, query_region_, alignments);
+  Align(target_event, target_region, alignment_filter, query_region_, alignments);
 }
 
 void Aligner::Align(const TargetEvent& target_event,
+                    const TargetRegion& target_region,
                     const AlignmentFilter& alignment_filter,
 		    const SR_QueryRegion* query_region,
 		    vector<bam1_t*>* alignments) {
@@ -165,6 +181,8 @@ void Aligner::Align(const TargetEvent& target_event,
       const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
       // Convert 4-bit representive sequence into chars
       SR_QueryRegionLoadSeq(query_region_);
+      StripedSmithWaterman::Alignment ssw_al;
+      SearchLocalRegion(target_region, &ssw_al);
 
       LoadRegionType(*(query_region_->pAnchor));
 
@@ -327,24 +345,21 @@ bool Aligner::GetAlignment(
     BandedSmithWatermanHashRegion hr;
     hr.reference_begin = hash_begin - begin;
     hr.query_begin = (hashes_collection.Get(id))->queryBegin;
-    sw_aligner_.Align(*al, ref_seq, ref_length, read_seq, read_length, hr);
+    banded_sw_aligner_.Align(*al, ref_seq, ref_length, read_seq, read_length, hr);
     al->reference_begin += begin;
-    //al->TrimAlignment();
-    
-    //al->reference_begin = (hashes_collection.Get(id))->refBegins[0];
-    //al->reference_end   = (hashes_collection.Get(id))->refBegins[0] + (hashes_collection.Get(id))->length - 1;
-    //al->query_begin     = (hashes_collection.Get(id))->queryBegin;
-    //al->query_end       = (hashes_collection.Get(id))->queryBegin + (hashes_collection.Get(id))->length - 1;
-    //const char* bases = GetSequence((hashes_collection.Get(id))->refBegins[0], special);
-    //al->reference.assign(bases, (hashes_collection.Get(id))->length);
-    //al->query.assign(bases, (hashes_collection.Get(id))->length);
-    
 
     return true;
   }
 }
 
-void Aligner::GetTargetRefRegion(const int& read_length, const int& hash_begin, 
+// @function Given a pivot (hash_begin) and the length that you want to extend,
+//           the function will set the valid begin and end after extending.
+// @param  extend_length The length that you want to extend.
+// @param  hash_begin    A pivot that you want to extend the region according to.
+// @param  special       In the special reference?
+// @param  begin         The resultant begin
+// @param  end           The resultant end
+void Aligner::GetTargetRefRegion(const int& extend_length, const int& hash_begin, 
     const bool& special, int* begin, int* end) {
   uint32_t pos = hash_begin;
   int32_t ref_id = 0;
@@ -354,15 +369,51 @@ void Aligner::GetTargetRefRegion(const int& read_length, const int& hash_begin,
   int seq_length = special ? special_ref_view_->seqLen : reference_->seqLen;
 
   int forward_shift;
-  if (pos < static_cast<uint32_t>(read_length)) forward_shift = pos;
-  else forward_shift = read_length;
+  if (pos < static_cast<uint32_t>(extend_length)) forward_shift = pos;
+  else forward_shift = extend_length;
 
   int backward_shift;
-  if ((pos + read_length + 1) > seq_length) backward_shift = seq_length - pos - 1;
-  else backward_shift = read_length;
+  if ((pos + extend_length + 1) > seq_length) backward_shift = seq_length - pos - 1;
+  else backward_shift = extend_length;
   
   *begin = hash_begin - forward_shift;
   *end   = hash_begin + backward_shift;
+}
+
+void Aligner::SearchLocalRegion(const TargetRegion& target_region,
+                                StripedSmithWaterman::Alignment* ssw_al) {
+  // Get the standard region type
+  SearchRegionType::RegionType region_type;
+  const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
+  search_region_type_.GetStandardType(is_anchor_forward, &region_type);
+
+  // Calculate the pivot position
+  int anchor_pos = query_region_->pAnchor->core.pos;
+  int pivot = region_type.upstream ? anchor_pos + target_region.fragment_length
+                                   : anchor_pos - target_region.fragment_length;
+  if (pivot < 0) pivot = 0;
+
+  // Get the region according to the pivot and local_window_size
+  int begin, end;
+  bool special = false;
+  GetTargetRefRegion(target_region.local_window_size, pivot, special, &begin, &end);
+
+  // Get the read sequence
+  string read_seq;
+  read_seq.assign(query_region_->orphanSeq, query_region_->pOrphan->core.l_qseq);
+
+  // Apply SSW to the region
+  int ref_length = end - begin + 1;
+  const char* ref_seq = GetSequence(begin, special);
+  StripedSmithWaterman::Filter filter;
+  filter.distance_filter = kMediumSizedIndelMax;
+  stripe_sw_aligner_.Align(read_seq.c_str(), ref_seq, ref_length, filter, ssw_al);
+
+  /*
+  if (!ssw_al.cigar_string.empty()) {
+    fprintf(stderr, "%u\t%u\t%s\t%s\t%u\t%u\t%u\t%u\n", query_region_->pAnchor->core.tid, anchor_pos, read_seq.c_str(), ssw_al.cigar_string.c_str(), ssw_al.query_begin, ssw_al.query_end, ssw_al.ref_begin, ssw_al.ref_end);
+  }
+  */
 }
 
 inline const char* Aligner::GetSequence(const size_t& start, const bool& special) const {

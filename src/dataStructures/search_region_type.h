@@ -11,12 +11,12 @@ namespace Scissors {
 class SearchRegionType {
  public:
   struct RegionType {
-    bool upstream; // the reference coordinate of the target region 
-                   //   is greater than the anchor
-    bool sequence_inverse;    // the sequence in the target region
-                              //   is inverse of the reference
-    bool sequence_complement; // the sequence in the target region
-                              //  is complement of the reference
+    bool upstream; // The reference coordinate of the target region 
+                   // is greater than the anchor.
+    bool sequence_inverse;    // The sequence in the target region
+                              // is inverse of the reference.
+    bool sequence_complement; // The sequence in the target region
+                              // is complement of the reference.
   };
 
   // Constructor

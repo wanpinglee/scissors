@@ -13,6 +13,7 @@ extern "C" {
 #include "dataStructures/anchor_region.h"
 #include "dataStructures/search_region_type.h"
 #include "utilities/smithwaterman/BandedSmithWaterman.h"
+#include "utilities/smithwaterman/ssw_cpp.h"
 
 namespace Scissors {
 
@@ -72,19 +73,23 @@ class Aligner {
   SR_SearchArgs         hash_length_;
   SR_RefView*           special_ref_view_;
 
-  CBandedSmithWaterman  sw_aligner_;
+  CBandedSmithWaterman  banded_sw_aligner_;
+  StripedSmithWaterman::Aligner stripe_sw_aligner_;
 
   void LoadRegionType(const bam1_t& anchor);
   const char* GetSequence(const size_t& start, const bool& special) const;
   bool GetAlignment(const HashesCollection& hashes_collection, 
                     const unsigned int& id, const bool& special, const int& read_length,
                     const char* read_seq, Alignment* al);
-  void GetTargetRefRegion(const int& read_length, const int& hash_begin,
+  void GetTargetRefRegion(const int& extend_length, const int& hash_begin,
                           const bool& special, int* begin, int* end);
   void Align(const TargetEvent& target_event,
+             const TargetRegion& target_region,
              const AlignmentFilter& alignment_filter,
 	     const SR_QueryRegion* query_region_,
 	     vector<bam1_t*>* alignments);
+  void SearchLocalRegion(const TargetRegion& target_region, 
+                         StripedSmithWaterman::Alignment* ssw_al);
 
   Aligner (const Aligner&);
   Aligner& operator= (const Aligner&);

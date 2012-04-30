@@ -21,6 +21,7 @@ pthread_mutex_t bam_in_mutex;
 pthread_mutex_t bam_out_mutex;
 
 namespace Scissors {
+namespace {
 // Given a SR_BamListIter containing alignments,
 //  reports the chromosome id of the alignments.
 // Note: Alignments in the list should be located in the same chromosome
@@ -124,6 +125,7 @@ void* RunThread (void* thread_data_) {
 
   pthread_exit(NULL);
 }
+} //namespace
 
 Thread::Thread(const BamReference*    bam_reference,
 	       const float&           allowed_clip,

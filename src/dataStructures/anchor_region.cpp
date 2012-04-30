@@ -4,7 +4,11 @@
 
 #include "utilities/bam/bam_alignment.h"
 
+namespace Scissors {
+
+namespace {
 const static uint32_t kBamCigarMask = 0x000f;
+} //namespace
 
 uint32_t AnchorRegion::CalculateEndPosition(const uint32_t* packed_cigar, const uint32_t packed_cigar_length,
     const uint32_t begin) {
@@ -49,3 +53,4 @@ bool AnchorRegion::IsNewRegion(const uint32_t* packed_cigar, const uint32_t pack
     return true;
   }
 }
+} // namespace Scissors

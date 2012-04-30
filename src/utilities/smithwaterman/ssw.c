@@ -4,7 +4,7 @@
  *  Created by Mengyao Zhao on 6/22/10.
  *  Copyright 2010 Boston College. All rights reserved.
  *	Version 0.1.4
- *	Last revision by Mengyao Zhao on 04/18/12.
+ *	Last revision by Mengyao Zhao on 04/26/12.
  *
  */
 
@@ -63,10 +63,9 @@ __m128i* qP_byte (const int8_t* read_num,
 				  const int8_t* mat,
 				  const int32_t readLen,
 				  const int32_t n,	/* the edge length of the squre matrix mat */
-				  uint8_t bias) { 
-				
-	int32_t
-	segLen = (readLen + 15) / 16; /* Split the 128 bit register into 16 pieces. 
+				  uint8_t bias) {
+ 
+	int32_t segLen = (readLen + 15) / 16; /* Split the 128 bit register into 16 pieces. 
 								     Each piece is 8 bit. Split the read into 16 segments. 
 								     Calculat 16 segments in parallel.
 								   */
@@ -79,7 +78,7 @@ __m128i* qP_byte (const int8_t* read_num,
 		for (i = 0; i < segLen; i ++) {
 			j = i; 
 			for (segNum = 0; LIKELY(segNum < 16) ; segNum ++) {
-				*t++ = j>= readLen ? 0 : mat[nt * n + read_num[j]] + bias;
+				*t++ = j>= readLen ? bias : mat[nt * n + read_num[j]] + bias;
 				j += segLen;
 			}
 		}
@@ -115,7 +114,7 @@ alignment_end* sw_sse2_byte (const int8_t* ref,
 
 	uint8_t max = 0;		                     /* the max alignment score */
 	int32_t end_read = readLen - 1;
-	int32_t end_ref = 0; /* 1_based best alignment ending point; Initialized as isn't aligned - 0. */
+	int32_t end_ref = -1; /* 0_based best alignment ending point; Initialized as isn't aligned -1. */
 	int32_t segLen = (readLen + 15) / 16; /* number of segment */
 	
 	/* array to record the largest score of each reference position */
@@ -155,25 +154,20 @@ alignment_end* sw_sse2_byte (const int8_t* ref,
 	}
 	for (i = begin; LIKELY(i != end); i += step) {
 		int32_t cmp;
-		__m128i e, vF = vZero; /* Initialize F value to 0. 
+		__m128i e = vZero, vF = vZero, vMaxColumn = vZero; /* Initialize F value to 0. 
 							   Any errors to vH values will be corrected in the Lazy_F loop. 
 							 */
 		__m128i vH = pvHStore[segLen - 1];
 		vH = _mm_slli_si128 (vH, 1); /* Shift the 128-bit value in vH left by 1 byte. */
-		
-		/* Swap the 2 H buffers. */
-		__m128i* pv = pvHLoad;
-		
-		__m128i vMaxColumn = vZero; /* vMaxColumn is used to record the max values of column i. */
-		
 		__m128i* vP = vProfile + ref[i] * segLen; /* Right part of the vProfile */
 
+		/* Swap the 2 H buffers. */
+		__m128i* pv = pvHLoad;
 		pvHLoad = pvHStore;
 		pvHStore = pv;
 		
 		/* inner loop to process the query sequence */
 		for (j = 0; LIKELY(j < segLen); ++j) {
-
 			vH = _mm_adds_epu8(vH, _mm_load_si128(vP + j));
 			vH = _mm_subs_epu8(vH, vBias); /* vH will be always > 0 */
 
@@ -181,8 +175,6 @@ alignment_end* sw_sse2_byte (const int8_t* ref,
 			e = _mm_load_si128(pvE + j);
 			vH = _mm_max_epu8(vH, e);
 			vH = _mm_max_epu8(vH, vF);
-			
-			/* Update highest score encountered this far. */
 			vMaxColumn = _mm_max_epu8(vMaxColumn, vH);
 			
 			/* Save vH values. */
@@ -211,6 +203,7 @@ alignment_end* sw_sse2_byte (const int8_t* ref,
 				_mm_store_si128(pvHStore + j, vH);
 				vH = _mm_subs_epu8(vH, vGapO);
 				vF = _mm_subs_epu8(vF, vGapE);
+				vF = _mm_max_epu8(vH, vF);
 				if (UNLIKELY(! _mm_movemask_epi8(_mm_cmpgt_epi8(vF, vH)))) goto end;
 			}
 		}
@@ -272,7 +265,7 @@ end:
 			bests[1].score = maxColumn[i];
 	}
 	edge = (end_ref + readLen / 2 + 1) > refLen ? refLen : (end_ref + readLen / 2 + 1);
-	for (i = edge; i < refLen; i ++) {
+	for (i = edge + 1; i < refLen; i ++) {
 		if (maxColumn[i] > bests[1].score) 
 			bests[1].score = maxColumn[i];
 	}
@@ -361,7 +354,7 @@ alignment_end* sw_sse2_word (const int8_t* ref,
 	}
 	for (i = begin; LIKELY(i != end); i += step) {
 		int32_t cmp;
-		__m128i e, vF = vZero; /* Initialize F value to 0. 
+		__m128i e = vZero, vF = vZero; /* Initialize F value to 0. 
 							   Any errors to vH values will be corrected in the Lazy_F loop. 
 							 */
 		__m128i vH = pvHStore[segLen - 1];
@@ -412,6 +405,7 @@ alignment_end* sw_sse2_word (const int8_t* ref,
 				_mm_store_si128(pvHStore + j, vH);
 				vH = _mm_subs_epu16(vH, vGapO);
 				vF = _mm_subs_epu16(vF, vGapE);
+				vF = _mm_max_epi16(vH, vF);
 				if (UNLIKELY(! _mm_movemask_epi8(_mm_cmpgt_epi16(vF, vH)))) goto end;
 			}
 		}
@@ -683,7 +677,6 @@ s_profile* ssw_init (const int8_t* read, const int32_t readLen, const int8_t* ma
 		/* Find the bias to use in the substitution matrix */
 		int32_t bias = 0, i;
 		for (i = 0; i < n*n; i++) if (mat[i] < bias) bias = mat[i];
-	//	if (bias > 0) bias = 0;
 		bias = abs(bias);
 
 		p->bias = bias;
@@ -766,6 +759,7 @@ s_align* ssw_align (const s_profile* prof,
 	if ((7&flag) == 0 || ((2&flag) != 0 && r->score1 < filters) || ((4&flag) != 0 && (r->ref_end1 - r->ref_begin1 > filterd || r->read_end1 - r->read_begin1 > filterd))) goto end;
 
 	// Generate cigar.
+	fprintf(stderr, "score: %d\tref_begin: %d\tref_end: %d\tread_begin: %d\tread_end: %d\n", r->score1, r->ref_begin1, r->ref_end1, r->read_begin1, r->read_end1);
 	refLen = r->ref_end1 - r->ref_begin1 + 1;
 	readLen = r->read_end1 - r->read_begin1 + 1;
 	band_width = abs(refLen - readLen) + 1;

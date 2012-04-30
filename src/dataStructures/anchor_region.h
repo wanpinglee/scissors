@@ -17,6 +17,8 @@
 //   extend its coverage of the given region of IsNewRegion.
 //   Note that when begin_ is equal to end_, IsNewRegion always returns true.
 
+namespace Scissors {
+
 class AnchorRegion {
  public:
   AnchorRegion() : begin_(0), end_(0){};
@@ -28,5 +30,6 @@ class AnchorRegion {
   uint32_t begin_;
   uint32_t end_;
 };
+} //namespace Scissors
 
 #endif // DATASTRUCTURES_ANCHOR_REGION_H_
