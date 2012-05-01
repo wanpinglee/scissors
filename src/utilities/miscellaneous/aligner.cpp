@@ -12,9 +12,6 @@
 
 namespace Scissors {
 namespace {
-//const uint32_t kMediumSizedIndelMax = 200;
-//const uint32_t kMediumSizedIndelMin = 20;
-
 void SetTargetSequence(const SearchRegionType::RegionType& region_type, 
                        SR_QueryRegion* query_region) {
   if (region_type.sequence_inverse && region_type.sequence_complement) {
@@ -188,12 +185,12 @@ void Aligner::Align(const TargetEvent& target_event,
   StripedSmithWaterman::Alignment ssw_al;
   SearchLocalRegion(target_region, &ssw_al);
 
-  //if (target_event.medium_sized_indel) {
-    
-    //bool medium_indel_found = SearchMediumIndel(alignment_filter, );
-  //} else {
+  if (target_event.medium_sized_indel) {
+    StripedSmithWaterman::Alignment indel_al;
+    bool medium_indel_found = SearchMediumIndel(alignment_filter, indel_al);
+  } else {
     // nothing
-  //}
+  }
 
   // store the anchor in output bam
   /*
@@ -438,6 +435,11 @@ void Aligner::SearchLocalRegion(const TargetRegion& target_region,
   StripedSmithWaterman::Filter filter;
   filter.distance_filter = read_seq.size();
   stripe_sw_aligner_.Align(read_seq.c_str(), ref_seq, ref_length, filter, ssw_al);
+
+  // Adjust the positions
+  ssw_al->ref_begin += begin;
+  ssw_al->ref_end   += begin;
+  ssw_al->ref_end_next_best += begin;
 
   /*
   if (!ssw_al.cigar_string.empty()) {
