@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-namespace Scissors {
 namespace StripedSmithWaterman {
 
 struct Alignment {
@@ -42,7 +41,7 @@ struct Filter {
   bool report_cigar;             // Give cigar_string and cigar.
                                  //   report_begin_position is automatically TRUE.
   
-  // When *report_cigar* is true and the alignment passes these two filters,
+  // When *report_cigar* is true and alignment passes these two filters,
   //   cigar_string and cigar will be given.
   uint16_t score_filter;         // score >= score_filter
   uint16_t distance_filter;      // ((ref_end - ref_begin) < distance_filter) &&
@@ -114,7 +113,7 @@ class Aligner {
   // =========
   // @function Align the query againt the reference that is set by 
   //             SetReferenceSequence.
-  // @param    query     The query sequence; null terminated.
+  // @param    query     The query sequence.
   // @param    filter    The filter for the alignment.
   // @param    alignment The container contains the result.
   // @return   True: succeed; false: fail.
@@ -125,7 +124,7 @@ class Aligner {
   // @function Align the query againt the reference.
   //           [NOTICE] The reference won't replace the reference 
   //                      set by SetReferenceSequence.
-  // @param    query     The query sequence; null terminated
+  // @param    query     The query sequence.
   // @param    ref       The reference sequence.
   //                     [NOTICE] It is not necessary null terminated.
   // @param    ref_len   The length of the reference sequence.
@@ -206,6 +205,5 @@ inline void Aligner::CleanReferenceSequence(void) {
   reference_length_ = 0;
 }
 } // namespace StripedSmithWaterman
-} // namespace Scissors
 
 #endif // COMPLETE_STRIPED_SMITH_WATERMAN_CPP_H_

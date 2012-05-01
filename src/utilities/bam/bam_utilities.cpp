@@ -353,8 +353,6 @@ void ConvertAlignmentToBam1(const Alignment& al,
   data_ptr += new_record->core.l_qseq;
 
   new_record->data = data;
-
-
 }
 
 bool AppendReferenceSequence(const char** names,

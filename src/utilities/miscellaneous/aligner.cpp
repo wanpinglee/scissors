@@ -94,22 +94,29 @@ bool DetermineMediumIndelBreakpoint(
   if (ssw_al.cigar.empty()) return false;
 
   unsigned int aligned_base_threshold = floor(read_length * alignment_filter.aligned_base_rate);
+  //fprintf(stderr, "%u\t%u\t", read_length, aligned_base_threshold);
   bool pass_filter = false;
   for(unsigned int i = 0; i < indel_cigar_id; ++i) {
     uint8_t  op = ssw_al.cigar[i] & 0x0f;
-    uint32_t length = ssw_al.cigar[i] >> 4;;
+    uint32_t length = ssw_al.cigar[i] >> 4;
+    //fprintf(stderr, "%u\t", length);
     if ((op == 0) && (length > aligned_base_threshold)) pass_filter = true;
   }
 
   // The first partial doesn't exist
-  if (!pass_filter) return false;
-
-  for(unsigned int i = indel_cigar_id; i < ssw_al.cigar.size(); ++i) {
-    uint8_t  op = ssw_al.cigar[i] & 0x0f;
-    uint32_t length = ssw_al.cigar[i] >> 4;;
-    if ((op == 0) && (length > aligned_base_threshold)) pass_filter &= true;
+  if (!pass_filter) {
+    //fprintf(stderr, "\n");
+    return false;
   }
 
+  pass_filter = false;
+  for(unsigned int i = indel_cigar_id + 1; i < ssw_al.cigar.size(); ++i) {
+    uint8_t  op = ssw_al.cigar[i] & 0x0f;
+    uint32_t length = ssw_al.cigar[i] >> 4;
+    //fprintf(stderr, "%u\t", length);
+    if ((op == 0) && (length > aligned_base_threshold)) pass_filter = true;
+  }
+  //fprintf(stderr, "\n");
   return pass_filter;
 
 }
@@ -215,6 +222,7 @@ void Aligner::Align(const TargetEvent& target_event,
     StripedSmithWaterman::Alignment indel_al;
     bool medium_indel_found = 
         SearchMediumIndel(target_region, alignment_filter, &indel_al);
+	if (medium_indel_found) fprintf(stderr, "found: %s\n", indel_al.cigar_string.c_str());
   } else {
     // nothing
   }
@@ -476,7 +484,8 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   bool indel_found = FindMediumIndel(*indel_al, &cigar_id);
 
   if (indel_found) {
-    return DetermineMediumIndelBreakpoint(*indel_al, cigar_id, alignment_filter, ref_length);
+    //fprintf(stderr, "%s\t%u\n", indel_al->cigar_string.c_str(), cigar_id);
+    return DetermineMediumIndelBreakpoint(*indel_al, cigar_id, alignment_filter, read_seq.size());
   } else { // !indel_found
     return false;
   }
