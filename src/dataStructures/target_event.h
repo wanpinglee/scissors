@@ -3,7 +3,6 @@
 
 namespace Scissors {
 struct TargetEvent {
-  int  local_region;
   bool special_insertion;
   bool medium_sized_indel;
 

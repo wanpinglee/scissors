@@ -2,6 +2,7 @@
 
 #include <list>
 
+#include "dataStructures/target_event.h"
 #include "dataStructures/target_region.h"
 #include "dataStructures/optional_tag.h"
 #include "utilities/bam/bam_constant.h"
@@ -11,8 +12,8 @@
 
 namespace Scissors {
 namespace {
-const uint32_t kMediumSizedIndelMax = 200;
-const uint32_t kMediumSizedIndelMin = 20;
+//const uint32_t kMediumSizedIndelMax = 200;
+//const uint32_t kMediumSizedIndelMin = 20;
 
 void SetTargetSequence(const SearchRegionType::RegionType& region_type, 
                        SR_QueryRegion* query_region) {
@@ -62,27 +63,29 @@ void AdjustBamFlag(bam1_t* al_bam_anchor, bam1_t* partial_al1, bam1_t* partial_a
   partial_al2->core.flag = partial_flag;
 }
 
-bool ExistMediumIndel(const StripedSmithWaterman::Alignment& ssw_al) {
+bool FindMediumIndel(const StripedSmithWaterman::Alignment& ssw_al,
+                     unsigned int* indel_cigar_id) {
+  uint32_t longest = 0;
+  bool found = false;
   for (unsigned int i = 0; i < ssw_al.cigar.size(); ++i) {
     uint8_t  op = ssw_al.cigar[i] & 0x0f;
     uint32_t length = 0;
     switch(op) {
-      case 1: //I
+      case 1: // I
+      case 2: // D
         length = ssw_al.cigar[i] >> 4;
-	if ((kMediumSizedIndelMin <= length) && (length <= kMediumSizedIndelMax))
-	  return true;
+	if (length > longest) {
+	  longest = length;
+	  *indel_cigar_id = i;
+	}
+	found = true;
 	break;
-      case 2: //D
-        length = ssw_al.cigar[i] >> 4;
-	if ((kMediumSizedIndelMin <= length) && (length <= kMediumSizedIndelMax))
-	  return true;
-        break;
       default:
         break;
     } // end switch
   } // end for
 
-  return false;
+  return found;
 }
 
 } // unnamed namespace
@@ -187,7 +190,7 @@ void Aligner::Align(const TargetEvent& target_event,
 
   //if (target_event.medium_sized_indel) {
     
-   // bool medium_indel_found = SearchMediumIndel(alignment_filter, );
+    //bool medium_indel_found = SearchMediumIndel(alignment_filter, );
   //} else {
     // nothing
   //}
@@ -433,7 +436,7 @@ void Aligner::SearchLocalRegion(const TargetRegion& target_region,
   int ref_length = end - begin + 1;
   const char* ref_seq = GetSequence(begin, special);
   StripedSmithWaterman::Filter filter;
-  filter.distance_filter = kMediumSizedIndelMax;
+  filter.distance_filter = read_seq.size();
   stripe_sw_aligner_.Align(read_seq.c_str(), ref_seq, ref_length, filter, ssw_al);
 
   /*
