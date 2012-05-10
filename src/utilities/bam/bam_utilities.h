@@ -8,10 +8,12 @@
 #include <vector>
 
 #include "outsources/samtools/bam.h"
-#include "dataStructures/alignment.h"
+#include "utilities/smithwaterman/ssw_cpp.h"
 
 using std::string;
 using std::vector;
+
+struct Alignment;
 
 namespace Scissors {
 namespace BamUtilities {
@@ -36,6 +38,12 @@ bool GetPackedCigar(
 
 void ConvertAlignmentToBam1(const Alignment& al,
                             const bam1_t& original_record,
+			    bam1_t* new_record);
+
+void ConvertAlignmentToBam1(const StripedSmithWaterman::Alignment& al,
+                            const bam1_t& original_record,
+			    const bool& is_seq_inverse,
+			    const bool& is_seq_complement,
 			    bam1_t* new_record);
 
 bool AppendReferenceSequence(const char** names,

@@ -125,6 +125,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 				break;
 			case 5:
 				param->not_medium_sized_indel = true;
+				break;
 
 			// original bam alignment filters
 			case 'Q':
@@ -157,6 +158,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 			
 
 			default:
+				cerr << "WARNING: Unkonw parameter: " << long_option[option_index].name << endl;
 				break;
 		}
 
@@ -238,6 +240,8 @@ void PrintBriefHelp(const string& program) {
 		<< endl
 		<< "usage: " << program << " [OPTIONS] -i <FILE> -o <FILE> -r <FILE_PREFIX> -l <INT>"
 		<< endl
+		<< "--help: for the complete help dialog."
+		<< endl
 		<< endl
 		<< "Help:" << endl
 		<< "   -h                    Print this help dialog." << endl
@@ -295,6 +299,7 @@ void PrintLongHelp(const string& program) {
 		<< "   -p --processors <INT> Use # of processors." << endl
 		<< "   -S --special-insertion" << endl
 		<< "                         Detect insertions in special references, e.g. MEIs." << endl
+		<< "   --not-medium-sized-indel" << endl
 		<< endl
 
 		<< "Original BAM alignments filters:" << endl

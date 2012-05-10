@@ -8,14 +8,132 @@
 
 #include "outsources/samtools/sam_header.h"
 #include "bam_constant.h"
+#include "dataStructures/alignment.h"
+#include "utilities/smithwaterman/ssw_cpp.h"
 
 using std::string;
 using std::cerr;
 using std::endl;
 
-static const char COMPLEMENT_BASE_MAP[16] = {0x0, 0x8, 0x4, 0xf, 0x2,0xf,0xf,0xf,0x1,0xf,0xf,0xf,0xf,0xf,0xf,0xf};
 
 namespace Scissors {
+namespace {
+static const char COMPLEMENT_BASE_MAP[16] = {0x0, 0x8, 0x4, 0xf, 0x2,0xf,0xf,0xf,0x1,0xf,0xf,0xf,0xf,0xf,0xf,0xf};
+
+void GetReverseComplementSequence(const uint8_t* original, 
+                                  const int& length, 
+              	 		  uint8_t* reverse) 
+{
+  int length_even = ((length % 2) == 1) ? length - 1 : length;
+  for (int i = 0; i < length_even; i=i+2) {
+    char upper = COMPLEMENT_BASE_MAP[bam1_seqi(original, length - i - 1)];
+    char lower = COMPLEMENT_BASE_MAP[bam1_seqi(original, length - i - 2)];
+    *reverse = (upper << 4) | lower;
+    ++reverse;
+  }
+
+  if ((length % 2) == 1) {
+    char upper = COMPLEMENT_BASE_MAP[bam1_seqi(original, 0)];
+    *reverse = (upper << 4) & 0xf0;
+    ++reverse;
+  }
+}
+
+void GetComplementSequence(const uint8_t* original,
+                           const int& length,
+			   uint8_t* reverse)
+{
+  for (int i = 0; i < length; i=i+2) {
+    char upper = COMPLEMENT_BASE_MAP[bam1_seqi(original, i)];
+    char lower = COMPLEMENT_BASE_MAP[bam1_seqi(original, i+1)];
+    *reverse = (upper << 4) | lower;
+    ++reverse;
+  }
+}
+
+void GetInverseSequence(const uint8_t* original,
+                        const int& length,
+			uint8_t* reverse)
+{
+  int length_even = ((length % 2) == 1) ? length - 1 : length;
+  for (int i = 0; i < length_even; i=i+2) {
+    char upper = bam1_seqi(original, length - i - 1);
+    char lower = bam1_seqi(original, length - i - 2);
+    *reverse = (upper << 4) | lower;
+    ++reverse;
+  }
+
+  if ((length % 2) == 1) {
+    char upper = bam1_seqi(original, 0);
+    *reverse = (upper << 4) & 0xf0;
+    ++reverse;
+  }
+}
+
+void SetDataToBam1 (const bam1_t& original_record,
+                    const bool& is_seq_inverse,
+		    const bool& is_seq_complement,
+		    const vector<uint32_t>& packed_cigar,
+                    bam1_t* new_record) {
+  
+  // set the flag
+  if (is_seq_inverse && is_seq_complement)
+    new_record->core.flag |= 0x0010;
+
+  // so far, no extra aux info is allowed
+  new_record->l_aux = 0;
+
+  // calculate length of data
+  int data_length = new_record->core.l_qname +
+                    new_record->core.n_cigar * 4 +
+		    (new_record->core.l_qseq + 1) / 2 +
+		    new_record->core.l_qseq +
+		    new_record->l_aux;
+
+  // set data length
+  new_record->data_len = data_length;
+  new_record->m_data   = data_length;
+  kroundup32(new_record->m_data);
+
+  // set data
+  uint8_t* data = (uint8_t*) calloc(new_record->m_data, sizeof(uint8_t));  // Thread.cpp will delete those
+  uint8_t* data_ptr = data;
+  // copy the read name
+  memcpy(data_ptr, original_record.data, new_record->core.l_qname);
+  data_ptr += new_record->core.l_qname;
+
+  // set the cigar
+  for (unsigned int i = 0; i < packed_cigar.size(); ++i) {
+    *data_ptr = static_cast<uint8_t>(packed_cigar[i]);
+    ++data_ptr;
+    *data_ptr = static_cast<uint8_t>(packed_cigar[i] >> 8);
+    ++data_ptr;
+    *data_ptr = static_cast<uint8_t>(packed_cigar[i] >> 16);
+    ++data_ptr;
+    *data_ptr = static_cast<uint8_t>(packed_cigar[i] >> 24);
+    ++data_ptr;
+  }
+
+  if (!is_seq_inverse && !is_seq_complement) { // forward
+    memcpy(data_ptr, bam1_seq(&original_record), (new_record->core.l_qseq + 1) / 2);
+  } else if (is_seq_inverse && is_seq_complement) { // reverse complement
+    GetReverseComplementSequence(bam1_seq(&original_record), new_record->core.l_qseq, data_ptr);
+  } else if (!is_seq_inverse && is_seq_complement) { // complement
+    GetComplementSequence(bam1_seq(&original_record), new_record->core.l_qseq, data_ptr);
+  } else { // inverse
+    GetInverseSequence(bam1_seq(&original_record), new_record->core.l_qseq, data_ptr);
+  }
+
+  data_ptr += ((new_record->core.l_qseq + 1) / 2);
+
+  // copy base qualities
+  memcpy(data_ptr, bam1_qual(&original_record), new_record->core.l_qseq);
+  data_ptr += new_record->core.l_qseq;
+
+  new_record->data = data;
+}
+} // namespace
+
 namespace BamUtilities {
 bool ResetHeaderText( bam_header_t* const header, const string& header_string ){
 	
@@ -221,54 +339,25 @@ bool GetPackedCigar( vector<uint32_t>& packed_cigar,
 
 }
 
-void GetReverseComplementSequence(const uint8_t* original, 
-                                  const int& length, 
-              	 		  uint8_t* reverse) 
-{
-  int length_even = ((length % 2) == 1) ? length - 1 : length;
-  for (int i = 0; i < length_even; i=i+2) {
-    char upper = COMPLEMENT_BASE_MAP[bam1_seqi(original, length - i - 1)];
-    char lower = COMPLEMENT_BASE_MAP[bam1_seqi(original, length - i - 2)];
-    *reverse = (upper << 4) | lower;
-    ++reverse;
-  }
+void ConvertAlignmentToBam1(const StripedSmithWaterman::Alignment& al,
+                            const bam1_t& original_record,
+			    const bool& is_seq_inverse,
+			    const bool& is_seq_complement,
+			    bam1_t* new_record) {
+  // copy the core info
+  new_record->core.tid     = original_record.core.tid;
+  new_record->core.pos     = al.ref_begin;
+  new_record->core.bin     = bam_reg2bin(al.ref_begin, al.ref_end);
+  new_record->core.qual    = 0;
+  new_record->core.l_qname = original_record.core.l_qname;
+  new_record->core.flag    = 0;
+  new_record->core.n_cigar = al.cigar.size();
+  new_record->core.l_qseq  = original_record.core.l_qseq;
+  new_record->core.mtid    = original_record.core.mtid;
+  new_record->core.mpos    = original_record.core.mpos;
+  new_record->core.isize   = 0;
 
-  if ((length % 2) == 1) {
-    char upper = COMPLEMENT_BASE_MAP[bam1_seqi(original, 0)];
-    *reverse = (upper << 4) & 0xf0;
-    ++reverse;
-  }
-}
-
-void GetComplementSequence(const uint8_t* original,
-                           const int& length,
-			   uint8_t* reverse)
-{
-  for (int i = 0; i < length; i=i+2) {
-    char upper = COMPLEMENT_BASE_MAP[bam1_seqi(original, i)];
-    char lower = COMPLEMENT_BASE_MAP[bam1_seqi(original, i+1)];
-    *reverse = (upper << 4) | lower;
-    ++reverse;
-  }
-}
-
-void GetInverseSequence(const uint8_t* original,
-                        const int& length,
-			uint8_t* reverse)
-{
-  int length_even = ((length % 2) == 1) ? length - 1 : length;
-  for (int i = 0; i < length_even; i=i+2) {
-    char upper = bam1_seqi(original, length - i - 1);
-    char lower = bam1_seqi(original, length - i - 2);
-    *reverse = (upper << 4) | lower;
-    ++reverse;
-  }
-
-  if ((length % 2) == 1) {
-    char upper = bam1_seqi(original, 0);
-    *reverse = (upper << 4) & 0xf0;
-    ++reverse;
-  }
+  SetDataToBam1(original_record, is_seq_inverse, is_seq_complement, al.cigar, new_record);
 }
 
 // TODO @ Wan-Ping: isize, flag, and mq are not yet to be assigned.
@@ -288,7 +377,7 @@ void ConvertAlignmentToBam1(const Alignment& al,
   // copy the core info
   new_record->core.tid     = original_record.core.tid;
   new_record->core.pos     = al.reference_begin;
-  new_record->core.bin     = bam_reg2bin(al.query_begin, al.query_end);
+  new_record->core.bin     = bam_reg2bin(al.reference_begin, al.reference_end);
   new_record->core.qual    = al.quality;
   new_record->core.l_qname = original_record.core.l_qname;
   new_record->core.flag    = 0;
@@ -298,6 +387,8 @@ void ConvertAlignmentToBam1(const Alignment& al,
   new_record->core.mpos    = original_record.core.mpos;
   new_record->core.isize   = 0;
 
+  SetDataToBam1(original_record, al.is_seq_inverse, al.is_seq_complement, packed_cigar, new_record);
+  /*
   // set the flag
   if (al.is_seq_inverse && al.is_seq_complement)
     new_record->core.flag |= 0x0010;
@@ -353,6 +444,7 @@ void ConvertAlignmentToBam1(const Alignment& al,
   data_ptr += new_record->core.l_qseq;
 
   new_record->data = data;
+  */
 }
 
 bool AppendReferenceSequence(const char** names,

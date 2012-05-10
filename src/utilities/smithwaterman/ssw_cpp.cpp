@@ -257,6 +257,7 @@ bool Aligner::Align(const char* query, const char* ref, const int& ref_len,
   // calculate the valid length
   int valid_ref_len = (static_cast<int>(strlen(ref)) > ref_len) 
                       ? ref_len : strlen(ref);
+  if (valid_ref_len == 0) return 0;
   int8_t* translated_ref = new int8_t[valid_ref_len];
   TranslateBase(ref, valid_ref_len, translated_ref);
 

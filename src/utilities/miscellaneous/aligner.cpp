@@ -222,8 +222,16 @@ void Aligner::Align(const TargetEvent& target_event,
     StripedSmithWaterman::Alignment indel_al;
     bool medium_indel_found = 
         SearchMediumIndel(target_region, alignment_filter, &indel_al);
-	if (medium_indel_found) fprintf(stderr, "found: %s\n", indel_al.cigar_string.c_str());
-  } else {
+    if (medium_indel_found) {
+      // store alignments
+      bam1_t *al1_bam;
+      al1_bam = bam_init1(); // Thread.cpp will free it
+      const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
+      BamUtilities::ConvertAlignmentToBam1(indel_al, *query_region_->pOrphan, is_anchor_forward, is_anchor_forward, al1_bam);
+    } else { // !medium_indel_found
+      // nothing
+    }
+  } else { // !target_event.medium_sized_indel
     // nothing
   }
 

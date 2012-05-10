@@ -49,7 +49,8 @@ void StoreAlignmentInBam(const vector<bam1_t*>& alignments_bam,
 void FreeAlignmentBam(vector<bam1_t*>* als_bam) {
   for (unsigned int i = 0; i < als_bam->size(); ++i) {
     bam1_t* ptr = (*als_bam)[i];
-    bam_destroy1(ptr);
+    if (ptr != NULL) bam_destroy1(ptr);
+    ptr = NULL;
   }
 
   als_bam->clear();
