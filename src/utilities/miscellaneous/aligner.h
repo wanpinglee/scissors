@@ -32,26 +32,32 @@ class Aligner {
 	  const SR_RefHeader*   reference_header,
 	  const int&            fragment_length);
   ~Aligner();
-  // @function Aligns the orphan bam1_t in query_region_
-  //           [NOTICE] Users may not use this function.
-  // @param  detect_special    detects second partial in special references
-  // @param  alignment_filter  the filter for split-read alignment
-  // @param  al_ite            all target pairs are stored here
-  // @param  alignments        all obtained split-read alignments are stored here
-  //         [NOTICE]          Users should free bam1_t in the vector
+  
+  // [NOTICE] Users may not use this function.
+  // @function:
+  //     Aligns the orphan bam1_t in query_region_
+  //
+  // @params:
+  //     alignment_filter--the filter for split-read alignment
+  //     al_ite------------all target pairs are stored here;
+  //                       it'll be set to NULL before exiting the function.
+  //     alignments--------all obtained split-read alignments are stored here
+  //                       [NOTICE] Users should free bam1_t in the vector
   void AlignCandidate(const TargetEvent&     target_event,
                       const TargetRegion&    target_region,
                       const AlignmentFilter& alignment_filter,
                       SR_BamInStreamIter*    al_ite, 
                       vector<bam1_t*>*       alignments);
 
-  // @function Aligns the orphan bam1_t in query_region_
-  // @param  detect_special    detects second partial in special references
-  // @param  alignment_filter  the filter for split-read alignment
-  // @param  anchor            anchor (mapped) mate
-  // @param  target            target (unmapped) mate which is the split-read target
-  // @param  alignments        all obtained split-read alignments are stored here
-  //         [NOTICE]          Users should free bam1_t in the vector
+  // @function:
+  //     Aligns the orphan bam1_t in query_region_
+  //
+  // @params:
+  //     alignment_filter--the filter for split-read alignment
+  //     anchor------------anchor (mapped) mate
+  //     target------------target (unmapped) mate which is the split-read target
+  //     alignments--------all obtained split-read alignments are stored here
+  //                       [NOTICE] Users should free bam1_t in the vector
   void AlignCandidate(const TargetEvent&     target_event,
                       const TargetRegion&    target_region,
                       const AlignmentFilter& alignment_filter,
