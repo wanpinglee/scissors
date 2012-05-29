@@ -486,7 +486,7 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   // Apply SSW to the region
   int ref_length = end - begin + 1;
   const char* ref_seq = GetSequence(begin, special);
-  fprintf(stderr, "%d\t%u\n", reference_->id, reference_->seqLen);
+  //fprintf(stderr, "%d\t%u\n", reference_->id, reference_->seqLen);
   //for (unsigned int i = 0; i < 10; ++i)
   //  fprintf(stderr, "%c", *(ref_seq+i));
   //fprintf(stderr, "\n");

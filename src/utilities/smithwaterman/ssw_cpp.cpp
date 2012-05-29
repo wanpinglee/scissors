@@ -280,6 +280,8 @@ bool Aligner::Align(const char* query, const char* ref, const int& ref_len,
   // Free memory
   if (query_len > 1) delete [] translated_query;
   else delete translated_query;
+  if (valid_ref_len > 1) delete [] translated_ref;
+  else delete translated_ref;
   align_destroy(s_al);
   init_destroy(profile);
 

@@ -28,7 +28,7 @@ namespace {
 inline void GetChromosomeId(const SR_BamListIter& alignment_list,
                      int* chromosome_id) {
   *chromosome_id = alignment_list->alignment.core.tid;
-  cerr << bam1_qname(&alignment_list->alignment) << endl;
+  //cerr << bam1_qname(&alignment_list->alignment) << endl;
 }
 
 void StoreAlignmentInBam(const vector<bam1_t*>& alignments_bam,
@@ -251,7 +251,7 @@ bool Thread::LoadReference() {
       return false;
     }
 
-    cout << bam_status_ << endl;
+    //cout << bam_status_ << endl;
     if (bam_status_ == SR_OUT_OF_RANGE)
       continue;
     else

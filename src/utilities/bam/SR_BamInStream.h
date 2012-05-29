@@ -27,6 +27,7 @@
 // Type and constant definition
 //===============================
 
+// Define SR_BamFilter as an alias for the functions in utilities/bam/SR_BamPairAux.h
 typedef SR_Bool (*SR_BamFilter) (SR_BamNode* pBamNode, const void* pFilterData);
 
 typedef enum SR_StreamControlFlag

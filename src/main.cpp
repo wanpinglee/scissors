@@ -142,8 +142,8 @@ void InitFiles(const Parameters& parameters, MainFiles* files) {
       parameters.input_bam.c_str(), 
       parameters.mate_window_size,
       parameters.processors,  // number of processors
-      1, // the number of alignments can be stored in each chunk of the memory pool
-      1, // number of alignments should be cached before report
+      2, // the number of alignments can be stored in each chunk of the memory pool
+      2, // number of alignments should be cached before report
       &streamMode);
 
   // Initialize bam output writer

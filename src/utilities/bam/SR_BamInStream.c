@@ -32,20 +32,20 @@
 
 // value indicate that we did not load any read
 // into the bam array
-const int NO_QUERY_YET = -2;
+static const int NO_QUERY_YET = -2;
 
 // default capacity of a bam array
 //#define DEFAULT_BAM_ARRAY_CAP 200
 
-const int SR_MAX_BIN_LEN = 500000000;
+static const int SR_MAX_BIN_LEN = 500000000;
 
 // a mask used to filter out those unwanted reads for split alignments
 // it includes proper paired reads, secondar reads, qc-failed reads and duplicated reads
 #define SR_BAM_FMASK (BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP)
 
 // bin number of buffers
-#define PREV_BIN 0
-#define CURR_BIN 1
+static const int PREV_BIN = 0;
+static const int CURR_BIN = 1;
 
 // initialize a string-to-bam hash table used to retrieve a pair of read
 KHASH_MAP_INIT_STR(queryName, SR_BamNode*);
@@ -90,6 +90,7 @@ struct SR_BamInStreamPrvt
 // Static functions
 //===================
 
+// Read the next bam record from the bam file and store it in pBamInStream->pNewNode
 static inline int SR_BamInStreamLoadNext(SR_BamInStream* pBamInStream)
 {
     // for the bam alignment array, if we need to expand its space
@@ -194,8 +195,10 @@ void SR_BamInStreamFree(SR_BamInStream* pBamInStream)
         kh_destroy(queryName, pBamInStream->pNameHashes[PREV_BIN]);
         kh_destroy(queryName, pBamInStream->pNameHashes[CURR_BIN]);
 
-        free(pBamInStream->pRetLists);
-        free(pBamInStream->pAlgnTypes);
+        if (pBamInStream->pRetLists != NULL)
+	  free(pBamInStream->pRetLists);
+        if (pBamInStream->pAlgnTypes != NULL)
+	  free(pBamInStream->pAlgnTypes);
         SR_BamMemPoolFree(pBamInStream->pMemPool);
 
         bam_close(pBamInStream->fpBamInput);
