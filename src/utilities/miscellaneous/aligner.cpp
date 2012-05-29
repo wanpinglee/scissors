@@ -99,8 +99,11 @@ bool DetermineMediumIndelBreakpoint(
   for(unsigned int i = 0; i < indel_cigar_id; ++i) {
     uint8_t  op = ssw_al.cigar[i] & 0x0f;
     uint32_t length = ssw_al.cigar[i] >> 4;
-    //fprintf(stderr, "%u\t", length);
-    if ((op == 0) && (length > aligned_base_threshold)) pass_filter = true;
+    //fprintf(stderr, "%u\t%u\t%u\t", i, op, length);
+    if ((op == 0) && (length > aligned_base_threshold)) {
+      pass_filter = true;
+      break;
+    }
   }
 
   // The first partial doesn't exist
@@ -113,10 +116,13 @@ bool DetermineMediumIndelBreakpoint(
   for(unsigned int i = indel_cigar_id + 1; i < ssw_al.cigar.size(); ++i) {
     uint8_t  op = ssw_al.cigar[i] & 0x0f;
     uint32_t length = ssw_al.cigar[i] >> 4;
-    //fprintf(stderr, "%u\t", length);
-    if ((op == 0) && (length > aligned_base_threshold)) pass_filter = true;
+    //fprintf(stderr, "%u\t%u\t%u\t", i, op, length);
+    if ((op == 0) && (length > aligned_base_threshold)) {
+      pass_filter = true;
+      break;
+    }
   }
-  //fprintf(stderr, "\n");
+  //fprintf(stderr, "%c\n", pass_filter?'T':'F');
   return pass_filter;
 
 }
@@ -144,7 +150,9 @@ Aligner::Aligner(const SR_Reference* reference,
   hashes_special_   = HashRegionTableAlloc();
   special_ref_view_ = SR_RefViewAlloc();
 
-  stripe_sw_aligner_.SetGapPenalty(3, 0);
+  stripe_sw_aligner_.Clear();
+  stripe_sw_aligner_.ReBuild(20,20,20,1);
+  //stripe_sw_aligner_.SetGapPenalty(4, 0);
 
   //hash_length_.fragLen = fragment_length;
   //hash_length_.closeRange = 2000;
@@ -222,12 +230,12 @@ void Aligner::Align(const TargetEvent& target_event,
     StripedSmithWaterman::Alignment indel_al;
     bool medium_indel_found = 
         SearchMediumIndel(target_region, alignment_filter, &indel_al);
-    if (medium_indel_found) {
-      // store alignments
+    if (medium_indel_found) { // store alignments
       bam1_t *al1_bam;
       al1_bam = bam_init1(); // Thread.cpp will free it
       const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
       BamUtilities::ConvertAlignmentToBam1(indel_al, *query_region_->pOrphan, is_anchor_forward, is_anchor_forward, al1_bam);
+      alignments->push_back(al1_bam);
     } else { // !medium_indel_found
       // nothing
     }
@@ -467,6 +475,8 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   int begin, end;
   bool special = false;
   GetTargetRefRegion(target_region.local_window_size, pivot, special, &begin, &end);
+  //fprintf(stderr, "%u\t%u\n", begin, end);
+  if (end < begin) return false;
 
   // Get the read sequence
   SetTargetSequence(region_type, query_region_);
@@ -476,11 +486,16 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   // Apply SSW to the region
   int ref_length = end - begin + 1;
   const char* ref_seq = GetSequence(begin, special);
+  fprintf(stderr, "%d\t%u\n", reference_->id, reference_->seqLen);
+  //for (unsigned int i = 0; i < 10; ++i)
+  //  fprintf(stderr, "%c", *(ref_seq+i));
+  //fprintf(stderr, "\n");
   StripedSmithWaterman::Filter filter;
-  filter.distance_filter = read_seq.size();
+  filter.distance_filter = read_seq.size() * 3;
   stripe_sw_aligner_.Align(read_seq.c_str(), ref_seq, ref_length, filter, indel_al);
 
   // Return false since no alignment is found
+  //fprintf(stderr, "%u\t%u\t%s\n", indel_al->ref_end, indel_al->ref_begin, indel_al->cigar_string.c_str());
   if (indel_al->cigar.empty()) return false;
 
   // Adjust the positions

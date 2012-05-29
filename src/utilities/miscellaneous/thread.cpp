@@ -28,6 +28,7 @@ namespace {
 inline void GetChromosomeId(const SR_BamListIter& alignment_list,
                      int* chromosome_id) {
   *chromosome_id = alignment_list->alignment.core.tid;
+  cerr << bam1_qname(&alignment_list->alignment) << endl;
 }
 
 void StoreAlignmentInBam(const vector<bam1_t*>& alignments_bam,
@@ -49,8 +50,9 @@ void StoreAlignmentInBam(const vector<bam1_t*>& alignments_bam,
 void FreeAlignmentBam(vector<bam1_t*>* als_bam) {
   for (unsigned int i = 0; i < als_bam->size(); ++i) {
     bam1_t* ptr = (*als_bam)[i];
-    if (ptr != NULL) bam_destroy1(ptr);
-    ptr = NULL;
+    bam_destroy1(ptr);
+    //if (ptr != NULL) bam_destroy1(ptr);
+    //ptr = NULL;
   }
 
   als_bam->clear();
@@ -241,6 +243,7 @@ bool Thread::LoadReference() {
                                    thread_id,
   				   allowed_clip_,
 				   0.1, // maxMismatchRate
+				   //1);
 				   // min mapping quality
 				   thread_data_[thread_id].bam_mq_threshold);
     if (bam_status_ == SR_ERR) { // cannot load alignments from bam
@@ -248,7 +251,7 @@ bool Thread::LoadReference() {
       return false;
     }
 
-    //cout << bam_status_ << endl;
+    cout << bam_status_ << endl;
     if (bam_status_ == SR_OUT_OF_RANGE)
       continue;
     else
