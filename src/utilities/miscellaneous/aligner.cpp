@@ -8,6 +8,7 @@
 #include "utilities/bam/bam_constant.h"
 #include "utilities/bam/bam_utilities.h"
 #include "utilities/miscellaneous/alignment_filter.h"
+#include "utilities/miscellaneous/alignment_collection.h"
 #include "utilities/miscellaneous/hashes_collection.h"
 
 namespace Scissors {
@@ -233,6 +234,7 @@ void Aligner::Align(const TargetEvent& target_event,
   SR_QueryRegionLoadSeq(query_region_);
   
   
+  // Try to align for medium-sized INDELs
   if (target_event.medium_sized_indel) {
     StripedSmithWaterman::Alignment indel_al;
     bool medium_indel_found = 
@@ -258,6 +260,7 @@ void Aligner::Align(const TargetEvent& target_event,
   alignments->push_back(al_bam_anchor);
   */
  
+  // Try to align for special insertions
   if (target_event.special_insertion) {
     Alignment local_al, special_al;
     bool special_found = SearchSpecialReference(alignment_filter, &local_al, &special_al);

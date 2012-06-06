@@ -5,7 +5,8 @@ SOURCES = hashes_collection.cpp \
 		parameter_parser.cpp \
 		thread.cpp \
 		aligner.cpp \
-		alignment_filter.cpp
+		alignment_filter.cpp \
+		alignment_collection.cpp
 
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES) )
 LIBS = -lz
