@@ -13,6 +13,11 @@
 
 namespace Scissors {
 namespace {
+
+const Scissors::TargetEvent kMediumIndel(false, true);
+const Scissors::TargetEvent kSpecialInsertion(true, false);
+
+
 void SetTargetSequence(const SearchRegionType::RegionType& region_type, 
                        SR_QueryRegion* query_region) {
   if (region_type.sequence_inverse && region_type.sequence_complement) {
@@ -233,18 +238,20 @@ void Aligner::Align(const TargetEvent& target_event,
   // Convert 4-bit representive sequence into chars
   SR_QueryRegionLoadSeq(query_region_);
   
-  
+  AlignmentCollection al_collection;
+  StripedSmithWaterman::Alignment indel_al;
   // Try to align for medium-sized INDELs
   if (target_event.medium_sized_indel) {
-    StripedSmithWaterman::Alignment indel_al;
     bool medium_indel_found = 
         SearchMediumIndel(target_region, alignment_filter, &indel_al);
     if (medium_indel_found) { // store alignments
-      bam1_t *al1_bam;
-      al1_bam = bam_init1(); // Thread.cpp will free it
-      const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
-      BamUtilities::ConvertAlignmentToBam1(indel_al, *query_region_->pOrphan, is_anchor_forward, is_anchor_forward, al1_bam);
-      alignments->push_back(al1_bam);
+      al_collection.PushANewEvent(kMediumIndel);
+      al_collection.PushAlignment(indel_al);
+      //bam1_t *al1_bam;
+      //al1_bam = bam_init1(); // Thread.cpp will free it
+      //const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
+      //BamUtilities::ConvertAlignmentToBam1(indel_al, *query_region_->pOrphan, is_anchor_forward, is_anchor_forward, al1_bam);
+      //alignments->push_back(al1_bam);
     } else { // !medium_indel_found
       // nothing
     }
@@ -261,35 +268,43 @@ void Aligner::Align(const TargetEvent& target_event,
   */
  
   // Try to align for special insertions
+  Alignment local_al, special_al;
   if (target_event.special_insertion) {
-    Alignment local_al, special_al;
     bool special_found = SearchSpecialReference(alignment_filter, &local_al, &special_al);
     if (special_found) {
+	  al_collection.PushANewEvent(kSpecialInsertion);
+	  al_collection.PushAlignment(local_al);
+	  al_collection.PushAlignment(special_al);
 	  // store alignments
-	  bam1_t *al1_bam, *al2_bam;
-	  al1_bam = bam_init1(); // Thread.cpp will free it
-	  al2_bam = bam_init1(); // Thread.cpp will free it
-	  BamUtilities::ConvertAlignmentToBam1(local_al, *query_region_->pOrphan, al1_bam);
-	  BamUtilities::ConvertAlignmentToBam1(special_al, *query_region_->pOrphan, al2_bam);
+	  //bam1_t *al1_bam, *al2_bam;
+	  //al1_bam = bam_init1(); // Thread.cpp will free it
+	  //al2_bam = bam_init1(); // Thread.cpp will free it
+	  //BamUtilities::ConvertAlignmentToBam1(local_al, *query_region_->pOrphan, al1_bam);
+	  //BamUtilities::ConvertAlignmentToBam1(special_al, *query_region_->pOrphan, al2_bam);
 	  // add optional tags
-	  std::list<bam1_t*> al_list;
-	  al_list.push_back(al1_bam);
-	  al_list.push_back(al2_bam);
-	  OptionalTag::AddOptionalTags(*(query_region_->pAnchor), al_list);
+	  //std::list<bam1_t*> al_list;
+	  //al_list.push_back(al1_bam);
+	  //al_list.push_back(al2_bam);
+	  //OptionalTag::AddOptionalTags(*(query_region_->pAnchor), al_list);
 
-	  uint32_t s_pos;
-	  int32_t s_ref_id;
-	  SR_GetRefFromSpecialPos(special_ref_view_, &s_ref_id, &s_pos, reference_header_, reference_special_, al2_bam->core.pos);
-	  al2_bam->core.pos = s_pos;
-	  al2_bam->core.tid = s_ref_id;
+	  //uint32_t s_pos;
+	  //int32_t s_ref_id;
+	  //SR_GetRefFromSpecialPos(special_ref_view_, &s_ref_id, &s_pos, reference_header_, reference_special_, al2_bam->core.pos);
+	  //al2_bam->core.pos = s_pos;
+	  //al2_bam->core.tid = s_ref_id;
 
-	  alignments->push_back(al1_bam);
-	  alignments->push_back(al2_bam);
+	  //alignments->push_back(al1_bam);
+	  //alignments->push_back(al2_bam);
 	  //AdjustBamFlag(al_bam_anchor, al1_bam, al2_bam);
     } else { // !special_found
       // nothing
     }
   }
+
+  TargetEvent best_event;
+  vector <StripedSmithWaterman::Alignment*> ssw_al_for_best_event;
+  vector <Alignment*> common_al_for_best_event;
+  al_collection.GetMostConfidentEvent(&best_event, &ssw_al_for_best_event, &common_al_for_best_event);
 
       // For normal detection
       /*

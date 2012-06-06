@@ -3,12 +3,12 @@
 
 #include <vector>
 
+#include "dataStructures/target_event.h"
 #include "utilities/smithwaterman/ssw_cpp.h"
 
 namespace Scissors {
 
 struct Alignment;
-struct TargetEvent;
 
 // Collects split-read alignments that support different events
 class AlignmentCollection {
@@ -58,7 +58,7 @@ class AlignmentCollection {
   void Clear();
 
   struct EventAlignment{
-    TargetEvent* event;
+    TargetEvent event;
     std::vector <StripedSmithWaterman::Alignment*> ssw_als;
     std::vector <Alignment*> common_als;
   };

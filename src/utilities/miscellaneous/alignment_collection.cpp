@@ -52,7 +52,7 @@ AlignmentCollection::~AlignmentCollection() {
 //     event--the type of the event
 void AlignmentCollection::PushANewEvent(const TargetEvent& event) {
   EventAlignment new_result;
-  new_result.event = (TargetEvent*)(&event);
+  new_result.event = event;
   container_.push_back(new_result);
 }
 
@@ -81,7 +81,19 @@ void AlignmentCollection::GetMostConfidentEvent(
     TargetEvent* event,
     std::vector <StripedSmithWaterman::Alignment*>* ssw_als,
     std::vector <Alignment*>* common_als) {
-  std::sort(container_.begin(), container_.end(), SortEventAlignment);
+
+  if (container_.empty()) {
+    event->special_insertion  = false;
+    event->medium_sized_indel = false;
+    ssw_als->clear();
+    common_als->clear();
+  } else {
+    std::sort(container_.begin(), container_.end(), SortEventAlignment);
+    vector<EventAlignment>::reverse_iterator ite = container_.rbegin();
+    *event      = ite->event;
+    *ssw_als    = ite->ssw_als;
+    *common_als = ite->common_als;
+  }
 }
 
 // @function:
