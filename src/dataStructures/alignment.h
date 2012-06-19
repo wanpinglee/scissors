@@ -20,6 +20,7 @@ const float FLOAT_NEGATIVE_INFINITY = (float)-1e+30;
 struct Alignment{
 	string reference;
 	string query;
+	uint32_t reference_id;
 	uint32_t reference_begin;
 	uint32_t reference_end;
 	uint32_t query_begin;
@@ -31,7 +32,8 @@ struct Alignment{
 	bool is_seq_complement;
 
 	Alignment()
-		: reference_begin(0)
+		: reference_id(0)
+		, reference_begin(0)
 		, reference_end(0)
 		, query_begin(0)
 		, query_end(0)

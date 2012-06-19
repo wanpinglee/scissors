@@ -45,15 +45,15 @@ void SetTargetSequence(const SearchRegionType::RegionType& region_type,
   
 }
 
-void AdjustBamFlag(bam1_t* al_bam_anchor, bam1_t* partial_al1, bam1_t* partial_al2) {
+void AdjustBamFlag(const bam1_t& al_bam_anchor, bam1_t* partial_al1) {
   namespace Constant = BamFlagConstant;
-  bool anchor_mate1 = al_bam_anchor->core.flag & Constant::kBamFMate1;
-  bool anchor_reverse = al_bam_anchor->core.flag & Constant::kBamFReverse;
+  bool anchor_mate1 = al_bam_anchor.core.flag & Constant::kBamFMate1;
+  bool anchor_reverse = al_bam_anchor.core.flag & Constant::kBamFReverse;
 
   // set anchor's flag
-  al_bam_anchor->core.flag &= 0xfff7; // mate is not unmapped
-  if (anchor_reverse) al_bam_anchor->core.flag &= 0xffdf; // mate is not reverse
-  else al_bam_anchor->core.flag |= Constant::kBamFReverseMate;
+  //al_bam_anchor->core.flag &= 0xfff7; // mate is not unmapped
+  //if (anchor_reverse) al_bam_anchor->core.flag &= 0xffdf; // mate is not reverse
+  //else al_bam_anchor->core.flag |= Constant::kBamFReverseMate;
 
   //set partial alignments flags
   int16_t partial_flag = 0;
@@ -63,7 +63,6 @@ void AdjustBamFlag(bam1_t* al_bam_anchor, bam1_t* partial_al1, bam1_t* partial_a
   if (anchor_mate1) partial_flag |= Constant::kBamFMate2;
   else partial_flag |= Constant::kBamFMate1;
   partial_al1->core.flag = partial_flag;
-  partial_al2->core.flag = partial_flag;
 }
 
 bool FindMediumIndel(const StripedSmithWaterman::Alignment& ssw_al,
@@ -137,7 +136,34 @@ bool DetermineMediumIndelBreakpoint(
   }
   //fprintf(stderr, "%c\n", pass_filter?'T':'F');
   return pass_filter;
+}
 
+void StoreAlignment(
+    const TargetEvent& event,
+    const vector <StripedSmithWaterman::Alignment*>& ssw_als,
+    const vector <Alignment*>& common_als,
+    const bam1_t& anchor,
+    const bam1_t& target,
+    vector<bam1_t*>* alignments) {
+  // Stores alignments that are obtained by SSW
+  for (vector <StripedSmithWaterman::Alignment*>::const_iterator ite = ssw_als.begin();
+      ite != ssw_als.end(); ++ite) {
+    bam1_t *al_bam;
+    al_bam = bam_init1(); // Thread.cpp will free it
+    const bool is_anchor_forward = !bam1_strand(&anchor);
+    BamUtilities::ConvertAlignmentToBam1(**ite, target, is_anchor_forward, is_anchor_forward, al_bam);
+    AdjustBamFlag(anchor, al_bam);
+    alignments->push_back(al_bam);
+  }
+
+  for (vector <Alignment*>::const_iterator ite = common_als.begin();
+      ite != common_als.end(); ++ite) {
+    bam1_t *al_bam;
+    al_bam = bam_init1(); // Thread.cpp will free it
+    BamUtilities::ConvertAlignmentToBam1(**ite, target, al_bam);
+    AdjustBamFlag(anchor, al_bam);
+    alignments->push_back(al_bam);
+  }
 }
 
 } // unnamed namespace
@@ -244,14 +270,9 @@ void Aligner::Align(const TargetEvent& target_event,
   if (target_event.medium_sized_indel) {
     bool medium_indel_found = 
         SearchMediumIndel(target_region, alignment_filter, &indel_al);
-    if (medium_indel_found) { // store alignments
+    if (medium_indel_found) { // push the event and its corresponding alignments in the collection
       al_collection.PushANewEvent(kMediumIndel);
       al_collection.PushAlignment(indel_al);
-      //bam1_t *al1_bam;
-      //al1_bam = bam_init1(); // Thread.cpp will free it
-      //const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
-      //BamUtilities::ConvertAlignmentToBam1(indel_al, *query_region_->pOrphan, is_anchor_forward, is_anchor_forward, al1_bam);
-      //alignments->push_back(al1_bam);
     } else { // !medium_indel_found
       // nothing
     }
@@ -259,52 +280,38 @@ void Aligner::Align(const TargetEvent& target_event,
     // nothing
   }
 
-  // store the anchor in output bam
-  /*
-  bam1_t* al_bam_anchor;
-  al_bam_anchor = bam_init1(); // Thread.cpp will free it
-  al_bam_anchor = bam_copy1(al_bam_anchor, query_region_->pAnchor);
-  alignments->push_back(al_bam_anchor);
-  */
- 
   // Try to align for special insertions
   Alignment local_al, special_al;
   if (target_event.special_insertion) {
     bool special_found = SearchSpecialReference(alignment_filter, &local_al, &special_al);
     if (special_found) {
-	  al_collection.PushANewEvent(kSpecialInsertion);
-	  al_collection.PushAlignment(local_al);
-	  al_collection.PushAlignment(special_al);
-	  // store alignments
-	  //bam1_t *al1_bam, *al2_bam;
-	  //al1_bam = bam_init1(); // Thread.cpp will free it
-	  //al2_bam = bam_init1(); // Thread.cpp will free it
-	  //BamUtilities::ConvertAlignmentToBam1(local_al, *query_region_->pOrphan, al1_bam);
-	  //BamUtilities::ConvertAlignmentToBam1(special_al, *query_region_->pOrphan, al2_bam);
-	  // add optional tags
-	  //std::list<bam1_t*> al_list;
-	  //al_list.push_back(al1_bam);
-	  //al_list.push_back(al2_bam);
-	  //OptionalTag::AddOptionalTags(*(query_region_->pAnchor), al_list);
-
-	  //uint32_t s_pos;
-	  //int32_t s_ref_id;
-	  //SR_GetRefFromSpecialPos(special_ref_view_, &s_ref_id, &s_pos, reference_header_, reference_special_, al2_bam->core.pos);
-	  //al2_bam->core.pos = s_pos;
-	  //al2_bam->core.tid = s_ref_id;
-
-	  //alignments->push_back(al1_bam);
-	  //alignments->push_back(al2_bam);
-	  //AdjustBamFlag(al_bam_anchor, al1_bam, al2_bam);
+      local_al.reference_id = query_region_->pOrphan->core.tid;
+      // adjust reference id for alignments in special insertions
+      uint32_t s_pos;
+      uint32_t s_length = special_al.reference_end - special_al.reference_begin;
+      int32_t s_ref_id;
+      SR_GetRefFromSpecialPos(special_ref_view_, &s_ref_id, &s_pos, reference_header_,
+          reference_special_, special_al.reference_begin);
+      special_al.reference_begin = s_pos;
+      special_al.reference_end = s_pos + s_length;
+      special_al.reference_id = s_ref_id;
+	  
+      // push the event and its corresponding alignments in the collection
+      al_collection.PushANewEvent(kSpecialInsertion);
+      al_collection.PushAlignment(local_al);
+      al_collection.PushAlignment(special_al);
     } else { // !special_found
       // nothing
     }
   }
 
+  // Pick up the most supported event and its corresponding alignments
   TargetEvent best_event;
   vector <StripedSmithWaterman::Alignment*> ssw_al_for_best_event;
   vector <Alignment*> common_al_for_best_event;
   al_collection.GetMostConfidentEvent(&best_event, &ssw_al_for_best_event, &common_al_for_best_event);
+  StoreAlignment(best_event, ssw_al_for_best_event, common_al_for_best_event, 
+      *query_region_->pAnchor, *query_region_->pOrphan, alignments);
 
       // For normal detection
       /*

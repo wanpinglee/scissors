@@ -375,7 +375,7 @@ void ConvertAlignmentToBam1(const Alignment& al,
 		 original_record.core.l_qseq);
 
   // copy the core info
-  new_record->core.tid     = original_record.core.tid;
+  new_record->core.tid     = al.reference_id;
   new_record->core.pos     = al.reference_begin;
   new_record->core.bin     = bam_reg2bin(al.reference_begin, al.reference_end);
   new_record->core.qual    = al.quality;
