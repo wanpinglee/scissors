@@ -5,6 +5,8 @@
 
 using std::string;
 
+namespace Scissors {
+
 namespace {
 inline void ExtenedBamDataBuffer(
     const int& needed_size, 
@@ -16,28 +18,32 @@ inline void ExtenedBamDataBuffer(
   memcpy(bam_record->data, ptr, bam_record->data_len);
   free(ptr);
 }
-}
+} // unmaed namespace
 
 namespace OptionalTag {
-void AddOptionalTags(const bam1_t& anchor, std::list<bam1_t*> alignments) {
+void AddOptionalTags(const bam1_t& anchor, bam1_t* alignment) {
   const uint8_t* rg_ptr = bam_aux_get(&anchor, "RG");
   const char* rg = bam_aux2Z(rg_ptr);
   int rg_len = strlen(rg);
 
-  for (std::list<bam1_t*>::iterator ite = alignments.begin();
-       ite != alignments.end(); ++ite) {
-    int ori_len = (*ite)->data_len;
-    (*ite)->data_len += (3 + rg_len + 1);
-    (*ite)->l_aux += (3 + rg_len + 1);
-    if ((*ite)->m_data < (*ite)->data_len)
-      ExtenedBamDataBuffer((*ite)->data_len, *ite);
+  int ori_len = alignment->data_len;
+  alignment->data_len += (3 + rg_len + 1);
+  alignment->l_aux += (3 + rg_len + 1);
+  if (alignment->m_data < alignment->data_len)
+    ExtenedBamDataBuffer(alignment->data_len, alignment);
 
-    (*ite)->data[ori_len] = 'R';
-    (*ite)->data[ori_len + 1] = 'G';
-    (*ite)->data[ori_len + 2] = 'Z';
-    memcpy((*ite)->data + ori_len + 3, rg, rg_len);
-    (*ite)->data[ori_len + 3 + rg_len] = '\0';
-  }
+  alignment->data[ori_len] = 'R';
+  alignment->data[ori_len + 1] = 'G';
+  alignment->data[ori_len + 2] = 'Z';
+  memcpy(alignment->data + ori_len + 3, rg, rg_len);
+  alignment->data[ori_len + 3 + rg_len] = '\0';
 }
 
+void AddOptionalTags(const bam1_t& anchor, std::list<bam1_t*> alignments) {
+  for (std::list<bam1_t*>::iterator ite = alignments.begin();
+       ite != alignments.end(); ++ite) {
+    AddOptionalTags(anchor, *ite);
+  }
+}
 } // namespace OptionalTags
+} // namespace Scissors

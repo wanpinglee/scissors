@@ -153,6 +153,7 @@ void StoreAlignment(
     const bool is_anchor_forward = !bam1_strand(&anchor);
     BamUtilities::ConvertAlignmentToBam1(**ite, target, is_anchor_forward, is_anchor_forward, al_bam);
     AdjustBamFlag(anchor, al_bam);
+    OptionalTag::AddOptionalTags(anchor, al_bam);
     alignments->push_back(al_bam);
   }
 
@@ -162,6 +163,7 @@ void StoreAlignment(
     al_bam = bam_init1(); // Thread.cpp will free it
     BamUtilities::ConvertAlignmentToBam1(**ite, target, al_bam);
     AdjustBamFlag(anchor, al_bam);
+    OptionalTag::AddOptionalTags(anchor, al_bam);
     alignments->push_back(al_bam);
   }
 }
