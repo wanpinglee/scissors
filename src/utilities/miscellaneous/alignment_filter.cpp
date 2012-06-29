@@ -2,8 +2,101 @@
 
 #include <iostream>
 #include "dataStructures/alignment.h"
+#include "utilities/smithwaterman/ssw_cpp.h"
+
 namespace Scissors {
 namespace AlignmentFilterApplication {
+void TrimAlignment(
+    const AlignmentFilter& filter, 
+    StripedSmithWaterman::Alignment* al) {
+  // find the sublist whose scores is max
+  int maxi = 0, max = 0, start = 0, length = 0, best_start = 0, best_length = 0;
+  for (unsigned int i = 0; i < al->cigar.size(); ++i) {
+    uint8_t  op = al->cigar[i] & 0x0f;
+    uint32_t op_length = al->cigar[i] >> 4;
+    // get score
+    int score = 0;
+    switch(op) {
+      case 0: // M
+        score = filter.trimming_match_score * op_length;
+	break;
+      case 1: // I
+      case 2: // D
+        score = filter.trimming_gap_score * op_length;
+	break;
+      default:
+        break;
+    } // end of switch
+
+    // find max
+    if ((maxi + score) > 0) {
+      maxi += score;
+      ++length;
+    } else {
+      maxi = 0;
+      start = i + 1;
+      length = 0;
+    }
+    if (maxi > max) {
+      max = maxi;
+      best_start  = start;
+      best_length = length;
+    }
+  } // end of for
+
+  // trim alignment
+  if (best_length == 0) {
+    al->cigar.clear();
+    al->cigar_string.clear();
+  } else if (static_cast<unsigned int>(best_length) == al->cigar.size()){
+    // nothing
+  } else {
+    int read_clip1 = 0;
+    // Calculate the beginning soft clip
+    for (unsigned int i = 0; i < static_cast<unsigned int>(best_start); ++i) {
+      uint8_t  op = al->cigar[i] & 0x0f;
+      uint32_t op_length = al->cigar[i] >> 4;
+      switch(op) {
+        case 0: // M
+	case 1: // I
+	case 4: // S
+	  read_clip1 += op_length;
+	default:
+	  break;
+      }
+    } // end of for
+
+    // Calculate the ending clip
+    int read_clip2 = 0;
+    for (unsigned int i = best_start + best_length; i < al->cigar.size(); ++i) {
+      uint8_t  op = al->cigar[i] & 0x0f;
+      uint32_t op_length = al->cigar[i] >> 4;
+      switch(op) {
+        case 0: // M
+	case 1: // I
+	case 4: // S
+	  read_clip2 += op_length;
+	default:
+	  break;
+      }
+    } // end of for
+    
+    // Modify cigar vector
+    uint32_t new_cigar = 0;
+    if (read_clip2 > 0) {
+      al->cigar.erase(al->cigar.begin() + best_start + best_length, al->cigar.end());
+      new_cigar = (read_clip2 << 4 ) | 0x04;
+      al->cigar.push_back(new_cigar);
+    }
+    new_cigar = 0;
+    if (read_clip1 > 0) {
+      al->cigar.erase(al->cigar.begin(), al->cigar.begin() + best_start - 1);
+      new_cigar = (read_clip1 << 4 ) | 0x04;
+      al->cigar.insert(al->cigar.begin(), new_cigar);
+    }
+  }
+}
+
 void TrimAlignment(
     const AlignmentFilter& filter,
     Alignment* al){

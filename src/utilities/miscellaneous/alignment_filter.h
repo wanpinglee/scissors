@@ -4,9 +4,9 @@
 #include <math.h>
 
 #include "dataStructures/alignment.h"
+#include "utilities/smithwaterman/ssw_cpp.h"
 
 namespace Scissors {
-
 // The filter is used for split-read (SR) alignments.
 struct AlignmentFilter {
   // the ratio of SR bases to orignal mate bases [0.0-1.0]
@@ -36,6 +36,7 @@ struct AlignmentFilter {
 
 namespace AlignmentFilterApplication {
 void TrimAlignment(const AlignmentFilter& filter, Alignment* al);
+void TrimAlignment(const AlignmentFilter& filter, StripedSmithWaterman::Alignment* al);
 
 inline bool FilterByMismatch(const AlignmentFilter& filter, const Alignment& al);
 
@@ -44,6 +45,9 @@ inline bool FilterByAlignedBaseThreshold(const AlignmentFilter& filter,
 					 const int& read_length);
 } // AlignmentFilterApplication
 
+// ================
+// inline functions
+// ================
 inline bool AlignmentFilterApplication::FilterByMismatch(
     const AlignmentFilter& filter, 
     const Alignment& al) {
