@@ -43,7 +43,7 @@ void TrimAlignment(
       best_length = length;
     }
   } // end of for
-
+  
   // trim alignment
   if (best_length == 0) {
     al->cigar.clear();
@@ -90,7 +90,7 @@ void TrimAlignment(
     }
     new_cigar = 0;
     if (read_clip1 > 0) {
-      al->cigar.erase(al->cigar.begin(), al->cigar.begin() + best_start - 1);
+      al->cigar.erase(al->cigar.begin(), al->cigar.begin() + best_start);
       new_cigar = (read_clip1 << 4 ) | 0x04;
       al->cigar.insert(al->cigar.begin(), new_cigar);
     }

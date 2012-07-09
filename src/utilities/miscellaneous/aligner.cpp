@@ -554,9 +554,10 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   bool indel_found = FindMediumIndel(*indel_al, &cigar_id);
   indel_found &= DetermineMediumIndelBreakpoint(*indel_al, cigar_id, alignment_filter, read_seq.size());
 
+  //return indel_found;
+
   if (indel_found) {
-    if (((indel_al->cigar[cigar_id] & 0x0f) == 1) // insertion
-    && (indel_al->cigar.size() > 7)) {
+    if (indel_al->cigar.size() > 7) {
       AlignmentFilterApplication::TrimAlignment(alignment_filter, indel_al);
       if (indel_al->cigar.size() == 0) return false;
       else return true;
@@ -568,6 +569,7 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   } else { // !indel_found
     return false;
   }
+
 
 }
 
