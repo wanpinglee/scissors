@@ -5,7 +5,7 @@
 extern "C" {
 #include "ssw.h"
 }
-
+namespace Scissors {
 namespace {
 
 static int8_t kBaseTranslation[128] = {
@@ -397,3 +397,4 @@ void Aligner::BuildDefaultMatrix(void) {
   default_matrix_ = true;
 }
 } // namespace StripedSmithWaterman
+} // namespace Scissors

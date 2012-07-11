@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+namespace Scissors {
 namespace StripedSmithWaterman {
 
 struct Alignment {
@@ -207,5 +208,6 @@ inline void Aligner::CleanReferenceSequence(void) {
   reference_length_ = 0;
 }
 } // namespace StripedSmithWaterman
+} // namespace Scissors
 
 #endif // COMPLETE_STRIPED_SMITH_WATERMAN_CPP_H_
