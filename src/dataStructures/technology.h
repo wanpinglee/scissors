@@ -3,7 +3,7 @@
 
 namespace Scissors {
 enum Technology {
-	ILLUMINA, LS454
+	TECH_ILLUMINA, TECH_454, TECH_SOLID, TECH_NONE
 };
 }// namespace
 

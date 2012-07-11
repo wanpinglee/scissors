@@ -2,6 +2,7 @@
 #include <getopt.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <iostream>
 #include <string>
 
@@ -13,9 +14,11 @@ using std::cerr;
 using std::endl;
 using std::string;
 
+namespace Scissors {
 bool CheckParameters(Parameters* param);
 void PrintLongHelp(const string& program);
 void PrintBriefHelp(const string& program);
+void Convert_Technology(const string& optarg, Technology* technology);
 
 void ParseArgumentsOrDie(const int argc, char* const * argv, 
     Parameters* param) {
@@ -32,7 +35,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		param->command_line += argv[i];
 	}
 
-	const char *short_option = "hi:r:o:l:w:c:sp:SQ:B:M:";
+	const char *short_option = "hi:r:o:l:w:c:sp:SQ:B:M:t:";
 
 	const struct option long_option[] = {
 		// long help
@@ -51,6 +54,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		{"processors", required_argument, NULL, 'p'},
 		{"special-insertion", no_argument, NULL, 'S'},
 		{"not-medium-sized-indel", no_argument, NULL, 5},
+		{"technology", required_argument, NULL, 't'},
 
 		// original bam alignment filters
 		{"mapping-quality-threshold", no_argument, NULL, 'Q'},
@@ -126,6 +130,9 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 			case 5:
 				param->not_medium_sized_indel = true;
 				break;
+			case 't': 
+			        Convert_Technology(optarg, &(param->technology));
+			        break;
 
 			// original bam alignment filters
 			case 'Q':
@@ -182,57 +189,79 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 // true: passing the checker
 bool CheckParameters(Parameters* param) {
 	
-	bool errorFound = false;
-	// necessary parameters
-	if (param->input_bam.empty()) {
-		cerr << "ERROR: Please specific an input file, -i." << endl;
-		errorFound = true;
-	}
+bool errorFound = false;
+  // necessary parameters
+  if (param->input_bam.empty()) {
+    cerr << "ERROR: Please specific an input file, -i." << endl;
+    errorFound = true;
+  }
 	
-	if (param->output_bam.empty()) {
-		cerr << "ERROR: Please specific an output file, -o." << endl;
-		errorFound = true;
-	}
+  if (param->output_bam.empty()) {
+    cerr << "ERROR: Please specific an output file, -o." << endl;
+    errorFound = true;
+  }
 	
-	if (param->input_reference_hash.empty()) {
-		cerr << "ERROR: Please specific a reference hash table, -r." << endl;
-		errorFound = true;
-	}
+  if (param->input_reference_hash.empty()) {
+    cerr << "ERROR: Please specific a reference hash table, -r." << endl;
+    errorFound = true;
+  }
 
-	if (param->fragment_length < 1) {
-		cerr << "ERROR: Please specific the fragment length, -l." << endl
-		     << "       The value should be greater than 0." << endl;
-		errorFound = true;
-	}
+  if (param->fragment_length < 1) {
+    cerr << "ERROR: Please specific the fragment length, -l." << endl
+         << "       The value should be greater than 0." << endl;
+    errorFound = true;
+  }
 
-	// unnecessary parameters
-	if ((param->allowed_clip < 0.0) || (param->allowed_clip > 1.0)) {
-		cerr << "WARNING: -c should be in [0.0 - 1.0]. Set it to default, 0.2." << endl;
-		param->allowed_clip = 0.2;
-	}
+  if (param->technology == TECH_NONE) {
+    cerr << "ERROR: Please specify the technology, -t." << endl
+         << "       It should be ILLUMINA, 454, or SOLID." << endl;
+    errorFound = true;
+  }
 
-	if ((param->mate_window_size < 1) && (param->fragment_length > 0)) {
-		cerr << "WARNING: -w should be greater 0. Set it to default, fragment_length * 2." << endl;
-		param->mate_window_size = param->fragment_length * 2;
-	}
+  // unnecessary parameters
+  if ((param->allowed_clip < 0.0) || (param->allowed_clip > 1.0)) {
+    cerr << "WARNING: -c should be in [0.0 - 1.0]. Set it to default, 0.2." << endl;
+    param->allowed_clip = 0.2;
+  }
 
-	if (param->discovery_window_size < 0) {
-		cerr << "WARNING: --discovery-window-size should be greater 0." << endl
-		     << "         Set it to default, 1000." << endl;
-	}
+  if ((param->mate_window_size < 1) && (param->fragment_length > 0)) {
+    cerr << "WARNING: -w should be greater 0. Set it to default, fragment_length * 2." << endl;
+    param->mate_window_size = param->fragment_length * 2;
+  }
 
-	if ((param->aligned_base_rate < 0.0) || (param->aligned_base_rate > 1.0)) {
-		cerr << "WARNING: -B should be in [0.0 - 1.0]. Set it to default, 0.3." << endl;
-		param->aligned_base_rate = 0.3;
-	}
+  if (param->discovery_window_size < 0) {
+    cerr << "WARNING: --discovery-window-size should be greater 0." << endl
+         << "         Set it to default, 1000." << endl;
+  }
 
-	if ((param->allowed_mismatch_rate < 0.0) || (param->allowed_mismatch_rate > 1.0)) {
-		cerr << "WARNING: -M should be in [0.0 - 1.0]. Set it to default, 0.1." << endl;
-		param->allowed_mismatch_rate = 0.1;
-	}
+  if ((param->aligned_base_rate < 0.0) || (param->aligned_base_rate > 1.0)) {
+    cerr << "WARNING: -B should be in [0.0 - 1.0]. Set it to default, 0.3." << endl;
+    param->aligned_base_rate = 0.3;
+  }
 
-	return !errorFound;
+  if ((param->allowed_mismatch_rate < 0.0) || (param->allowed_mismatch_rate > 1.0)) {
+    cerr << "WARNING: -M should be in [0.0 - 1.0]. Set it to default, 0.1." << endl;
+    param->allowed_mismatch_rate = 0.1;
+  }
 
+  return !errorFound;
+
+}
+
+void Convert_Technology(const string& optarg, Technology* technology) {
+  string tech;
+  tech.resize(optarg.size());
+  std::transform(optarg.begin(), optarg.end(),tech.begin(), ::toupper);
+
+  if (tech == "ILLUMINA")
+    *technology = TECH_ILLUMINA;
+  else if (tech == "454") 
+    *technology = TECH_454;
+  else if (tech == "SOLID") 
+    *technology = TECH_SOLID;
+  else 
+    *technology = TECH_NONE;
+  
 }
 
 void PrintBriefHelp(const string& program) {
@@ -261,6 +290,7 @@ void PrintBriefHelp(const string& program) {
 		<< endl
 		<< "   -l --fragment-length <INT>" << endl
 		<< "                         Fragment length." << endl
+		<< "   -t --technology <STR> ILLUMINA, 454, or SOLID." << endl
 		<< endl;
 		
 
@@ -300,6 +330,7 @@ void PrintLongHelp(const string& program) {
 		<< "   -S --special-insertion" << endl
 		<< "                         Detect insertions in special references, e.g. MEIs." << endl
 		<< "   --not-medium-sized-indel" << endl
+		<< "   -t --technology <STR> ILLUMINA, 454, or SOLID." << endl
 		<< endl
 
 		<< "Original BAM alignments filters:" << endl
@@ -329,4 +360,4 @@ void PrintLongHelp(const string& program) {
 
 		<< endl;
 }
-
+} // namespace Scissors

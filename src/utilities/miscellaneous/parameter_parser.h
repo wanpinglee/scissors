@@ -1,11 +1,12 @@
-
 #ifndef SRC_UTILITIES_MISCELLANEOUS_ParameterParser_H_
 #define SRC_UTILITIES_MISCELLANEOUS_ParameterParser_H_
 
 #include <string>
+#include "dataStructures/technology.h"
 
 using std::string;
 
+namespace Scissors {
 struct Parameters {
   // i/o parameters
   string input_bam;             // -i  --input
@@ -23,6 +24,7 @@ struct Parameters {
   int   processors;             // -p --processors
   bool  detect_special;         // -S --special-reference
   bool  not_medium_sized_indel; // --not-medium-sized-indel
+  Technology technology;        // -t --technology
 
   // original alignment filters
   int mapping_quality_threshold; // -Q --mapping-quality-threshold
@@ -52,6 +54,7 @@ struct Parameters {
       , processors(1)
       , detect_special(false)
       , not_medium_sized_indel(false)
+      , technology(TECH_NONE)
       , mapping_quality_threshold(10)
       , allowed_clip(0.2)
       , aligned_base_rate(0.3)
@@ -63,5 +66,5 @@ struct Parameters {
 };
 
 void ParseArgumentsOrDie(const int argc, char* const * argv, Parameters* param);
-
+} // namespace Scissors
 #endif
