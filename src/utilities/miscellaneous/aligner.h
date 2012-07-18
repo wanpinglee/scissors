@@ -30,7 +30,8 @@ class Aligner {
 	  const SR_Reference*   reference_special,
 	  const SR_InHashTable* hash_table_special,
 	  const SR_RefHeader*   reference_header,
-	  const int&            fragment_length);
+	  const int&            fragment_length,
+	  const Technology&     technology);
   ~Aligner();
   
   // [NOTICE] Users may not use this function.

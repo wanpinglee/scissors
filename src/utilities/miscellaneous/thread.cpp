@@ -73,7 +73,7 @@ void ConvertAlignments(const vector<Alignment>& als,
 void* RunThread (void* thread_data_) {
   ThreadData *td = (ThreadData*) thread_data_;
   Aligner aligner(td->reference, td->hash_table, td->reference_special, 
-                  td->hash_table_special, td->reference_header, td->fragment_length);
+                  td->hash_table_special, td->reference_header, td->fragment_length, td->technology);
 
   while (true) { // until bam != SR_OK
     SR_Status bam_status;
@@ -134,6 +134,7 @@ Thread::Thread(const BamReference*    bam_reference,
 	       const float&           allowed_clip,
 	       const int&             thread_count,
 	       const int&             fragment_length,
+	       const Technology&      technology,
 	       const TargetEvent&     target_event,
 	       const int&             bam_mq_threshold,
 	       const AlignmentFilter& alignment_filter,
@@ -146,6 +147,7 @@ Thread::Thread(const BamReference*    bam_reference,
     , allowed_clip_(allowed_clip)
     , thread_count_(thread_count)
     , fragment_length_(fragment_length)
+    , technology_(technology)
     , target_event_(target_event)
     , bam_mq_threshold_(bam_mq_threshold)
     , alignment_filter_(alignment_filter)
@@ -208,6 +210,7 @@ void Thread::InitThreadData() {
     thread_data_[i].id                       = i;
     thread_data_[i].allowed_clip             = allowed_clip_;
     thread_data_[i].fragment_length          = fragment_length_;
+    thread_data_[i].technology               = technology_;
     thread_data_[i].target_event             = target_event_;
     thread_data_[i].bam_mq_threshold         = bam_mq_threshold_;
     thread_data_[i].alignment_filter         = alignment_filter_;

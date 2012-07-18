@@ -21,7 +21,7 @@ class SearchRegionType {
 
   // Constructor
   SearchRegionType();
-  explicit SearchRegionType(const Technology& technology);
+  explicit SearchRegionType(const Technology& technology, const bool& mate1);
 
   // Destructor
   //~SearchRegionType();
@@ -32,9 +32,11 @@ class SearchRegionType {
   void ResetRegionTypeList(void);
   inline void RewindRegionTypeList(void);
   inline void SetTechnology(const Technology& technology);
+  inline void SetAnchorMate1(const bool& mate1);
 
  private:
   Technology technology_;
+  bool mate1_;
   vector<RegionType> forward_anchor_type_vector_;
   vector<RegionType> reverse_anchor_type_vector_;
   vector<int> forward_anchor_type_preference_;
@@ -67,6 +69,11 @@ inline void SearchRegionType::RewindRegionTypeList(void) {
 
 inline void SearchRegionType::SetTechnology(const Technology& technology) {
   technology_ = technology;
+  ResetRegionTypeList();
+}
+
+inline void SearchRegionType::SetAnchorMate1(const bool& mate1) {
+  mate1_ = mate1;
   ResetRegionTypeList();
 }
 } // namespace

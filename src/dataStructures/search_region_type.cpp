@@ -18,6 +18,7 @@ const static SearchRegionType::RegionType kRegionType8 = {true,  true,  false};
 
 SearchRegionType::SearchRegionType()
     : technology_(TECH_ILLUMINA) // the default tech is ILLUMINA
+    , mate1_(true)
 {
   forward_anchor_type_vector_.resize(types_);
   reverse_anchor_type_vector_.resize(types_);
@@ -28,8 +29,9 @@ SearchRegionType::SearchRegionType()
   Init();
 }
 
-SearchRegionType::SearchRegionType(const Technology& technology)
+SearchRegionType::SearchRegionType(const Technology& technology, const bool& mate1)
     : technology_(technology)
+    , mate1_(mate1)
 {
   forward_anchor_type_vector_.resize(types_);
   reverse_anchor_type_vector_.resize(types_);
@@ -55,8 +57,8 @@ void SearchRegionType::Init() {
       reverse_anchor_type_vector_[1] = kRegionType6; // (TFF) pair-disorder, not reverse, and not complement
       reverse_anchor_type_vector_[2] = kRegionType2; // (FTT) pair-order, reverse, and complement
       reverse_anchor_type_vector_[3] = kRegionType1; // (TTT) pair-disorder, reverse, and complement
-      reverse_anchor_type_vector_[4] = kRegionType7; // (FTF) pair-order, reverse, and complement
-      reverse_anchor_type_vector_[5] = kRegionType8; // (TTF) pair-disorder, reverse, and complement
+      reverse_anchor_type_vector_[4] = kRegionType7; // (FTF) pair-order, reverse, and not complement
+      reverse_anchor_type_vector_[5] = kRegionType8; // (TTF) pair-disorder, reverse, and not complement
       break;
     } // ILLUMINA
     
@@ -82,6 +84,41 @@ void SearchRegionType::Init() {
     
     // TODO(WP): assign the types for LS454 reads
     case TECH_454: {
+      if (mate1_) {
+        // for forward anchor region type list
+	// ----->(m2)   ----->(m1)
+        forward_anchor_type_vector_[0] = kRegionType5; // (FFF)
+        forward_anchor_type_vector_[1] = kRegionType6; // (TFF)
+        forward_anchor_type_vector_[2] = kRegionType2; // (FTT)
+        forward_anchor_type_vector_[3] = kRegionType1; // (TTT)
+        forward_anchor_type_vector_[4] = kRegionType7; // (FTF)
+        forward_anchor_type_vector_[5] = kRegionType8; // (TTF)
+        // for reverse anchor region type list
+	// <-----(m1)   <-----(m2)
+        reverse_anchor_type_vector_[0] = kRegionType1; // (TTT)
+        reverse_anchor_type_vector_[1] = kRegionType2; // (FTT)
+        reverse_anchor_type_vector_[2] = kRegionType6; // (TFF)
+        reverse_anchor_type_vector_[3] = kRegionType5; // (FFF)
+        reverse_anchor_type_vector_[4] = kRegionType3; // (TFT)
+        reverse_anchor_type_vector_[5] = kRegionType4; // (FFT)
+      } else {
+        // for forward anchor region type list
+	// ----->(m2)   ----->(m1)
+        forward_anchor_type_vector_[0] = kRegionType6; // (TFF)
+        forward_anchor_type_vector_[1] = kRegionType5; // (FFF)
+        forward_anchor_type_vector_[2] = kRegionType1; // (TTT)
+        forward_anchor_type_vector_[3] = kRegionType2; // (FTT)
+        forward_anchor_type_vector_[4] = kRegionType8; // (TTF)
+        forward_anchor_type_vector_[5] = kRegionType7; // (FTF)
+        // for reverse anchor region type list
+	// <-----(m1)   <-----(m2)
+        reverse_anchor_type_vector_[0] = kRegionType2; // (FTT)
+        reverse_anchor_type_vector_[1] = kRegionType1; // (TTT)
+        reverse_anchor_type_vector_[2] = kRegionType5; // (FFF)
+        reverse_anchor_type_vector_[3] = kRegionType6; // (TFF)
+        reverse_anchor_type_vector_[4] = kRegionType4; // (FFT)
+        reverse_anchor_type_vector_[5] = kRegionType3; // (TFT)
+      }
       break;
     } // LS454
 
@@ -148,9 +185,9 @@ bool SearchRegionType::SetCurrentTypeSuccess(const bool is_anchor_forward){
 bool SearchRegionType::GetStandardType(const bool is_anchor_forward,
     RegionType* region_type) {
   if (is_anchor_forward) {
-    *region_type = kRegionType1;
+    *region_type = forward_anchor_type_vector_[0];
   } else {
-    *region_type = kRegionType5;
+    *region_type = reverse_anchor_type_vector_[0];
   }
 
   return true;

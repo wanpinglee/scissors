@@ -48,7 +48,12 @@ typedef struct SR_QueryRegion
 
     bam1_t* pOrphan;                // the orphan alignment
 
-    char* orphanSeq;                // the sequence of the orphan alignment, not '\0' terminated
+    char* orphanSeq;                // the pointer points to the one of following four char*
+    // the sequence of the orphan alignment, not '\0' terminated
+    char* orphanSeqForward;         
+    char* orphanSeqReverseComplament;
+    char* orphanSeqReverse;
+    char* orphanSeqComplement;
 
     SR_AlgnType algnType;           // alignment type of the pair(unique-orphan, unique-soft or unique-multiple)
 

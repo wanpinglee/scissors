@@ -140,7 +140,8 @@ bool DetermineMediumIndelBreakpoint(
 
 bool PassMismatchFilter(
     const StripedSmithWaterman::Alignment& ssw_al,
-    const AlignmentFilter& alignment_filter) {
+    const AlignmentFilter& alignment_filter,
+    const int& event_length) {
   int bases = 0;
   for (unsigned int i = 0; i < ssw_al.cigar.size(); ++i) {
     uint8_t  op = ssw_al.cigar[i] & 0x0f;
@@ -157,7 +158,8 @@ bool PassMismatchFilter(
   } // end for
 
   float allowed_mismatches = ceil(bases * alignment_filter.allowed_mismatch_rate);
-  if (ssw_al.mismatches < static_cast<int>(allowed_mismatches)) return true;
+  int mismatches = ssw_al.mismatches - event_length;
+  if (mismatches < static_cast<int>(allowed_mismatches)) return true;
   else return false;
 }
 
@@ -199,7 +201,8 @@ Aligner::Aligner(const SR_Reference* reference,
 		 const SR_Reference* reference_special,
 		 const SR_InHashTable* hash_table_special,
 		 const SR_RefHeader* reference_header,
-		 const int& fragment_length)
+		 const int& fragment_length,
+		 const Technology& technolgoy)
     : search_region_type_()
     , anchor_region_()
     , reference_(reference)
@@ -577,6 +580,7 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   unsigned int cigar_id = 0;
   bool indel_found = FindMediumIndel(*indel_al, &cigar_id);
   indel_found &= DetermineMediumIndelBreakpoint(*indel_al, cigar_id, alignment_filter, read_seq.size());
+  int event_length = indel_al->cigar[cigar_id] >> 4;
 
   //return indel_found;
 
@@ -584,7 +588,7 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
     if (indel_al->cigar.size() > 7) {
       AlignmentFilterApplication::TrimAlignment(alignment_filter, indel_al);
       if (indel_al->cigar.size() == 0) return false;
-      else return PassMismatchFilter(*indel_al, alignment_filter);
+      else return PassMismatchFilter(*indel_al, alignment_filter, event_length);
     } else { // deletion
       return true;
     }

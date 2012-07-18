@@ -15,6 +15,7 @@ extern "C" {
 #include "dataStructures/alignment.h"
 #include "dataStructures/target_event.h"
 #include "dataStructures/target_region.h"
+#include "dataStructures/technology.h"
 #include "utilities/miscellaneous/alignment_filter.h"
 
 using std::vector;
@@ -25,6 +26,7 @@ struct ThreadData{
   int             id;
   float           allowed_clip;
   int             fragment_length;
+  Technology      technology;
   TargetEvent     target_event;
   int             bam_mq_threshold;
   AlignmentFilter alignment_filter;
@@ -48,6 +50,7 @@ class Thread {
          const float&           allowed_clip,
          const int&             thread_count,
 	 const int&             fragment_length,
+	 const Technology&      technology,
 	 const TargetEvent&     target_event,
 	 const int&             bam_mq_threshold,
 	 const AlignmentFilter& alignment_filter,
@@ -63,6 +66,7 @@ class Thread {
   const float           allowed_clip_;
   const int             thread_count_;
   const int             fragment_length_;
+  const Technology      technology_;
   const TargetEvent     target_event_;
   const int             bam_mq_threshold_;
   const AlignmentFilter alignment_filter_;

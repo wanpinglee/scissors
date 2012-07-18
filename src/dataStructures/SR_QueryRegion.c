@@ -49,7 +49,11 @@ SR_QueryRegion* SR_QueryRegionAlloc(void)
     pNewRegion->pAnchor = NULL;
     pNewRegion->pOrphan = NULL;
 
-    pNewRegion->orphanSeq = NULL;
+    pNewRegion->orphanSeq                  = NULL;
+    pNewRegion->orphanSeqForward           = NULL;
+    pNewRegion->orphanSeqReverseComplament = NULL;
+    pNewRegion->orphanSeqReverse           = NULL;
+    pNewRegion->orphanSeqComplement        = NULL;
     pNewRegion->isOrphanInversed = FALSE;
     pNewRegion->capacity = 0;
 
@@ -65,8 +69,12 @@ void SR_QueryRegionFree(SR_QueryRegion* pQueryRegion)
 {
     if (pQueryRegion != NULL)
     {
-        free(pQueryRegion->orphanSeq);
+        free(pQueryRegion->orphanSeqForward);
+	free(pQueryRegion->orphanSeqReverseComplament);
+	free(pQueryRegion->orphanSeqReverse);
+	free(pQueryRegion->orphanSeqComplement);
         free(pQueryRegion);
+	pQueryRegion = NULL;
     }
 }
 
@@ -97,26 +105,81 @@ SR_Status SR_QueryRegionLoadPair(SR_QueryRegion* pQueryRegion, SR_BamInStreamIte
 void SR_QueryRegionLoadSeq(SR_QueryRegion* pQueryRegion)
 {
     // if we don't have enough space for the orphan sequence, we need to expand current storage space
-    if (pQueryRegion->capacity < pQueryRegion->pOrphan->core.l_qseq)
+    if (pQueryRegion->capacity < (pQueryRegion->pOrphan->core.l_qseq * 4))
     {
-        pQueryRegion->capacity = pQueryRegion->orphanSeq != NULL ? pQueryRegion->pOrphan->core.l_qseq * 2 : pQueryRegion->pOrphan->core.l_qseq;
-        free(pQueryRegion->orphanSeq);
+        pQueryRegion->capacity = pQueryRegion->pOrphan->core.l_qseq * 4;
+        free(pQueryRegion->orphanSeqForward);
+	free(pQueryRegion->orphanSeqReverseComplament);
+	free(pQueryRegion->orphanSeqReverse);
+	free(pQueryRegion->orphanSeqComplement);
 
-        pQueryRegion->orphanSeq = (char*) malloc(sizeof(char) * pQueryRegion->capacity);
-        if (pQueryRegion->orphanSeq == NULL)
-            SR_ErrQuit("ERROR: Not enough memory for a orphanSeq string.");
+        int length = pQueryRegion->pOrphan->core.l_qseq;
+        pQueryRegion->orphanSeqForward           = (char*) malloc(sizeof(char) * length);
+        pQueryRegion->orphanSeqReverseComplament = (char*) malloc(sizeof(char) * length);
+        pQueryRegion->orphanSeqReverse           = (char*) malloc(sizeof(char) * length);
+        pQueryRegion->orphanSeqComplement        = (char*) malloc(sizeof(char) * length);
+        
+	//if (pQueryRegion->orphanSeq == NULL)
+        //    SR_ErrQuit("ERROR: Not enough memory for a orphanSeq string.");
     }
 
     uint8_t* seq = bam1_seq(pQueryRegion->pOrphan);
     for (unsigned int i = 0; i != pQueryRegion->pOrphan->core.l_qseq; ++i)
     {
-        pQueryRegion->orphanSeq[i] = SR_BASE_MAP[bam1_seqi(seq, i)];
+        unsigned int f_pos, r_pos;
+	char base = 0, c_base = 0;
+	if (bam1_strand(pQueryRegion->pOrphan)) {// reverse-complement
+	  f_pos = pQueryRegion->pOrphan->core.l_qseq - i - 1;
+	  r_pos = i;
+	  c_base = SR_BASE_MAP[bam1_seqi(seq, i)];
+	  switch(c_base) {
+	    case 'A': base = 'T'; break;
+	    case 'C': base = 'G'; break;
+	    case 'G': base = 'C'; break;
+	    case 'T': base = 'A'; break;
+	    default: break;
+	  }
+	} else {
+	  f_pos = i;
+	  r_pos = pQueryRegion->pOrphan->core.l_qseq - i - 1;
+	  base = SR_BASE_MAP[bam1_seqi(seq, i)];
+	  switch(base) {
+	    case 'A': c_base = 'T'; break;
+	    case 'C': c_base = 'G'; break;
+	    case 'G': c_base = 'C'; break;
+	    case 'T': c_base = 'A'; break;
+	    default: break;
+	  }
+	}
+
+        pQueryRegion->orphanSeqForward[f_pos] = base;
+	pQueryRegion->orphanSeqReverseComplament[r_pos] = c_base;
+	pQueryRegion->orphanSeqReverse[r_pos] = base;
+	pQueryRegion->orphanSeqComplement[f_pos] = c_base;
     }
+    pQueryRegion->orphanSeq = pQueryRegion->orphanSeqForward;
 }
 
 void SR_QueryRegionChangeSeq(SR_QueryRegion* pQueryRegion, SR_SeqAction action)
 {
-    SR_QueryRegionLoadSeq(pQueryRegion);
+  switch(action) {
+    case SR_FORWARD: 
+      pQueryRegion->orphanSeq = pQueryRegion->orphanSeqForward;
+      break;
+    case SR_REVERSE_COMP:
+      pQueryRegion->orphanSeq = pQueryRegion->orphanSeqReverseComplament;
+      break;
+    case SR_INVERSE:
+      pQueryRegion->orphanSeq = pQueryRegion->orphanSeqReverse;
+      break;
+    case SR_COMP:
+      pQueryRegion->orphanSeq = pQueryRegion->orphanSeqComplement;
+      break;
+    default:
+      pQueryRegion->orphanSeq = pQueryRegion->orphanSeqForward;
+  }
+/*
+    //SR_QueryRegionLoadSeq(pQueryRegion);
     
     if (action == SR_INVERSE || action == SR_REVERSE_COMP)
     {
@@ -150,6 +213,7 @@ void SR_QueryRegionChangeSeq(SR_QueryRegion* pQueryRegion, SR_SeqAction action)
             }
         }
     }
+*/
 }
 
 const char* SR_QueryRegionGetSeq(const SR_QueryRegion* pQueryRegion, 

@@ -99,6 +99,7 @@ int main (int argc, char** argv) {
 		parameters.allowed_clip,
 		parameters.processors,
 		parameters.fragment_length,
+		parameters.technology,
 		vars.target_event,
 		parameters.mapping_quality_threshold,
 		vars.alignment_filter,
