@@ -25,13 +25,17 @@
 #include "utilities/common/SR_Utilities.h"
 #include "SR_QueryRegion.h"
 
+#include "utilities/bam/seq_converter.h"
+
 
 //===============================
 // Type and constant definition
 //===============================
 
 // map used to transfer the 4-bit representation of a nucleotide into the ascii representation
-static const char SR_BASE_MAP[16] = {'N', 'A', 'C', 'N', 'G','N','N','N','T','N','N','N','N','N','N','N'};
+static const char SR_BASE_MAP[16]   = {'N','A','C','N','G','N','N','N','T','N','N','N','N','N','N','N'};
+static const char SR_BASE_R_MAP[16] = {'N','T','G','N','C','N','N','N','A','N','N','N','N','N','N','N'};
+//static const uint8_t SR_R_MAP[16]   = { 15, 8 , 4 , 15, 2 , 15, 15, 15, 1 , 15, 15, 15, 15, 15, 15, 15};
 
 
 //===============================
@@ -131,33 +135,31 @@ void SR_QueryRegionLoadSeq(SR_QueryRegion* pQueryRegion)
 	if (bam1_strand(pQueryRegion->pOrphan)) {// reverse-complement
 	  f_pos = pQueryRegion->pOrphan->core.l_qseq - i - 1;
 	  r_pos = i;
+	  base   = SR_BASE_R_MAP[bam1_seqi(seq, i)];
 	  c_base = SR_BASE_MAP[bam1_seqi(seq, i)];
-	  switch(c_base) {
-	    case 'A': base = 'T'; break;
-	    case 'C': base = 'G'; break;
-	    case 'G': base = 'C'; break;
-	    case 'T': base = 'A'; break;
-	    default: break;
-	  }
 	} else {
 	  f_pos = i;
 	  r_pos = pQueryRegion->pOrphan->core.l_qseq - i - 1;
-	  base = SR_BASE_MAP[bam1_seqi(seq, i)];
-	  switch(base) {
-	    case 'A': c_base = 'T'; break;
-	    case 'C': c_base = 'G'; break;
-	    case 'G': c_base = 'C'; break;
-	    case 'T': c_base = 'A'; break;
-	    default: break;
-	  }
+	  base   = SR_BASE_MAP[bam1_seqi(seq, i)];
+	  c_base = SR_BASE_R_MAP[bam1_seqi(seq, i)];
 	}
 
-        pQueryRegion->orphanSeqForward[f_pos] = base;
+        pQueryRegion->orphanSeqForward[f_pos]           = base;
 	pQueryRegion->orphanSeqReverseComplament[r_pos] = c_base;
-	pQueryRegion->orphanSeqReverse[r_pos] = base;
-	pQueryRegion->orphanSeqComplement[f_pos] = c_base;
+	pQueryRegion->orphanSeqReverse[r_pos]           = base;
+	pQueryRegion->orphanSeqComplement[f_pos]        = c_base;
     }
     pQueryRegion->orphanSeq = pQueryRegion->orphanSeqForward;
+
+    if (bam1_strand(pQueryRegion->pOrphan)) {// reverse-complement
+      int length = pQueryRegion->pOrphan->core.l_qseq;
+      uint8_t* ptr = bam1_seq(pQueryRegion->pOrphan);
+      int seq_length = ((length % 2) == 1) ? (length / 2) + 1 : length / 2;
+      uint8_t* r_ptr = (uint8_t*) malloc(sizeof(uint8_t) * seq_length);
+      GetReverseComplementSequence(ptr, length, r_ptr);
+      memcpy(ptr, r_ptr, seq_length);
+      free(r_ptr);
+    }
 }
 
 void SR_QueryRegionChangeSeq(SR_QueryRegion* pQueryRegion, SR_SeqAction action)
