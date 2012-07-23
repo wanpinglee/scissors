@@ -21,7 +21,7 @@ const Scissors::TargetEvent kSpecialInsertion(true, false);
 void SetTargetSequence(const SearchRegionType::RegionType& region_type, 
                        SR_QueryRegion* query_region) {
   if (region_type.sequence_inverse && region_type.sequence_complement) {
-      SR_QueryRegionChangeSeq(query_region, SR_REVERSE_COMP);
+    SR_QueryRegionChangeSeq(query_region, SR_REVERSE_COMP);
     SR_SetStrand(query_region->pOrphan, SR_REVERSE_COMP);
     query_region->isOrphanInversed = FALSE;
 

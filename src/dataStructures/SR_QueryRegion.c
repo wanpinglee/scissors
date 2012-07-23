@@ -151,14 +151,21 @@ void SR_QueryRegionLoadSeq(SR_QueryRegion* pQueryRegion)
     }
     pQueryRegion->orphanSeq = pQueryRegion->orphanSeqForward;
 
+    // reverse-complement seq and qual
     if (bam1_strand(pQueryRegion->pOrphan)) {// reverse-complement
+      // reverse complement seq
       int length = pQueryRegion->pOrphan->core.l_qseq;
       uint8_t* ptr = bam1_seq(pQueryRegion->pOrphan);
-      int seq_length = ((length % 2) == 1) ? (length / 2) + 1 : length / 2;
+      int seq_length = (length + 1) / 2;
       uint8_t* r_ptr = (uint8_t*) malloc(sizeof(uint8_t) * seq_length);
       GetReverseComplementSequence(ptr, length, r_ptr);
       memcpy(ptr, r_ptr, seq_length);
       free(r_ptr);
+
+      // reverse qual
+      uint8_t* qual_ptr = bam1_qual(pQueryRegion->pOrphan);
+      for (unsigned int i = 0, j = length - 1; i < j; ++i, --j) 
+        SR_SWAP(*(qual_ptr + i), *(qual_ptr + j), uint8_t);
     }
 }
 
