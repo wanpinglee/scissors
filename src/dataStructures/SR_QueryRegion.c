@@ -100,6 +100,8 @@ SR_Status SR_QueryRegionLoadPair(SR_QueryRegion* pQueryRegion, SR_BamInStreamIte
     pQueryRegion->pOrphan = &(pIter->pBamNode->alignment);
     pIter->pBamNode = pIter->pBamNode->next;
 
+    pQueryRegion->pOrphan->core.qual = pQueryRegion->pAnchor->core.qual;
+
     pQueryRegion->algnType = *(pIter->pAlgnType);
     ++(pIter->pAlgnType);
 
@@ -164,8 +166,7 @@ void SR_QueryRegionLoadSeq(SR_QueryRegion* pQueryRegion)
 
       // reverse qual
       uint8_t* qual_ptr = bam1_qual(pQueryRegion->pOrphan);
-      for (unsigned int i = 0, j = length - 1; i < j; ++i, --j) 
-        SR_SWAP(*(qual_ptr + i), *(qual_ptr + j), uint8_t);
+      GetInverseQual(qual_ptr, length);
     }
 }
 

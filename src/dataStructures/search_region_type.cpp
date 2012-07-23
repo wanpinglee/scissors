@@ -63,8 +63,9 @@ void SearchRegionType::Init() {
     } // ILLUMINA
     
     case TECH_SOLID: {
-    /*
-    // for forward anchor region type list
+      /*
+      // for forward anchor region type list
+      // ----->(m1)   ----->(m2)
       forward_anchor_type_vector_[0] = 
       forward_anchor_type_vector_[1] =
       forward_anchor_type_vector_[2] =
@@ -72,14 +73,15 @@ void SearchRegionType::Init() {
       forward_anchor_type_vector_[4] =
       forward_anchor_type_vector_[5] =
       // for reverse anchor region type list
+      // <-----()
       reverse_anchor_type_vector_[0] = 
       reverse_anchor_type_vector_[1] = 
       reverse_anchor_type_vector_[2] = 
       reverse_anchor_type_vector_[3] = 
       reverse_anchor_type_vector_[4] = 
       reverse_anchor_type_vector_[5] = 
-    */
       break;
+      */
     }
     
     // TODO(WP): assign the types for LS454 reads

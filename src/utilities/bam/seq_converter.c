@@ -52,3 +52,12 @@ void GetInverseSequence(const uint8_t* original,
     ++reverse;
   }
 }
+
+void GetInverseQual(uint8_t* original,
+                    const int length) {
+  for (int i = 0, j = length - 1; i < j; ++i, --j) {
+    uint8_t tmp = *(original + i);
+    *(original + i) = *(original + j);
+    *(original + j) = tmp;
+  }
+}

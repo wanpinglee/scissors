@@ -77,6 +77,8 @@ void SetDataToBam1 (const bam1_t& original_record,
 
   // copy base qualities
   memcpy(data_ptr, bam1_qual(&original_record), new_record->core.l_qseq);
+  if (is_seq_inverse) // reverse qual
+    GetInverseQual(data_ptr, new_record->core.l_qseq);
   data_ptr += new_record->core.l_qseq;
 
   new_record->data = data;
@@ -297,7 +299,7 @@ void ConvertAlignmentToBam1(const StripedSmithWaterman::Alignment& al,
   new_record->core.tid     = original_record.core.tid;
   new_record->core.pos     = al.ref_begin;
   new_record->core.bin     = bam_reg2bin(al.ref_begin, al.ref_end);
-  new_record->core.qual    = 0;
+  new_record->core.qual    = original_record.core.qual;
   new_record->core.l_qname = original_record.core.l_qname;
   new_record->core.flag    = 0;
   new_record->core.n_cigar = al.cigar.size();
@@ -327,7 +329,7 @@ void ConvertAlignmentToBam1(const Alignment& al,
   new_record->core.tid     = al.reference_id;
   new_record->core.pos     = al.reference_begin;
   new_record->core.bin     = bam_reg2bin(al.reference_begin, al.reference_end);
-  new_record->core.qual    = al.quality;
+  new_record->core.qual    = original_record.core.qual;
   new_record->core.l_qname = original_record.core.l_qname;
   new_record->core.flag    = 0;
   new_record->core.n_cigar = packed_cigar.size();

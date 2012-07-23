@@ -17,6 +17,9 @@ void GetComplementSequence(const uint8_t* original,
 void GetInverseSequence(const uint8_t* original,
                         const int length,
 			uint8_t* reverse);
+
+void GetInverseQual(uint8_t* original,
+                    const int length);
 #ifdef __cplusplus
 }
 #endif
