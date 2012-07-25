@@ -63,25 +63,42 @@ void SearchRegionType::Init() {
     } // ILLUMINA
     
     case TECH_SOLID: {
-      /*
-      // for forward anchor region type list
-      // ----->(m1)   ----->(m2)
-      forward_anchor_type_vector_[0] = 
-      forward_anchor_type_vector_[1] =
-      forward_anchor_type_vector_[2] =
-      forward_anchor_type_vector_[3] =
-      forward_anchor_type_vector_[4] =
-      forward_anchor_type_vector_[5] =
-      // for reverse anchor region type list
-      // <-----()
-      reverse_anchor_type_vector_[0] = 
-      reverse_anchor_type_vector_[1] = 
-      reverse_anchor_type_vector_[2] = 
-      reverse_anchor_type_vector_[3] = 
-      reverse_anchor_type_vector_[4] = 
-      reverse_anchor_type_vector_[5] = 
+      if (mate1_) {
+        // for forward anchor region type list
+        // ----->(m1)   ----->(m2)
+        forward_anchor_type_vector_[0] = kRegionType6; // (TFF)
+        forward_anchor_type_vector_[1] = kRegionType5; // (FFF)
+        forward_anchor_type_vector_[2] = kRegionType1; // (TTT)
+        forward_anchor_type_vector_[3] = kRegionType2; // (FTT)
+        forward_anchor_type_vector_[4] = kRegionType8; // (TTF)
+        forward_anchor_type_vector_[5] = kRegionType7; // (FTF)
+        // for reverse anchor region type list
+        // <-----(m2)   <-----(m1)
+        reverse_anchor_type_vector_[0] = kRegionType2; // (FTT)
+        reverse_anchor_type_vector_[1] = kRegionType1; // (TTT)
+        reverse_anchor_type_vector_[2] = kRegionType5; // (FFF)
+        reverse_anchor_type_vector_[3] = kRegionType6; // (TFF)
+        reverse_anchor_type_vector_[4] = kRegionType4; // (FFT)
+        reverse_anchor_type_vector_[5] = kRegionType3; // (TFT)
+      } else {
+        // for forward anchor region type list
+        // ----->(m1)   ----->(m2)
+        forward_anchor_type_vector_[0] = kRegionType5; // (FFF)
+        forward_anchor_type_vector_[1] = kRegionType6; // (TFF)
+        forward_anchor_type_vector_[2] = kRegionType2; // (FTT)
+        forward_anchor_type_vector_[3] = kRegionType1; // (TTT)
+        forward_anchor_type_vector_[4] = kRegionType7; // (FTF)
+        forward_anchor_type_vector_[5] = kRegionType8; // (TTF)
+        // for reverse anchor region type list
+        // <-----(m2)   <-----(m1)
+        reverse_anchor_type_vector_[0] = kRegionType1; // (TTT)
+        reverse_anchor_type_vector_[1] = kRegionType2; // (FTT)
+        reverse_anchor_type_vector_[2] = kRegionType6; // (TFF)
+        reverse_anchor_type_vector_[3] = kRegionType5; // (FFF)
+        reverse_anchor_type_vector_[4] = kRegionType3; // (TFT)
+	reverse_anchor_type_vector_[5] = kRegionType4; // (FFT)
+      }
       break;
-      */
     }
     
     // TODO(WP): assign the types for LS454 reads

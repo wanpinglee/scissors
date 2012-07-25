@@ -21,7 +21,7 @@ class SearchRegionType {
 
   // Constructor
   SearchRegionType();
-  explicit SearchRegionType(const Technology& technology, const bool& mate1);
+  SearchRegionType(const Technology& technology, const bool& mate1);
 
   // Destructor
   //~SearchRegionType();
@@ -31,6 +31,7 @@ class SearchRegionType {
   bool SetCurrentTypeSuccess(const bool is_anchor_forward);
   void ResetRegionTypeList(void);
   inline void RewindRegionTypeList(void);
+  inline void SetTechnologyAndAnchorMate1(const Technology& technology, const bool& mate1);
   inline void SetTechnology(const Technology& technology);
   inline void SetAnchorMate1(const bool& mate1);
 
@@ -67,14 +68,20 @@ inline void SearchRegionType::RewindRegionTypeList(void) {
   has_gotten_reverse_type_ = false;
 }
 
+inline void SearchRegionType::SetTechnologyAndAnchorMate1(const Technology& technology, const bool& mate1) {
+  technology_ = technology;
+  mate1_ = mate1;
+  Init();
+}
+
 inline void SearchRegionType::SetTechnology(const Technology& technology) {
   technology_ = technology;
-  ResetRegionTypeList();
+  Init();
 }
 
 inline void SearchRegionType::SetAnchorMate1(const bool& mate1) {
   mate1_ = mate1;
-  ResetRegionTypeList();
+  Init();
 }
 } // namespace
 #endif // DATASTRUCTURES_SEARCH_REGION_TYPE_H_

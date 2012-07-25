@@ -12,6 +12,7 @@ extern "C" {
 
 #include "dataStructures/anchor_region.h"
 #include "dataStructures/search_region_type.h"
+#include "dataStructures/technology.h"
 #include "utilities/smithwaterman/BandedSmithWaterman.h"
 #include "utilities/smithwaterman/ssw_cpp.h"
 
@@ -68,6 +69,7 @@ class Aligner {
  private:
   SearchRegionType search_region_type_;
   AnchorRegion     anchor_region_;
+  const Technology technology_;
 
   const SR_Reference*   reference_;
   const SR_InHashTable* hash_table_;

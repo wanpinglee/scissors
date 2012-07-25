@@ -47,7 +47,7 @@ void SetTargetSequence(const SearchRegionType::RegionType& region_type,
 
 void AdjustBamFlag(const bam1_t& al_bam_anchor, bam1_t* partial_al1) {
   namespace Constant = BamFlagConstant;
-  bool anchor_mate1 = al_bam_anchor.core.flag & Constant::kBamFMate1;
+  const bool anchor_mate1 = al_bam_anchor.core.flag & Constant::kBamFMate1;
   bool anchor_reverse = al_bam_anchor.core.flag & Constant::kBamFReverse;
 
   // set anchor's flag
@@ -176,8 +176,9 @@ void StoreAlignment(
       ite != ssw_als.end(); ++ite) {
     bam1_t *al_bam;
     al_bam = bam_init1(); // Thread.cpp will free it
-    const bool is_anchor_forward = !bam1_strand(&anchor);
-    BamUtilities::ConvertAlignmentToBam1(**ite, target, is_anchor_forward, is_anchor_forward, al_bam);
+    //const bool is_anchor_forward = !bam1_strand(&anchor);
+    //fprintf(stderr,"%c%c\n", (*ite)->is_reverse?'T':'F', (*ite)->is_complement?'T':'F');
+    BamUtilities::ConvertAlignmentToBam1(**ite, target, (*ite)->is_reverse, (*ite)->is_complement, al_bam);
     AdjustBamFlag(anchor, al_bam);
     OptionalTag::AddOptionalTags(anchor, al_bam);
     alignments->push_back(al_bam);
@@ -202,9 +203,10 @@ Aligner::Aligner(const SR_Reference* reference,
 		 const SR_InHashTable* hash_table_special,
 		 const SR_RefHeader* reference_header,
 		 const int& fragment_length,
-		 const Technology& technolgoy)
+		 const Technology& technology)
     : search_region_type_()
     , anchor_region_()
+    , technology_(technology)
     , reference_(reference)
     , hash_table_(hash_table)
     , reference_special_(reference_special)
@@ -452,9 +454,12 @@ void Aligner::GetTargetRefRegion(const int& extend_length, const int& hash_begin
 bool Aligner::SearchSpecialReference(const AlignmentFilter& alignment_filter,
                                      Alignment* local_al, Alignment* special_al)
 {
-
-  SearchRegionType::RegionType region_type;
+  namespace Constant = BamFlagConstant;
+  const bool is_anchor_mate1 = query_region_->pAnchor->core.flag & Constant::kBamFMate1;
   const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
+  search_region_type_.SetTechnologyAndAnchorMate1(technology_, is_anchor_mate1);
+  SearchRegionType::RegionType region_type;
+
   // Loads hashes for the first partial alignment
   search_region_type_.GetStandardType(is_anchor_forward, &region_type);
   SetTargetSequence(region_type, query_region_);
@@ -521,12 +526,20 @@ bool Aligner::SearchSpecialReference(const AlignmentFilter& alignment_filter,
 bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
                                 const AlignmentFilter& alignment_filter,
                                 StripedSmithWaterman::Alignment* indel_al) {
+  
+  namespace Constant = BamFlagConstant;
+  const bool is_anchor_mate1 = query_region_->pAnchor->core.flag & Constant::kBamFMate1;
+  const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
+  search_region_type_.SetTechnologyAndAnchorMate1(technology_, is_anchor_mate1);
+  SearchRegionType::RegionType region_type;
+
   // ============================
   // Get the standard region type
   // ============================
-  SearchRegionType::RegionType region_type;
-  const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
   search_region_type_.GetStandardType(is_anchor_forward, &region_type);
+
+  //fprintf(stderr,"%s\n", bam1_qname(query_region_->pAnchor));
+  //fprintf(stderr, "%c%c%c\n", region_type.upstream?'T':'F', region_type.sequence_inverse?'T':'F', region_type.sequence_complement?'T':'F');
 
   // ==============================================
   // Calculate the pivot position and target region
@@ -549,6 +562,7 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   SetTargetSequence(region_type, query_region_);
   string read_seq;
   read_seq.assign(query_region_->orphanSeq, query_region_->pOrphan->core.l_qseq);
+  //fprintf(stderr, "%s\n", read_seq.c_str());
 
   // =======================
   // Apply SSW to the region
@@ -565,6 +579,8 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   // the alignment.
   filter.distance_filter = read_seq.size() * 5;
   stripe_sw_aligner_.Align(read_seq.c_str(), ref_seq, ref_length, filter, indel_al);
+  indel_al->is_reverse = region_type.sequence_inverse;
+  indel_al->is_complement = region_type.sequence_complement;
   // Return false since no alignment is found
   //fprintf(stderr, "%u\t%u\t%s\n", indel_al->ref_end, indel_al->ref_begin, indel_al->cigar_string.c_str());
   if (indel_al->cigar.empty()) return false;
