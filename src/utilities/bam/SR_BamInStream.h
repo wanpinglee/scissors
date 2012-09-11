@@ -79,6 +79,8 @@ typedef struct SR_BamInStream
 
     bam_index_t* pBamIndex;                    // file pointer to a input bam index file
 
+    bam_iter_t* pBamIterator;                  // pointer to bam iterator for jumping bam
+
     SR_BamFilter filterFunc;                   // customized filter function 
 
     const void* filterData;                    // data used by the filter function

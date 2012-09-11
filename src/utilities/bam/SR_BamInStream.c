@@ -100,8 +100,12 @@ static inline int SR_BamInStreamLoadNext(SR_BamInStream* pBamInStream)
     pBamInStream->pNewNode = SR_BamNodeAlloc(pBamInStream->pMemPool);
     if (pBamInStream->pNewNode == NULL)
         SR_ErrQuit("ERROR: Too many unpaired reads are stored in the memory. Please use smaller bin size or disable searching pair genomically.\n");
-
-    int ret = bam_read1(pBamInStream->fpBamInput, &(pBamInStream->pNewNode->alignment));
+    
+    int ret;
+    if (pBamInStream->pBamIterator != NULL)
+      ret = bam_iter_read(pBamInStream->fpBamInput, *(pBamInStream->pBamIterator), &(pBamInStream->pNewNode->alignment));
+    else
+      ret = bam_read1(pBamInStream->fpBamInput, &(pBamInStream->pNewNode->alignment));
 
     return ret;
 }
@@ -109,6 +113,12 @@ static inline int SR_BamInStreamLoadNext(SR_BamInStream* pBamInStream)
 static void SR_BamInStreamReset(SR_BamInStream* pBamInStream)
 {
     pBamInStream->pNewNode = NULL;
+
+    if (pBamInStream->pBamIterator != NULL) {
+	bam_iter_destroy(*(pBamInStream->pBamIterator));
+	free(pBamInStream->pBamIterator);
+	pBamInStream->pBamIterator = NULL;
+    }
 
     pBamInStream->currBinPos = NO_QUERY_YET;
     pBamInStream->currRefID = NO_QUERY_YET;
@@ -152,6 +162,7 @@ SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename, uint32_t binLen, un
     pBamInStream->currBinPos = NO_QUERY_YET;
     pBamInStream->binLen = binLen;
     pBamInStream->pNewNode = NULL;
+    pBamInStream->pBamIterator = NULL;
 
     if (numThreads > 0)
     {
@@ -205,6 +216,12 @@ void SR_BamInStreamFree(SR_BamInStream* pBamInStream)
         bam_close(pBamInStream->fpBamInput);
         bam_index_destroy(pBamInStream->pBamIndex);
 
+	if (pBamInStream->pBamIterator != NULL) {
+	  bam_iter_destroy(*(pBamInStream->pBamIterator));
+	  free(pBamInStream->pBamIterator);
+	  pBamInStream->pBamIterator = NULL;
+	}
+
         free(pBamInStream);
     }
 }
@@ -220,17 +237,26 @@ SR_Status SR_BamInStreamJump(SR_BamInStream* pBamInStream, int32_t refID, int32_
     // if we do not have the index file return error
     if (pBamInStream->pBamIndex == NULL)
         return SR_ERR;
+    
+    if (pBamInStream->pBamIterator != NULL) {
+      bam_iter_destroy(*(pBamInStream->pBamIterator));
+      free(pBamInStream->pBamIterator);
+      pBamInStream->pBamIterator = NULL;
+    }
 
     // clear the bam array before jump
     SR_BamInStreamReset(pBamInStream);
 
+    pBamInStream->pBamIterator = (bam_iter_t*) malloc(sizeof(bam_iter_t));
+
     // jump and read the first alignment in the given chromosome
     int ret;
-    bam_iter_t pBamIter = bam_iter_query(pBamInStream->pBamIndex, refID, begin, end);
+    //bam_iter_t pBamIter = bam_iter_query(pBamInStream->pBamIndex, refID, begin, end);
+    *pBamInStream->pBamIterator = bam_iter_query(pBamInStream->pBamIndex, refID, begin, end);
 
     pBamInStream->pNewNode = SR_BamNodeAlloc(pBamInStream->pMemPool);
-    ret = bam_iter_read(pBamInStream->fpBamInput, pBamIter, &(pBamInStream->pNewNode->alignment));
-    bam_iter_destroy(pBamIter);
+    ret = bam_iter_read(pBamInStream->fpBamInput, *(pBamInStream->pBamIterator), &(pBamInStream->pNewNode->alignment));
+    //bam_iter_destroy(pBamIter);
 
     khash_t(queryName)* pNameHashCurr = NULL;
 
