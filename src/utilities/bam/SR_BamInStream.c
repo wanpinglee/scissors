@@ -149,9 +149,12 @@ SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename, uint32_t binLen, un
     if ((pStreamMode->controlFlag & SR_USE_BAM_INDEX) != 0)
     {
         pBamInStream->pBamIndex = bam_index_load(bamFilename);
-        // TODO: @WP: Create index if it is not there!!!
-	if (pBamInStream->pBamIndex == NULL)
-            SR_ErrMsg("WARNING: Cannot open bam index file for reading. No jump allowed.\n");
+	if (pBamInStream->pBamIndex == NULL) {
+            SR_ErrMsg("WARNING: Cannot open bam index file for reading. Creating it......");
+	    bam_index_build(bamFilename);
+	    SR_ErrMsg("         The bam index is created.");
+	    pBamInStream->pBamIndex = bam_index_load(bamFilename);
+	}
     }
 
     pBamInStream->filterFunc = pStreamMode->filterFunc;
