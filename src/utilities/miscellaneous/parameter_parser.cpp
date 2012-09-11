@@ -35,7 +35,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		param->command_line += argv[i];
 	}
 
-	const char *short_option = "hi:r:o:l:w:c:sp:SQ:B:M:t:";
+	const char *short_option = "hi:r:o:l:w:c:R:sp:SQ:B:M:t:";
 
 	const struct option long_option[] = {
 		// long help
@@ -50,6 +50,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		{"fragment-length", required_argument, NULL, 'l'},
 		{"window-size", required_argument, NULL, 'w'},
 		{"allowed-clip", required_argument, NULL, 'c'},
+		{"region", required_argument, NULL, 'R'},
 		{"is-input-sorted", no_argument, NULL, 's'},
 		{"processors", required_argument, NULL, 'p'},
 		{"special-insertion", no_argument, NULL, 'S'},
@@ -117,6 +118,9 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 			case 'c':
 				if (!convert_from_string(optarg, param->allowed_clip))
 					cerr << "WARNING: Cannot parse -c --allowed-clip." << endl;
+				break;
+			case 'R':
+				param->region = optarg;
 				break;
 			case 's':
 				param->is_input_sorted = true;
@@ -341,6 +345,7 @@ void PrintLongHelp(const string& program) {
 		<< "   -c --allowed-clip <FLOAT>"  << endl
 		<< "                         Percentage (0.0 - 1.0) of allowed soft clip of anchors." << endl
 		<< "                         [0.2]" << endl
+		<< "   -R --region <STR>     Targeted region; example: -R 1:500000-600000. [NULL]"
 		<< endl
 
 		<< "Split-read alignment filters:" << endl

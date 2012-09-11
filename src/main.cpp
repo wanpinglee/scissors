@@ -46,7 +46,7 @@ struct MainVars{
 void Deconstruct(MainFiles* files, MainVars* vars);
 void InitFiles(const Parameters& parameters, MainFiles* files);
 void InitVariablesOrDie(const Parameters& parameter_parser, 
-                        const MainFiles& files, 
+                        MainFiles* files, 
 			MainVars* vars);
 void CheckFileOrDie(const Parameters& parameters,
                     const MainFiles& files);
@@ -81,7 +81,7 @@ int main (int argc, char** argv) {
   // Variables Preparation
   // =====================
   MainVars vars;
-  InitVariablesOrDie(parameters, files, &vars);
+  InitVariablesOrDie(parameters, &files, &vars);
 
   // Write bam header
   ResetSoBamHeader(vars.bam_header->pOrigHeader);
@@ -120,6 +120,9 @@ int main (int argc, char** argv) {
 
 }
 
+
+
+
 void Deconstruct(MainFiles* files, MainVars* vars) {
   // close files
   SR_BamInStreamFree(files->bam_reader);
@@ -133,9 +136,16 @@ void Deconstruct(MainFiles* files, MainVars* vars) {
 }
 
 void InitFiles(const Parameters& parameters, MainFiles* files) {
-  // set the stream mode to "UO" (unique orphan).
+  // Set the stream mode to "UO" (unique orphan).
+  // If the region is specified, than index of the bam is necessary.
   SR_StreamMode streamMode;
-  SR_SetStreamMode(&streamMode, SR_CommonFilter, NULL, SR_NO_SPECIAL_CONTROL);
+  if (parameters.region.empty())
+    SR_SetStreamMode(&streamMode, SR_CommonFilter, NULL, SR_NO_SPECIAL_CONTROL);
+  else
+    // Needs the index of the bam
+    SR_SetStreamMode(&streamMode, SR_CommonFilter, NULL, SR_USE_BAM_INDEX);
+
+    
   // Initialize bam input reader.
   // The program will be terminated with printing error message
   // if the given bam cannot be opened.
@@ -170,11 +180,21 @@ void IsInputBamSortedOrDie(const Parameters& parameters,
 }
 
 void InitVariablesOrDie(const Parameters& parameters, 
-                        const MainFiles& files,
+                        MainFiles* files,
                         MainVars* vars) {
   // Load bam header	
   vars->bam_header = SR_BamHeaderAlloc();
-  vars->bam_header = SR_BamInStreamLoadHeader(files.bam_reader);
+  vars->bam_header = SR_BamInStreamLoadHeader(files->bam_reader);
+
+  // Jump the bam if region is given
+  if (!parameters.region.empty()) {
+    int tid = 0, begin = 0, end = 0;
+    if (bam_parse_region(vars->bam_header->pOrigHeader, parameters.region.c_str(), &tid, &begin, &end) == -1) {
+      cerr << "ERROR: Parsing the region, " << parameters.region <<", fails." << endl;
+      exit(1); // parsing the specified region fails.
+    }
+    SR_BamInStreamJump(files->bam_reader, tid, begin, end);
+  }
 
   IsInputBamSortedOrDie(parameters, *(vars->bam_header));
 

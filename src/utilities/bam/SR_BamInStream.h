@@ -139,11 +139,13 @@ void SR_BamInStreamFree(SR_BamInStream* pBamInStream);
 // args:
 //      1. pBamInStream: a pointer to an bam instream structure
 //      2. refID : the reference ID we want to jump to
+//      3. begin: beginning position
+//      4. end: end position
 // 
 // return:
 //      if jumping succeeds, return SR_OK; if not, return SR_ERR
 //=============================================================== 
-SR_Status SR_BamInStreamJump(SR_BamInStream* pBamInStream, int32_t refID);
+SR_Status SR_BamInStreamJump(SR_BamInStream* pBamInStream, int32_t refID, int32_t begin, int32_t end);
 
 //================================================================
 // function:

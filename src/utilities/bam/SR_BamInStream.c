@@ -139,7 +139,8 @@ SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename, uint32_t binLen, un
     if ((pStreamMode->controlFlag & SR_USE_BAM_INDEX) != 0)
     {
         pBamInStream->pBamIndex = bam_index_load(bamFilename);
-        if (pBamInStream->pBamIndex == NULL)
+        // TODO: @WP: Create index if it is not there!!!
+	if (pBamInStream->pBamIndex == NULL)
             SR_ErrMsg("WARNING: Cannot open bam index file for reading. No jump allowed.\n");
     }
 
@@ -214,7 +215,7 @@ void SR_BamInStreamFree(SR_BamInStream* pBamInStream)
 //======================
 
 // jump to a certain chromosome in a bam file
-SR_Status SR_BamInStreamJump(SR_BamInStream* pBamInStream, int32_t refID)
+SR_Status SR_BamInStreamJump(SR_BamInStream* pBamInStream, int32_t refID, int32_t begin, int32_t end)
 {
     // if we do not have the index file return error
     if (pBamInStream->pBamIndex == NULL)
@@ -225,7 +226,7 @@ SR_Status SR_BamInStreamJump(SR_BamInStream* pBamInStream, int32_t refID)
 
     // jump and read the first alignment in the given chromosome
     int ret;
-    bam_iter_t pBamIter = bam_iter_query(pBamInStream->pBamIndex, refID, 0, INT_MAX);
+    bam_iter_t pBamIter = bam_iter_query(pBamInStream->pBamIndex, refID, begin, end);
 
     pBamInStream->pNewNode = SR_BamNodeAlloc(pBamInStream->pMemPool);
     ret = bam_iter_read(pBamInStream->fpBamInput, pBamIter, &(pBamInStream->pNewNode->alignment));

@@ -29,6 +29,7 @@ struct Parameters {
   // original alignment filters
   int mapping_quality_threshold; // -Q --mapping-quality-threshold
   float allowed_clip;            // -c --allowed-clip
+  string region;                 // -R --region
 
   // split-read alignment filters
   float aligned_base_rate;         // -B --aligned-base-rate
