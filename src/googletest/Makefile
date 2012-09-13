@@ -9,10 +9,11 @@ TESTS_DIR = test_src
 TESTS_SOURCES_ = bam_utilities_GetPackedCigar_test.cpp \
 		anchor_region_test.cpp \
 		search_region_type_test.cpp \
-		aligner_api_test.cpp \
-		alignment_filter_test.cpp
+		aligner_api_test.cpp 
+#		alignment_filter_test.cpp
 
 TARGET_OBJECTS_ = bam_utilities.o \
+			seq_converter.o \
 			anchor_region.o \
 			search_region_type.o \
 			special_hasher.o \
@@ -29,7 +30,10 @@ TARGET_OBJECTS_ = bam_utilities.o \
 			SR_BamInStream.o \
 			SR_BamMemPool.o \
 			SR_FragLenDstrb.o \
-			SR_BamHeader.o
+			SR_BamHeader.o \
+			ssw_cpp.o \
+			ssw.o \
+			alignment_collection.o
 
 
 REQUIRED_OBJS_ = SR_Reference.o \

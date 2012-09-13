@@ -5,7 +5,7 @@
 #include "gtest/gtest.h"
 
 #include "utilities/bam/bam_alignment.h"
-#include "utilities/bam/bam_constant.h"
+#include "utilities/bam/bam_utilities.h"
 
 namespace {
 // convert the readable cigar string into the packed string
@@ -65,7 +65,7 @@ bool ConvertFromVectorToArray(const vector<uint32_t>& i_vector, uint32_t*& o_arr
 }
 
 TEST(AnchorRegionTest, Test) {
-  AnchorRegion anchor_region;
+  Scissors::AnchorRegion anchor_region;
 
   vector<uint32_t> packed_cigar;
   uint32_t* packed_cigar_array = NULL;

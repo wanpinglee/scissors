@@ -5,28 +5,28 @@
 namespace {
 
 // for illumina forward anchors
-const static SearchRegionType::RegionType kRegionType1 = {true, true, true};
-const static SearchRegionType::RegionType kRegionType2 = {false, true, true};
-const static SearchRegionType::RegionType kRegionType3 = {true, false, true};
-const static SearchRegionType::RegionType kRegionType4 = {false, false, true};
+const static Scissors::SearchRegionType::RegionType kRegionType1 = {true, true, true};
+const static Scissors::SearchRegionType::RegionType kRegionType2 = {false, true, true};
+const static Scissors::SearchRegionType::RegionType kRegionType3 = {true, false, true};
+const static Scissors::SearchRegionType::RegionType kRegionType4 = {false, false, true};
 
 // for illumina reversed complement anchors
-const static SearchRegionType::RegionType kRegionType5 = {false, false, false};
-const static SearchRegionType::RegionType kRegionType6 = {true, false, false};
-const static SearchRegionType::RegionType kRegionType7 = {false, true, false};
-const static SearchRegionType::RegionType kRegionType8 = {true, true, false};
+const static Scissors::SearchRegionType::RegionType kRegionType5 = {false, false, false};
+const static Scissors::SearchRegionType::RegionType kRegionType6 = {true, false, false};
+const static Scissors::SearchRegionType::RegionType kRegionType7 = {false, true, false};
+const static Scissors::SearchRegionType::RegionType kRegionType8 = {true, true, false};
 
 void Validate(
-    const SearchRegionType::RegionType& expect, 
-    const SearchRegionType::RegionType& actual) {
+    const Scissors::SearchRegionType::RegionType& expect, 
+    const Scissors::SearchRegionType::RegionType& actual) {
   EXPECT_EQ(expect.upstream, actual.upstream);
   EXPECT_EQ(expect.sequence_inverse, actual.sequence_inverse);
   EXPECT_EQ(expect.sequence_complement, actual.sequence_complement);
 }
 
 void TestLoading(const bool strand) {
-  SearchRegionType::RegionType region_type;
-  SearchRegionType search_region_type;  // the default tech is ILLUMINA
+  Scissors::SearchRegionType::RegionType region_type;
+  Scissors::SearchRegionType search_region_type;  // the default tech is ILLUMINA
   bool region_type_obtained = false;
   
   search_region_type.ResetRegionTypeList();
@@ -97,8 +97,8 @@ TEST(SearchRegionTypeTest, Loading){
 
 
 void TestSetting(const bool strand) { 
-  SearchRegionType::RegionType region_type;
-  SearchRegionType search_region_type;  // the default tech is ILLUMINA
+  Scissors::SearchRegionType::RegionType region_type;
+  Scissors::SearchRegionType search_region_type;  // the default tech is ILLUMINA
 
   bool is_set = search_region_type.SetCurrentTypeSuccess(strand);
   EXPECT_FALSE(is_set);

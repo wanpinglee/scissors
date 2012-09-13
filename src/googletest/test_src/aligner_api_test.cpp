@@ -78,7 +78,7 @@ TEST(AlignerApi, Test) {
   ASSERT_TRUE(ref_ref != NULL);
   ASSERT_TRUE(ref_hash != NULL);
   fr.Close();
-
+/*
   // ===============
   // bam preparation
   // ===============
@@ -95,12 +95,13 @@ TEST(AlignerApi, Test) {
   // ===================
   // declare the aligner
   // ===================
-  Aligner aligner(ref_ref, ref_hash, sp_ref, sp_hash, sp_ref_header, 200);
+  Scissors::Technology tech = Scissors::TECH_ILLUMINA;
+  Scissors::Aligner aligner(ref_ref, ref_hash, sp_ref, sp_hash, sp_ref_header, 200, tech);
   
   // =============================================
   // prepare alignment filter and output container
   // =============================================
-  AlignmentFilter alignment_filter;
+  Scissors::AlignmentFilter alignment_filter;
   vector<bam1_t*> alignments_bam;
 
   bam1_t* anchor = bam_init1();
@@ -110,19 +111,19 @@ TEST(AlignerApi, Test) {
   // =======================
   // Align and store results
   // =======================
-  while (bam_status > 0) {
-    bam_status = bam_read1(bam_reader, anchor);
-    bam_status = bam_read1(bam_reader, target);
-    alignments_bam.clear();
-    aligner.AlignCandidate(true, alignment_filter, *anchor, *target, &alignments_bam);
-    StoreAlignmentInBam(&alignments_bam, &bam_writer);
-  }
+  //while (bam_status > 0) {
+  //  bam_status = bam_read1(bam_reader, anchor);
+  //  bam_status = bam_read1(bam_reader, target);
+  //  alignments_bam.clear();
+  //  aligner.AlignCandidate(true, alignment_filter, *anchor, *target, &alignments_bam);
+  //  StoreAlignmentInBam(&alignments_bam, &bam_writer);
+  //}
 
   bam_destroy1(anchor);
   bam_destroy1(target);
   bam_close(bam_reader);
   bam_close(bam_writer);
-
+*/
   // =================================
   // demo how to reuse ReferenceHasher
   // =================================
