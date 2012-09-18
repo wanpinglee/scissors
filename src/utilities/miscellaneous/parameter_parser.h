@@ -10,17 +10,15 @@ namespace Scissors {
 struct Parameters {
   // i/o parameters
   string input_bam;             // -i  --input
-  string input_reference_hash;  // -r  --reference-hash-table
+  string input_reference_fasta; // -f  --fasta
+  string input_special_fasta;   // -s  --special-fasta
   string output_bam;            // -o  --output
-
-  string reference_filename;
-  string hash_filename;
 
   // operation parameters
   int   fragment_length;        // -l --fragmenr-length
   int   mate_window_size;       // -w --window-size; default: fragment_length * 2
   int   discovery_window_size;  // --discovery-window-size
-  bool  is_input_sorted;        // -s --is-input-sorted
+  bool  is_input_sorted;        // --is-input-sorted
   int   processors;             // -p --processors
   bool  detect_special;         // -S --special-reference
   bool  not_medium_sized_indel; // --not-medium-sized-indel
@@ -29,7 +27,7 @@ struct Parameters {
   // original alignment filters
   int mapping_quality_threshold; // -Q --mapping-quality-threshold
   float allowed_clip;            // -c --allowed-clip
-  string region;                 // -R --region
+  string region;                 // -r --region
 
   // split-read alignment filters
   float aligned_base_rate;         // -B --aligned-base-rate
@@ -44,10 +42,9 @@ struct Parameters {
   // default values
   Parameters()
       : input_bam()
-      , input_reference_hash()
+      , input_reference_fasta()
+      , input_special_fasta()
       , output_bam()
-      , reference_filename()
-      , hash_filename()
       , fragment_length(-1)
       , mate_window_size(-1)
       , discovery_window_size(10000)
@@ -58,11 +55,13 @@ struct Parameters {
       , technology(TECH_NONE)
       , mapping_quality_threshold(10)
       , allowed_clip(0.2)
+      , region()
       , aligned_base_rate(0.3)
       , allowed_mismatch_rate(0.1)
       , trimming_match_score(1)
       , trimming_mismatch_penalty(2)
       , trimming_gap_penalty(2)
+      , command_line()
   {}
 };
 

@@ -1,5 +1,5 @@
 # define our build subdirectories
-SUB_DIRS = samtools
+SUB_DIRS = samtools fasta
 
 all:
 	@for dir in $(SUB_DIRS); do \

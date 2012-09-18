@@ -28,7 +28,6 @@ struct MainFiles {
   SR_BamInStream* bam_reader;  // bam reader
   bamFile         bam_writer;  // bam writer
   FILE*           ref_reader;  // reference reader
-  FILE*           hash_reader; // hash table reader
 };
 
 struct MainVars{
@@ -86,7 +85,7 @@ int main (int argc, char** argv) {
   // Write bam header
   ResetSoBamHeader(vars.bam_header->pOrigHeader);
   if (parameters.detect_special)
-    AppendReferenceSequence(vars.bam_header->pOrigHeader, parameters.reference_filename);
+    AppendReferenceSequence(vars.bam_header->pOrigHeader, parameters.input_reference_fasta);
   // load the reference header
   bam_header_write(files.bam_writer, vars.bam_header->pOrigHeader);
 
@@ -105,7 +104,6 @@ int main (int argc, char** argv) {
 		vars.alignment_filter,
 		vars.target_region,
 		files.ref_reader,
-		files.hash_reader,
 		files.bam_reader,
 		&files.bam_writer);
   bool thread_status = thread.Start();
@@ -129,7 +127,6 @@ void Deconstruct(MainFiles* files, MainVars* vars) {
   bam_close(files->bam_writer);
   //files->bam_writer.Close();
   fclose(files->ref_reader);
-  fclose(files->hash_reader);
 
   // free variables
   SR_BamHeaderFree(vars->bam_header);
@@ -162,8 +159,7 @@ void InitFiles(const Parameters& parameters, MainFiles* files) {
   //files->bam_writer.Open(parameters.output_bam);
 
   // Initialize reference input reader
-  files->ref_reader  = fopen( parameters.reference_filename.c_str(), "rb");
-  files->hash_reader = fopen( parameters.hash_filename.c_str(), "rb");
+  files->ref_reader  = fopen( parameters.input_reference_fasta.c_str(), "rb");
 
 }
 
@@ -240,20 +236,10 @@ void CheckFileOrDie(const Parameters& parameters,
 
 	if (files.ref_reader == NULL) {
 		cerr << "ERROR: Cannot open " 
-		     << parameters.reference_filename 
+		     << parameters.input_reference_fasta
 		     << " for reading." 
 		     << endl
 		     << "       Please check -r option." << endl;
-		error_found = true;
-	}
-
-	if (files.hash_reader == NULL) {
-		cerr << "ERROR: Cannot open " 
-		     << parameters.hash_filename 
-		     << " for reading." 
-		     << endl
-		     << "       Please check -r option." 
-		     << endl;
 		error_found = true;
 	}
 

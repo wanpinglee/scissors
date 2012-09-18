@@ -35,7 +35,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		param->command_line += argv[i];
 	}
 
-	const char *short_option = "hi:r:o:l:w:c:R:sp:SQ:B:M:t:";
+	const char *short_option = "hi:f:s:o:l:w:c:r:p:SQ:B:M:t:";
 
 	const struct option long_option[] = {
 		// long help
@@ -44,14 +44,15 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		// i/o parameters
 		{"input", required_argument, NULL, 'i'},
 		{"output", required_argument, NULL, 'o'},
-		{"reference-hash-table", required_argument, NULL, 'r'},
+		{"fasta", required_argument, NULL, 'f'},
+		{"special-fasta", required_argument, NULL, 's'},
 
 		// operation parameters
 		{"fragment-length", required_argument, NULL, 'l'},
 		{"window-size", required_argument, NULL, 'w'},
 		{"allowed-clip", required_argument, NULL, 'c'},
-		{"region", required_argument, NULL, 'R'},
-		{"is-input-sorted", no_argument, NULL, 's'},
+		{"region", required_argument, NULL, 'r'},
+		{"is-input-sorted", no_argument, NULL, 6},
 		{"processors", required_argument, NULL, 'p'},
 		{"special-insertion", no_argument, NULL, 'S'},
 		{"not-medium-sized-indel", no_argument, NULL, 5},
@@ -99,12 +100,11 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 			case 'o':
 				param->output_bam = optarg;
 				break;
-			case 'r':
-				param->input_reference_hash = optarg;
-				param->reference_filename   = 
-				  param->input_reference_hash + ".ref"; 
-				param->hash_filename        = 
-				  param->input_reference_hash + ".ht";
+			case 'f':
+				param->input_reference_fasta = optarg;
+				break;
+			case 's':
+				param->input_special_fasta = optarg;
 				break;
 			// operation parameters
 			case 'l':
@@ -119,10 +119,10 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 				if (!convert_from_string(optarg, param->allowed_clip))
 					cerr << "WARNING: Cannot parse -c --allowed-clip." << endl;
 				break;
-			case 'R':
+			case 'r':
 				param->region = optarg;
 				break;
-			case 's':
+			case 6:
 				param->is_input_sorted = true;
 			case 'p':
 				if (!convert_from_string(optarg, param->processors))
@@ -205,8 +205,8 @@ bool errorFound = false;
     errorFound = true;
   }
 	
-  if (param->input_reference_hash.empty()) {
-    cerr << "ERROR: Please specific a reference hash table, -r." << endl;
+  if (param->input_reference_fasta.empty()) {
+    cerr << "ERROR: Please specific a fasta file of references, -f." << endl;
     errorFound = true;
   }
 
@@ -271,7 +271,7 @@ void Convert_Technology(const string& optarg, Technology* technology) {
 void PrintBriefHelp(const string& program) {
 	cout
 		<< endl
-		<< "usage: " << program << " [OPTIONS] -i <FILE> -o <FILE> -r <FILE_PREFIX> -l <INT>"
+		<< "usage: " << program << " [OPTIONS] -i <FILE> -o <FILE> -r <FILE_PREFIX> -l <INT> -t <STR>"
 		<< endl
 		<< "--help: for the complete help dialog."
 		<< endl
@@ -284,10 +284,7 @@ void PrintBriefHelp(const string& program) {
 		<< endl
 		<< "   -i --input <FILE>     Input BAM file." << endl
 		<< "   -o --output <FILE>    Output BAM file." << endl
-		<< "   -r --reference-hash-table <FILE_PREFIX>" << endl 
-		<< "                         Hash table of the genome. A reference file (FILE_PREFI-" << endl
-		<< "                         X.ref) and a hash table (FILE_PREFIX.ht) will be loaded" << endl
-		<< "                         ." << endl
+		<< "   -f --fasta <FILE>     Input FASTA file."    << endl 
 		<< endl
 
 		<< "Operations:" << endl
@@ -303,7 +300,7 @@ void PrintBriefHelp(const string& program) {
 void PrintLongHelp(const string& program) {
 	cout
 		<< endl
-		<< "usage: " << program << " [OPTIONS] -i <FILE> -o <FILE> -r <FILE_PREFIX> -l <INT>"
+		<< "usage: " << program << " [OPTIONS] -i <FILE> -o <FILE> -r <FILE_PREFIX> -l <INT> -t <STR>"
 		<< endl
 		<< endl
 		<< "Help:" << endl
@@ -315,10 +312,9 @@ void PrintLongHelp(const string& program) {
 		<< endl
 		<< "   -i --input <FILE>     Input BAM file." << endl
 		<< "   -o --output <FILE>    Output BAM file." << endl
-		<< "   -r --reference-hash-table <FILE_PREFIX>" << endl 
-		<< "                         Hash table of the genome. A reference file (FILE_PREFI-" << endl
-		<< "                         X.ref) and a hash table (FILE_PREFIX.ht) will be loaded" << endl
-		<< "                         ." << endl
+		<< "   -f --fasta            Input FASTA file." << endl
+		<< "   -s --special-fasta    A FASTA file consisting of insertion sequences." << endl
+		<< "                         When -S is enable, a file should be given." << endl
 		<< endl
 		
 		<< "Operations:" << endl
@@ -329,7 +325,7 @@ void PrintLongHelp(const string& program) {
 		<< "                         Window size for searching mates. [fragment_length * 2]" << endl
 		<< "   --discovery-window-size <INT>" << endl
 		<< "                         Window size for discovering events. [10000]" << endl
-		<< "   -s --is-input-sorted" << endl
+		<< "   --is-input-sorted" << endl
 		<< "   -p --processors <INT> Use # of processors." << endl
 		<< "   -S --special-insertion" << endl
 		<< "                         Detect insertions in special references, e.g. MEIs." << endl
@@ -345,7 +341,7 @@ void PrintLongHelp(const string& program) {
 		<< "   -c --allowed-clip <FLOAT>"  << endl
 		<< "                         Percentage (0.0 - 1.0) of allowed soft clip of anchors." << endl
 		<< "                         [0.2]" << endl
-		<< "   -R --region <STR>     Targeted region; example: -R 1:500000-600000. [NULL]"
+		<< "   -r --region <STR>     Targeted region; example: -R 1:500000-600000. [NULL]"
 		<< endl
 
 		<< "Split-read alignment filters:" << endl
