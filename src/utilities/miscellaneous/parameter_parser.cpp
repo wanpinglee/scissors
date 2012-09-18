@@ -271,7 +271,7 @@ void Convert_Technology(const string& optarg, Technology* technology) {
 void PrintBriefHelp(const string& program) {
 	cout
 		<< endl
-		<< "usage: " << program << " [OPTIONS] -i <FILE> -o <FILE> -r <FILE_PREFIX> -l <INT> -t <STR>"
+		<< "usage: " << program << " [OPTIONS] -i <FILE> -o <FILE> -f <FILE> -l <INT> -t <STR>"
 		<< endl
 		<< "--help: for the complete help dialog."
 		<< endl

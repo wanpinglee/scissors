@@ -12,6 +12,7 @@ extern "C" {
 
 #include "dataStructures/target_event.h"
 #include "dataStructures/target_region.h"
+#include "outsources/fasta/Fasta.h"
 #include "utilities/bam/bam_reference.h"
 #include "utilities/bam/bam_utilities.h"
 #include "utilities/miscellaneous/alignment_filter.h"
@@ -27,7 +28,7 @@ using namespace Scissors;
 struct MainFiles {
   SR_BamInStream* bam_reader;  // bam reader
   bamFile         bam_writer;  // bam writer
-  FILE*           ref_reader;  // reference reader
+  FastaReference  ref_reader;
 };
 
 struct MainVars{
@@ -94,6 +95,7 @@ int main (int argc, char** argv) {
   // =========
   BamReference bam_reference;
   bam_reference.Init(*vars.bam_header);
+  /*
   Thread thread(&bam_reference,
 		parameters.allowed_clip,
 		parameters.processors,
@@ -110,6 +112,7 @@ int main (int argc, char** argv) {
   if (!thread_status)
     cerr << "threads fail" << endl;
   //StartThreadOrDie(parameters.processors, files.bam_reader);
+  */
 
   // free memory and close files
   Deconstruct(&files, &vars);
@@ -120,13 +123,13 @@ int main (int argc, char** argv) {
 
 
 
-
+// ====================
+// Aux functions
+// ====================
 void Deconstruct(MainFiles* files, MainVars* vars) {
   // close files
   SR_BamInStreamFree(files->bam_reader);
   bam_close(files->bam_writer);
-  //files->bam_writer.Close();
-  fclose(files->ref_reader);
 
   // free variables
   SR_BamHeaderFree(vars->bam_header);
@@ -159,8 +162,7 @@ void InitFiles(const Parameters& parameters, MainFiles* files) {
   //files->bam_writer.Open(parameters.output_bam);
 
   // Initialize reference input reader
-  files->ref_reader  = fopen( parameters.input_reference_fasta.c_str(), "rb");
-
+  files->ref_reader.open(parameters.input_reference_fasta);
 }
 
 void IsInputBamSortedOrDie(const Parameters& parameters,
@@ -233,7 +235,7 @@ void CheckFileOrDie(const Parameters& parameters,
 		     << endl;
 		error_found = true;
 	}
-
+/*
 	if (files.ref_reader == NULL) {
 		cerr << "ERROR: Cannot open " 
 		     << parameters.input_reference_fasta
@@ -242,13 +244,15 @@ void CheckFileOrDie(const Parameters& parameters,
 		     << "       Please check -r option." << endl;
 		error_found = true;
 	}
-
+*/
 	if (error_found)
 		exit(1);
 
 }
 
+// TODO: when -S and -s are enabled, we have to attach sepcial sequences!
 void AppendReferenceSequence(bam_header_t* const bam_header, const string& reference_filename){
+  /*
   // open reference file
   FILE* ref_reader = fopen(reference_filename.c_str(), "rb");
   // load the reference header
@@ -286,6 +290,7 @@ void AppendReferenceSequence(bam_header_t* const bam_header, const string& refer
   // close the file
   fclose(ref_reader);
   SR_RefHeaderFree(reference_header);
+  */
 }
 
 void ResetSoBamHeader(bam_header_t* const bam_header) {
