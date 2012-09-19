@@ -16,9 +16,13 @@ extern "C" {
 #include "dataStructures/target_event.h"
 #include "dataStructures/target_region.h"
 #include "dataStructures/technology.h"
+#include "utilities/hashTable/special_hasher.h"
+#include "utilities/hashTable/reference_hasher.h"
 #include "utilities/miscellaneous/alignment_filter.h"
 
 using std::vector;
+
+class FastaReference;
 
 namespace Scissors {
 
@@ -55,8 +59,7 @@ class Thread {
 	 const int&             bam_mq_threshold,
 	 const AlignmentFilter& alignment_filter,
 	 const TargetRegion&    target_region,
-	 FILE*           ref_reader,
-         FILE*           hash_reader,
+	 FastaReference*        ref_reader,
 	 SR_BamInStream* bam_reader,
 	 bamFile*        bam_writer);
   ~Thread();
@@ -71,20 +74,23 @@ class Thread {
   const int             bam_mq_threshold_;
   const AlignmentFilter alignment_filter_;
   const TargetRegion    target_region_;
-  FILE*           ref_reader_;
-  FILE*           hash_reader_;
+  FastaReference* ref_reader_;
   SR_BamInStream* bam_reader_;
   bamFile*        bam_writer_;
   SR_Status       bam_status_;
-  SR_Reference*   reference_;
-  SR_Reference*   reference_special_;
-  SR_InHashTable* hash_table_;
-  SR_InHashTable* hash_table_special_;
-  SR_RefHeader*   reference_header_;
+  //SR_Reference*   reference_;
+  //SR_Reference*   reference_special_;
+  //SR_InHashTable* hash_table_;
+  //SR_InHashTable* hash_table_special_;
+  //SR_RefHeader*   reference_header_;
   vector<ThreadData> thread_data_;
+  ReferenceHasher ref_hasher_;
+  SpecialHasher   sp_hasher_;
+  string reference_bases_;
 
   void Init();
   void InitThreadData();
+  void SetReferenceToThread();
   bool LoadReference();
   Thread (const Thread&);
   Thread& operator=(const Thread&);

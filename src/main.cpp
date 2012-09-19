@@ -95,7 +95,7 @@ int main (int argc, char** argv) {
   // =========
   BamReference bam_reference;
   bam_reference.Init(*vars.bam_header);
-  /*
+  
   Thread thread(&bam_reference,
 		parameters.allowed_clip,
 		parameters.processors,
@@ -105,14 +105,14 @@ int main (int argc, char** argv) {
 		parameters.mapping_quality_threshold,
 		vars.alignment_filter,
 		vars.target_region,
-		files.ref_reader,
+		&files.ref_reader,
 		files.bam_reader,
 		&files.bam_writer);
   bool thread_status = thread.Start();
   if (!thread_status)
     cerr << "threads fail" << endl;
   //StartThreadOrDie(parameters.processors, files.bam_reader);
-  */
+  
 
   // free memory and close files
   Deconstruct(&files, &vars);

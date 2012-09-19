@@ -437,6 +437,7 @@ void Aligner::GetTargetRefRegion(const int& extend_length, const int& hash_begin
   if (special)
     SR_GetRefFromSpecialPos(special_ref_view_, &ref_id, &pos, reference_header_, reference_special_, hash_begin);
 
+  if (reference_ == NULL) exit(1);
   int seq_length = special ? special_ref_view_->seqLen : reference_->seqLen;
 
   int forward_shift;

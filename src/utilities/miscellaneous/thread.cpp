@@ -1,5 +1,6 @@
 #include "thread.h"
 
+#include <cassert>
 #include <pthread.h>
 #include <stdio.h>
 
@@ -11,6 +12,7 @@ extern "C" {
 #include "utilities/bam/SR_BamPairAux.h"
 }
 
+#include "outsources/fasta/Fasta.h"
 #include "utilities/miscellaneous/aligner.h"
 
 using std::vector;
@@ -139,8 +141,7 @@ Thread::Thread(const BamReference*    bam_reference,
 	       const int&             bam_mq_threshold,
 	       const AlignmentFilter& alignment_filter,
 	       const TargetRegion&    target_region,
-	       FILE*                  ref_reader,
-	       FILE*                  hash_reader,
+	       FastaReference*        ref_reader,
 	       SR_BamInStream*        bam_reader,
 	       bamFile*               bam_writer)
     : bam_reference_(bam_reference)
@@ -153,7 +154,6 @@ Thread::Thread(const BamReference*    bam_reference,
     , alignment_filter_(alignment_filter)
     , target_region_(target_region)
     , ref_reader_(ref_reader)
-    , hash_reader_(hash_reader)
     , bam_reader_(bam_reader)
     , bam_writer_(bam_writer)
 {
@@ -163,45 +163,36 @@ Thread::Thread(const BamReference*    bam_reference,
 }
 
 void Thread::Init() {
-  int64_t reference_seal;
-  // load the reference header
-  reference_header_ = SR_RefHeaderRead(&reference_seal, ref_reader_);
-  
   // load the header in hash table file
-  unsigned char hash_size = 0;
-  int64_t hash_seal = SR_InHashTableReadStart(&hash_size, hash_reader_);
   
-  // check the compatibility between reference file and the hash table file
-  if (reference_seal != hash_seal) {
-    fprintf(stderr, "ERROR: The reference file is not compatible with the hash table file.\n");
-    exit(1);
-  }
-
   // load special references and their hash tables if necessary
   if (target_event_.special_insertion) {
     // load special references
-    reference_special_ = SR_ReferenceAlloc();
+    //reference_special_ = SR_ReferenceAlloc();
+    /*
     if (SR_SpecialRefRead(reference_special_, reference_header_, ref_reader_) == SR_ERR)
       fprintf(stderr, "ERROR: Cannot read special sequence.\n");
     // load special hash tables
     hash_table_special_ = SR_InHashTableAlloc(hash_size);
     if (SR_InHashTableReadSpecial(hash_table_special_, reference_header_, hash_reader_) == SR_ERR)
       fprintf(stderr, "ERROR: Cannot read special hash table.\n");
+    */
   }
 
-  hash_table_ = SR_InHashTableAlloc(hash_size);
-  reference_  = SR_ReferenceAlloc();
+  //int hash_size = 7;
+  //hash_table_ = SR_InHashTableAlloc(hash_size);
+  //reference_  = SR_ReferenceAlloc();
 
 }
 
 Thread::~Thread() {
-  SR_ReferenceFree(reference_);
-  SR_InHashTableFree(hash_table_);
-  SR_RefHeaderFree(reference_header_);
-  if (target_event_.special_insertion) {
-    SR_ReferenceFree(reference_special_);
-    SR_InHashTableFree(hash_table_special_);
-  }
+  //SR_ReferenceFree(reference_);
+  //SR_InHashTableFree(hash_table_);
+  //if (target_event_.special_insertion) {
+  //  SR_ReferenceFree(reference_special_);
+  //  SR_InHashTableFree(hash_table_special_);
+  //}
+
 }
 
 void Thread::InitThreadData() {
@@ -219,15 +210,20 @@ void Thread::InitThreadData() {
     thread_data_[i].alignment_list.pBamNode  = NULL;
     thread_data_[i].alignment_list.pAlgnType = NULL;
     thread_data_[i].bam_status               = &bam_status_;
-    thread_data_[i].reference                = reference_;
-    thread_data_[i].hash_table               = hash_table_;
-    thread_data_[i].reference_special        = reference_special_;
-    thread_data_[i].hash_table_special       = hash_table_special_;
-    thread_data_[i].reference_header         = reference_header_;
     thread_data_[i].bam_writer               = bam_writer_;
     thread_data_[i].alignments.clear();
     FreeAlignmentBam(&thread_data_[i].alignments_bam);
     SR_BamInStreamClearRetList(bam_reader_, i);
+  }
+}
+
+void Thread::SetReferenceToThread() {
+  for (int i = 0; i < thread_count_; ++i) {
+    thread_data_[i].reference                = (SR_Reference*)ref_hasher_.GetReference();
+    thread_data_[i].hash_table               = (SR_InHashTable*)ref_hasher_.GetHashTable();
+    thread_data_[i].reference_special        = (SR_Reference*)sp_hasher_.GetReference();
+    thread_data_[i].hash_table_special       = (SR_InHashTable*)sp_hasher_.GetHashTable();
+    thread_data_[i].reference_header         = (SR_RefHeader*)sp_hasher_.GetReferenceHeader();;
   }
 }
 
@@ -277,17 +273,24 @@ bool Thread::LoadReference() {
     return false;
   }
   
-  const char* ref_name = bam_reference_->GetName(chromosome_id);
-  int32_t ref_id = SR_RefHeaderGetRefID(reference_header_, ref_name);
+  const string ref_name = bam_reference_->GetName(chromosome_id);
+  //int32_t ref_id = SR_RefHeaderGetRefID(reference_header_, ref_name);
 
-  if (ref_id < 0) {  // Cannot find the reference
-    fprintf(stderr, "ERROR: The reference, %s, is not found in reference file.\n", ref_name);
+  if (ref_reader_->index->find(ref_name) == ref_reader_->index->end()) {  // Cannot find the reference
+    fprintf(stderr, "ERROR: The reference, %s, is not found in reference file.\n", ref_name.c_str());
 	exit(1);
   } else {
-    SR_ReferenceJump(ref_reader_, reference_header_, ref_id);
-    SR_InHashTableJump(hash_reader_, reference_header_, ref_id);
-    SR_ReferenceRead(reference_, ref_reader_);
-    SR_InHashTableRead(hash_table_, hash_reader_);
+    reference_bases_.clear();
+    reference_bases_ = ref_reader_->getSequence(ref_name);
+    ref_hasher_.Clear();
+    fprintf(stderr,"hashing......\n");
+    ref_hasher_.SetSequence(reference_bases_.c_str());
+    ref_hasher_.Load();
+    fprintf(stderr,"hashing is done......\n");
+    //SR_ReferenceJump(ref_reader_, reference_header_, ref_id);
+    //SR_InHashTableJump(hash_reader_, reference_header_, ref_id);
+    //SR_ReferenceRead(reference_, ref_reader_);
+    //SR_InHashTableRead(hash_table_, hash_reader_);
   } // end if-else
   return true;
 }
@@ -304,6 +307,7 @@ bool Thread::Start() {
       return false;       // and based on the chr id in alignments
 		          // load reference and hash table
     
+    SetReferenceToThread();
     // register mutex
     pthread_mutex_init(&bam_in_mutex, NULL);
     pthread_mutex_init(&bam_out_mutex, NULL);

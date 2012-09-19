@@ -13,7 +13,7 @@ class ReferenceHasher {
   ReferenceHasher(const char* sequence);
   ~ReferenceHasher(void);
 
-  // @function: Setting fasta filename.
+  // @function: Setting sequence
   //            Notice that before Load(), the fasta filename should be set.
   //            If the filename is already given in the constructor,
   //            then you don't have to use this function.
@@ -37,8 +37,8 @@ class ReferenceHasher {
   const SR_InHashTable* GetHashTable(void) const {return(is_loaded_ ? hash_table_ : NULL);};
 
  private:
-  std::string fasta_;
-  SR_RefHeader* reference_header_;
+  //std::string fasta_;
+  //SR_RefHeader* reference_header_;
   SR_Reference* references_;
   SR_InHashTable* hash_table_;
   int hash_size_;
