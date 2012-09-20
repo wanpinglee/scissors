@@ -141,6 +141,7 @@ Thread::Thread(const BamReference*    bam_reference,
 	       const int&             bam_mq_threshold,
 	       const AlignmentFilter& alignment_filter,
 	       const TargetRegion&    target_region,
+	       const string           special_fasta,
 	       FastaReference*        ref_reader,
 	       SR_BamInStream*        bam_reader,
 	       bamFile*               bam_writer)
@@ -153,20 +154,30 @@ Thread::Thread(const BamReference*    bam_reference,
     , bam_mq_threshold_(bam_mq_threshold)
     , alignment_filter_(alignment_filter)
     , target_region_(target_region)
+    , special_fasta_(special_fasta)
     , ref_reader_(ref_reader)
     , bam_reader_(bam_reader)
     , bam_writer_(bam_writer)
+    , bam_status_(SR_OK)
+    , thread_data_()
+    , ref_hasher_()
+    , sp_hasher_()
+    , reference_bases_()
 {
-  bam_status_ = SR_OK;
+  //bam_status_ = SR_OK;
   InitThreadData();
   Init();
 }
 
 void Thread::Init() {
-  // load the header in hash table file
   
   // load special references and their hash tables if necessary
   if (target_event_.special_insertion) {
+    sp_hasher_.SetFastaName(special_fasta_.c_str());
+    if (!sp_hasher_.Load()) {
+      fprintf(stderr,"ERROR: The program cannot load special references.\n");
+      exit(1);
+    }
     // load special references
     //reference_special_ = SR_ReferenceAlloc();
     /*
@@ -178,10 +189,6 @@ void Thread::Init() {
       fprintf(stderr, "ERROR: Cannot read special hash table.\n");
     */
   }
-
-  //int hash_size = 7;
-  //hash_table_ = SR_InHashTableAlloc(hash_size);
-  //reference_  = SR_ReferenceAlloc();
 
 }
 

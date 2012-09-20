@@ -59,6 +59,7 @@ class Thread {
 	 const int&             bam_mq_threshold,
 	 const AlignmentFilter& alignment_filter,
 	 const TargetRegion&    target_region,
+	 const string           special_fasta,
 	 FastaReference*        ref_reader,
 	 SR_BamInStream* bam_reader,
 	 bamFile*        bam_writer);
@@ -74,6 +75,7 @@ class Thread {
   const int             bam_mq_threshold_;
   const AlignmentFilter alignment_filter_;
   const TargetRegion    target_region_;
+  const string    special_fasta_;
   FastaReference* ref_reader_;
   SR_BamInStream* bam_reader_;
   bamFile*        bam_writer_;
