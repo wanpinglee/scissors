@@ -218,14 +218,15 @@ Aligner::Aligner()
     , hash_length_()
     , special_ref_view_()
     , banded_sw_aligner_()
-    , stripe_sw_aligner_() {
+    , stripe_sw_indel_()
+    , stripe_sw_normal_() {
   query_region_     = SR_QueryRegionAlloc();
   hashes_           = HashRegionTableAlloc();
   hashes_special_   = HashRegionTableAlloc();
   special_ref_view_ = SR_RefViewAlloc();
 
-  stripe_sw_aligner_.Clear();
-  stripe_sw_aligner_.ReBuild(10,20,20,1);
+  stripe_sw_indel_.Clear();
+  stripe_sw_indel_.ReBuild(10,20,20,1);
 }
 
 Aligner::Aligner(const SR_Reference* reference, 
@@ -248,15 +249,16 @@ Aligner::Aligner(const SR_Reference* reference,
     , hash_length_()
     , special_ref_view_()
     , banded_sw_aligner_()
-    , stripe_sw_aligner_(){
+    , stripe_sw_indel_()
+    , stripe_sw_normal_() {
   
   query_region_     = SR_QueryRegionAlloc();
   hashes_           = HashRegionTableAlloc();
   hashes_special_   = HashRegionTableAlloc();
   special_ref_view_ = SR_RefViewAlloc();
 
-  stripe_sw_aligner_.Clear();
-  stripe_sw_aligner_.ReBuild(10,20,20,1);
+  stripe_sw_indel_.Clear();
+  stripe_sw_indel_.ReBuild(10,20,20,1);
   //stripe_sw_aligner_.SetGapPenalty(4, 0);
 
   //hash_length_.fragLen = fragment_length;
@@ -378,11 +380,12 @@ void Aligner::Align(const TargetEvent& target_event,
   }
 
   // Try to align for special insertions
-  Alignment local_al, special_al;
+  StripedSmithWaterman::Alignment local_al;
+  Alignment special_al;
   if (target_event.special_insertion) {
-    bool special_found = SearchSpecialReference(alignment_filter, &local_al, &special_al);
+    bool special_found = SearchSpecialReference(target_region, alignment_filter, &local_al, &special_al);
     if (special_found) {
-      local_al.reference_id = query_region_->pOrphan->core.tid;
+      //local_al.reference_id = query_region_->pOrphan->core.tid;
       // adjust reference id for alignments in special insertions
       uint32_t s_pos;
       uint32_t s_length = special_al.reference_end - special_al.reference_begin;
@@ -517,8 +520,10 @@ void Aligner::GetTargetRefRegion(const int& extend_length, const int& hash_begin
   *end   = hash_begin + backward_shift;
 }
 
-bool Aligner::SearchSpecialReference(const AlignmentFilter& alignment_filter,
-                                     Alignment* local_al, Alignment* special_al)
+bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
+                                     const AlignmentFilter& alignment_filter,
+                                     StripedSmithWaterman::Alignment* local_al, 
+				     Alignment* special_al)
 {
   namespace Constant = BamFlagConstant;
   const bool is_anchor_mate1 = query_region_->pAnchor->core.flag & Constant::kBamFMate1;
@@ -526,34 +531,97 @@ bool Aligner::SearchSpecialReference(const AlignmentFilter& alignment_filter,
   search_region_type_.SetTechnologyAndAnchorMate1(technology_, is_anchor_mate1);
   SearchRegionType::RegionType region_type;
 
+  // ============================================
   // Loads hashes for the first partial alignment
+  // ============================================
   search_region_type_.GetStandardType(is_anchor_forward, &region_type);
   SetTargetSequence(region_type, query_region_);
   int read_length = query_region_->pOrphan->core.l_qseq;
-  HashRegionTableInit(hashes_, read_length);
-  SR_QueryRegionSetRange(query_region_, &hash_length_, reference_->seqLen,
-                         region_type.upstream ? SR_DOWNSTREAM : SR_UPSTREAM);
-  HashRegionTableLoad(hashes_, hash_table_, query_region_);
-  HashesCollection hashes_collection;
-  hashes_collection.Init(*(hashes_->pBestCloseRegions));
-     
+
+  // Calculate the pivot position and target region
+  int anchor_pos = query_region_->pAnchor->core.pos;
+  int pivot = region_type.upstream ? anchor_pos + target_region.fragment_length
+                                   : anchor_pos - target_region.fragment_length;
+  if (pivot < 0) pivot = 0;
+
+  // Get the region according to the pivot and local_window_size
+  int begin, end;
+  bool special = false;
+  GetTargetRefRegion(target_region.local_window_size, pivot, special, &begin, &end);
+  if (end < begin) return false;
+
+  // Get the read sequence
+  SetTargetSequence(region_type, query_region_);
+  string read_seq;
+  read_seq.assign(query_region_->orphanSeq, query_region_->pOrphan->core.l_qseq);
+
+  // Apply SSW to the region
+  int ref_length = end - begin + 1;
+  const char* ref_seq = GetSequence(begin, special);
+  StripedSmithWaterman::Filter filter;
+  // If the difference between beginnng and ending is larger than distance_filter,
+  // then we don't think that it's medium-sized indels and don't need to trace
+  // the alignment.
+  filter.distance_filter = read_seq.size();
+  stripe_sw_normal_.Align(read_seq.c_str(), ref_seq, ref_length, filter, local_al);
+  local_al->is_reverse = region_type.sequence_inverse;
+  local_al->is_complement = region_type.sequence_complement;
+  // Return false since no alignment is found
+  //fprintf(stderr, "%u\t%u\t%s\n", indel_al->ref_end, indel_al->ref_begin, indel_al->cigar_string.c_str());
+  if (local_al->cigar.empty()) return false;
+  namespace filter_app = AlignmentFilterApplication;
+  filter_app::TrimAlignment(alignment_filter, local_al);
+  if (local_al->cigar.size() == 0) return false;
+  else {
+    if (!PassMismatchFilter(*local_al, alignment_filter, 0)) return false;
+  }
+
+  // Adjust the positions
+  local_al->ref_begin += begin;
+  local_al->ref_end   += begin;
+  local_al->ref_end_next_best += begin;
+
+  // ====================
   // Loads special hashes
+  // ====================
   HashRegionTableInit(hashes_special_, read_length);
   SR_QueryRegionSetRangeSpecial(query_region_, reference_special_->seqLen);
   HashRegionTableLoad(hashes_special_, hash_table_special_, query_region_);
   HashesCollection hashes_collection_special;
   hashes_collection_special.Init(*(hashes_special_->pBestCloseRegions));
   //hashes_collection_special.Print();
+  hashes_collection_special.SortByLength();
+  if (hashes_collection_special.Get(hashes_collection_special.GetSize() - 1) == NULL) return false;
+  if (hashes_collection_special.Get(hashes_collection_special.GetSize() - 1)->length == 0) return false;
+
+  const int best2 = hashes_collection_special.GetSize() - 1;
+  GetAlignment(hashes_collection_special, best2, true, read_length, read_seq.c_str(), special_al);
+  bool trimming_al_okay = true;
+  filter_app::TrimAlignment(alignment_filter, special_al);
+  trimming_al_okay &= (special_al->reference.size() > 0);
+
+  bool passing_filter = true;
+  passing_filter &= filter_app::FilterByMismatch(alignment_filter, *special_al);
+  passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, *special_al, read_length);
+  
+  if (trimming_al_okay && passing_filter) {
+    special_al->is_seq_inverse    = region_type.sequence_inverse;
+    special_al->is_seq_complement = region_type.sequence_complement;
+    return true;
+  } else {
+    return false;
+  }
 
   // Gets the best pair of hashes
-  unsigned int best1, best2;
-  bool best_pair_found = false;
-  if (is_anchor_forward)
-    best_pair_found = hashes_collection.GetBestCoverPair(&hashes_collection_special, &best1, &best2);
-  else 
-    best_pair_found = hashes_collection_special.GetBestCoverPair(&hashes_collection, &best2, &best1);
+  //unsigned int best1, best2;
+  //bool best_pair_found = false;
+  //if (is_anchor_forward)
+  //  best_pair_found = hashes_collection.GetBestCoverPair(&hashes_collection_special, &best1, &best2);
+  //else 
+  //  best_pair_found = hashes_collection_special.GetBestCoverPair(&hashes_collection, &best2, &best1);
       
   // If a pair of hashes is found
+  /*
   if (best_pair_found) {
     const char* read_seq = query_region_->orphanSeq;
     GetAlignment(hashes_collection, best1, false, read_length, read_seq, local_al); // non-special
@@ -587,6 +655,7 @@ bool Aligner::SearchSpecialReference(const AlignmentFilter& alignment_filter,
     // !best_pair_found
     return false;
   }
+  */
 }
 
 bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
@@ -644,7 +713,7 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   // then we don't think that it's medium-sized indels and don't need to trace
   // the alignment.
   filter.distance_filter = read_seq.size() * 5;
-  stripe_sw_aligner_.Align(read_seq.c_str(), ref_seq, ref_length, filter, indel_al);
+  stripe_sw_indel_.Align(read_seq.c_str(), ref_seq, ref_length, filter, indel_al);
   indel_al->is_reverse = region_type.sequence_inverse;
   indel_al->is_complement = region_type.sequence_complement;
   // Return false since no alignment is found

@@ -108,7 +108,8 @@ class Aligner {
   SR_RefView*           special_ref_view_;
 
   CBandedSmithWaterman  banded_sw_aligner_;
-  StripedSmithWaterman::Aligner stripe_sw_aligner_;
+  StripedSmithWaterman::Aligner stripe_sw_indel_;
+  StripedSmithWaterman::Aligner stripe_sw_normal_;
 
   void LoadRegionType(const bam1_t& anchor);
   const char* GetSequence(const size_t& start, const bool& special) const;
@@ -122,8 +123,10 @@ class Aligner {
              const AlignmentFilter& alignment_filter,
 	     const SR_QueryRegion* query_region_,
 	     vector<bam1_t*>* alignments);
-  bool SearchSpecialReference(const AlignmentFilter& alignment_filter,
-                              Alignment* local_al, Alignment* special_al);
+  bool SearchSpecialReference(const TargetRegion& target_region,
+                              const AlignmentFilter& alignment_filter,
+                              StripedSmithWaterman::Alignment* local_al, 
+			      Alignment* special_al);
   bool SearchMediumIndel(const TargetRegion& target_region,
                          const AlignmentFilter& alignment_filter,
                          StripedSmithWaterman::Alignment* ssw_al);
