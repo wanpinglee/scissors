@@ -8,6 +8,7 @@ extern "C" {
 #include "utilities/bam/SR_BamInStream.h"
 #include "utilities/bam/SR_BamPairAux.h"
 #include "utilities/common/SR_Types.h"
+#include "utilities/miscellaneous/md5.h"
 }
 
 #include "dataStructures/target_event.h"
@@ -86,7 +87,7 @@ int main (int argc, char** argv) {
   // Write bam header
   ResetSoBamHeader(vars.bam_header->pOrigHeader);
   if (parameters.detect_special)
-    AppendReferenceSequence(vars.bam_header->pOrigHeader, parameters.input_reference_fasta);
+    AppendReferenceSequence(vars.bam_header->pOrigHeader, parameters.input_special_fasta);
   // load the reference header
   bam_header_write(files.bam_writer, vars.bam_header->pOrigHeader);
 
@@ -224,34 +225,70 @@ void InitVariablesOrDie(const Parameters& parameters,
 void CheckFileOrDie(const Parameters& parameters,
                     const MainFiles& files){
 
-	bool error_found = false;
+  bool error_found = false;
 
-	if (files.bam_writer == NULL) {
-		cerr << "ERROR: Cannot open " 
-		     << parameters.output_bam 
-		     << " for writing." 
-		     << endl
-		     << "       Please check -o option." 
-		     << endl;
-		error_found = true;
+  if (files.bam_writer == NULL) {
+    cerr << "ERROR: Cannot open " 
+         << parameters.output_bam 
+         << " for writing." << endl
+         << "       Please check -o option." << endl;
+	  error_found = true;
 	}
-/*
-	if (files.ref_reader == NULL) {
-		cerr << "ERROR: Cannot open " 
-		     << parameters.input_reference_fasta
-		     << " for reading." 
-		     << endl
-		     << "       Please check -r option." << endl;
-		error_found = true;
-	}
-*/
-	if (error_found)
-		exit(1);
+	
+	if (error_found) exit(1);
 
 }
 
-// TODO: when -S and -s are enabled, we have to attach sepcial sequences!
+// TODO@WP: Need to check correctness of MD5
 void AppendReferenceSequence(bam_header_t* const bam_header, const string& reference_filename){
+  FastaReference sp_reader;
+  sp_reader.open(reference_filename);
+
+  const int n_special = sp_reader.index->sequenceNames.size();
+  char** names   = new char* [n_special];
+  uint32_t* lens = new uint32_t [n_special];
+  char** md5s    = new char* [n_special];
+  const int md5_length = 16;
+  for (int i = 0; i < n_special; ++i) {
+    string name = sp_reader.index->sequenceNames[i];
+    // get and set ref name
+    names[i] = new char[name.size() + 1];
+    memcpy(names[i], name.c_str(), sizeof(char) * name.size());
+    names[i][name.size()] = '\0';
+    // get and set ref length
+    lens[i] = sp_reader.sequenceLength(name);
+    // get ref MD5
+    unsigned char md5[md5_length];
+    memset(md5, 0, md5_length);
+    MD5_CTX context;
+    MD5Init(&context);
+    char* ptr = new char [lens[i]];
+    memcpy(ptr, sp_reader.getSequence(name).c_str(), sizeof(char) * lens[i]);
+    MD5Update(&context, (unsigned char*) ptr, lens[i]);
+    delete [] ptr;
+    MD5Final(md5, &context);
+    // set md5
+    md5s[i] = new char[32];
+    md5s[i][31] = '\0';
+    ptr = md5s[i];
+    for (int j = 0; j < md5_length; ++j) {
+      sprintf(ptr, "%02X", md5[j]);
+      ptr += 2;
+    }
+
+    //fprintf(stderr,"@SQ\tSN:%s\tLN:%d\tM5:%s\n", names[i], lens[i],md5s[i]);
+    //fprintf(stderr,"%s\n", sp_reader.index->sequenceNames[i].c_str());
+  }
+
+  // delete
+  for (int i = 0; i < n_special; ++i) {
+    delete [] names[i];
+    delete [] md5s[i];
+  }
+  delete [] names;
+  delete [] lens;
+  delete [] md5s;
+  
   /*
   // open reference file
   FILE* ref_reader = fopen(reference_filename.c_str(), "rb");

@@ -35,7 +35,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		param->command_line += argv[i];
 	}
 
-	const char *short_option = "hi:f:s:o:l:w:c:r:p:SQ:B:M:t:";
+	const char *short_option = "hi:f:s:o:l:w:c:r:p:Q:B:M:t:";
 
 	const struct option long_option[] = {
 		// long help
@@ -54,7 +54,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		{"region", required_argument, NULL, 'r'},
 		{"is-input-sorted", no_argument, NULL, 6},
 		{"processors", required_argument, NULL, 'p'},
-		{"special-insertion", no_argument, NULL, 'S'},
+		{"special-insertion", no_argument, NULL, 's'},
 		{"not-medium-sized-indel", no_argument, NULL, 5},
 		{"technology", required_argument, NULL, 't'},
 
@@ -105,6 +105,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 				break;
 			case 's':
 				param->input_special_fasta = optarg;
+				param->detect_special = true;
 				break;
 			// operation parameters
 			case 'l':
@@ -127,9 +128,6 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 			case 'p':
 				if (!convert_from_string(optarg, param->processors))
 					cerr << "WARNING: Cannot parse -p --processors." << endl;
-				break;
-			case 'S':
-				param->detect_special = true;
 				break;
 			case 5:
 				param->not_medium_sized_indel = true;
@@ -193,25 +191,25 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 // true: passing the checker
 bool CheckParameters(Parameters* param) {
 	
-bool errorFound = false;
+  bool errorFound = false;
   // necessary parameters
   if (param->input_bam.empty()) {
-    cerr << "ERROR: Please specific an input file, -i." << endl;
+    cerr << "ERROR: Please specify an input BAM file, -i." << endl;
     errorFound = true;
   }
 	
   if (param->output_bam.empty()) {
-    cerr << "ERROR: Please specific an output file, -o." << endl;
+    cerr << "ERROR: Please specify an output BAM file, -o." << endl;
     errorFound = true;
   }
 	
   if (param->input_reference_fasta.empty()) {
-    cerr << "ERROR: Please specific a fasta file of references, -f." << endl;
+    cerr << "ERROR: Please specify a fasta file of references, -f." << endl;
     errorFound = true;
   }
 
   if (param->fragment_length < 1) {
-    cerr << "ERROR: Please specific the fragment length, -l." << endl
+    cerr << "ERROR: Please specify the fragment length, -l." << endl
          << "       The value should be greater than 0." << endl;
     errorFound = true;
   }
@@ -313,8 +311,9 @@ void PrintLongHelp(const string& program) {
 		<< "   -i --input <FILE>     Input BAM file." << endl
 		<< "   -o --output <FILE>    Output BAM file." << endl
 		<< "   -f --fasta            Input FASTA file." << endl
-		<< "   -s --special-fasta    A FASTA file consisting of insertion sequences." << endl
-		<< "                         When -S is enable, a file should be given." << endl
+		<< "   -s --special-fasta <FILE>" << endl
+		<< "                         A FASTA file of insertion sequences." << endl
+		<< "                         Detect insertions in special references, e.g. MEIs." << endl
 		<< endl
 		
 		<< "Operations:" << endl
@@ -327,8 +326,6 @@ void PrintLongHelp(const string& program) {
 		<< "                         Window size for discovering events. [10000]" << endl
 		<< "   --is-input-sorted" << endl
 		<< "   -p --processors <INT> Use # of processors." << endl
-		<< "   -S --special-insertion" << endl
-		<< "                         Detect insertions in special references, e.g. MEIs." << endl
 		<< "   --not-medium-sized-indel" << endl
 		<< "   -t --technology <STR> ILLUMINA, 454, or SOLID." << endl
 		<< endl

@@ -283,10 +283,8 @@ bool Thread::LoadReference() {
     reference_bases_.clear();
     reference_bases_ = ref_reader_->getSequence(ref_name);
     ref_hasher_.Clear();
-    fprintf(stderr,"hashing......\n");
     ref_hasher_.SetSequence(reference_bases_.c_str());
     ref_hasher_.Load();
-    fprintf(stderr,"hashing is done......\n");
     //SR_ReferenceJump(ref_reader_, reference_header_, ref_id);
     //SR_InHashTableJump(hash_reader_, reference_header_, ref_id);
     //SR_ReferenceRead(reference_, ref_reader_);
