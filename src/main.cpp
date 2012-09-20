@@ -100,7 +100,7 @@ int main (int argc, char** argv) {
   Thread thread(&bam_reference,
 		parameters.allowed_clip,
 		parameters.processors,
-		parameters.fragment_length,
+		//parameters.fragment_length,
 		parameters.technology,
 		vars.target_event,
 		parameters.mapping_quality_threshold,
@@ -277,7 +277,7 @@ void AppendReferenceSequence(bam_header_t* const bam_header, const string& refer
       ptr += 2;
     }
 
-    //fprintf(stderr,"@SQ\tSN:%s\tLN:%d\tM5:%s\n", names[i], lens[i],md5s[i]);
+    fprintf(stderr,"@SQ\tSN:%s\tLN:%d\tM5:%s\n", names[i], lens[i],md5s[i]);
     //fprintf(stderr,"%s\n", sp_reader.index->sequenceNames[i].c_str());
   }
   BamUtilities::AppendReferenceSequence((const char**)names, lens, (const char**)md5s, n_special, bam_header);

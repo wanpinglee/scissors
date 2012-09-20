@@ -195,14 +195,44 @@ void StoreAlignment(
   }
 }
 
+bool CheckSetting(const SR_Reference* reference, const Technology technology) {
+  if (reference == NULL) return false;
+  if (technology == TECH_NONE) return false;
+  return true;
+}
+
 } // unnamed namespace
+
+Aligner::Aligner() 
+    : search_region_type_()
+    , anchor_region_()
+    , technology_(TECH_NONE)
+    , reference_(NULL)
+    , hash_table_(NULL)
+    , reference_special_(NULL)
+    , hash_table_special_(NULL)
+    , reference_header_(NULL)
+    , query_region_(NULL)
+    , hashes_(NULL)
+    , hashes_special_(NULL)
+    , hash_length_()
+    , special_ref_view_()
+    , banded_sw_aligner_()
+    , stripe_sw_aligner_() {
+  query_region_     = SR_QueryRegionAlloc();
+  hashes_           = HashRegionTableAlloc();
+  hashes_special_   = HashRegionTableAlloc();
+  special_ref_view_ = SR_RefViewAlloc();
+
+  stripe_sw_aligner_.Clear();
+  stripe_sw_aligner_.ReBuild(10,20,20,1);
+}
 
 Aligner::Aligner(const SR_Reference* reference, 
                  const SR_InHashTable* hash_table,
 		 const SR_Reference* reference_special,
 		 const SR_InHashTable* hash_table_special,
 		 const SR_RefHeader* reference_header,
-		 const int& fragment_length,
 		 const Technology& technology)
     : search_region_type_()
     , anchor_region_()
@@ -212,6 +242,11 @@ Aligner::Aligner(const SR_Reference* reference,
     , reference_special_(reference_special)
     , hash_table_special_(hash_table_special)
     , reference_header_(reference_header)
+    , query_region_(NULL)
+    , hashes_(NULL)
+    , hashes_special_(NULL)
+    , hash_length_()
+    , special_ref_view_()
     , banded_sw_aligner_()
     , stripe_sw_aligner_(){
   
@@ -228,6 +263,24 @@ Aligner::Aligner(const SR_Reference* reference,
   //hash_length_.closeRange = 2000;
   //hash_length_.farRange   = 10000;
 }
+
+bool Aligner::SetReference(
+    const SR_Reference*   reference,
+    const SR_InHashTable* hash_table,
+    const Technology&     technology,
+    const SR_Reference*   reference_special,
+    const SR_InHashTable* hash_table_special,
+    const SR_RefHeader*   reference_header) {
+  reference_          = reference;
+  hash_table_         = hash_table;
+  technology_         = technology;
+  reference_special_  = reference_special;
+  hash_table_special_ = hash_table_special;
+  reference_header_   = reference_header;
+  return true;
+}
+
+
 
 Aligner::~Aligner() {
   SR_QueryRegionFree(query_region_);
@@ -248,11 +301,17 @@ void Aligner::LoadRegionType(const bam1_t& anchor) {
     search_region_type_.RewindRegionTypeList();
 }
 
-void Aligner::AlignCandidate(const TargetEvent& target_event,
+bool Aligner::AlignCandidate(const TargetEvent& target_event,
                              const TargetRegion& target_region,
 			     const AlignmentFilter& alignment_filter,
 			     SR_BamInStreamIter* al_ite,
                              vector<bam1_t*>* alignments) {
+  if (!CheckSetting(reference_, technology_)) {
+    while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK); // empty the buffer
+    al_ite = NULL;
+    return false;
+  }
+  
   // Since stripe-smith-waterman is used for local search, 
   // closeRange may not be necessary.
   hash_length_.fragLen    = target_region.fragment_length;
@@ -266,14 +325,19 @@ void Aligner::AlignCandidate(const TargetEvent& target_event,
   } // end while
 
   al_ite = NULL;
+  return true;
 }
 
-void Aligner::AlignCandidate(const TargetEvent& target_event,
+bool Aligner::AlignCandidate(const TargetEvent& target_event,
                              const TargetRegion& target_region,
 		             const AlignmentFilter& alignment_filter,
 		             const bam1_t& anchor,
 		             const bam1_t& target,
 		             vector<bam1_t*>* alignments) {
+  if (!CheckSetting(reference_, technology_)) {
+    return false;
+  }
+
   // Since stripe-smith-waterman is used for local search, 
   // closeRange may not be necessary.
   hash_length_.fragLen    = target_region.fragment_length;
@@ -283,6 +347,8 @@ void Aligner::AlignCandidate(const TargetEvent& target_event,
   query_region_->pAnchor = (bam1_t*) &anchor;
   query_region_->pOrphan = (bam1_t*) &target;
   Align(target_event, target_region, alignment_filter, query_region_, alignments);
+
+  return true;
 }
 
 void Aligner::Align(const TargetEvent& target_event,

@@ -29,7 +29,7 @@ namespace Scissors {
 struct ThreadData{
   int             id;
   float           allowed_clip;
-  int             fragment_length;
+  //int             fragment_length;
   Technology      technology;
   TargetEvent     target_event;
   int             bam_mq_threshold;
@@ -53,7 +53,7 @@ class Thread {
   Thread(const BamReference* bam_reference,
          const float&           allowed_clip,
          const int&             thread_count,
-	 const int&             fragment_length,
+//	 const int&             fragment_length,
 	 const Technology&      technology,
 	 const TargetEvent&     target_event,
 	 const int&             bam_mq_threshold,
@@ -69,7 +69,7 @@ class Thread {
   const BamReference*   bam_reference_;
   const float           allowed_clip_;
   const int             thread_count_;
-  const int             fragment_length_;
+  //const int             fragment_length_;
   const Technology      technology_;
   const TargetEvent     target_event_;
   const int             bam_mq_threshold_;

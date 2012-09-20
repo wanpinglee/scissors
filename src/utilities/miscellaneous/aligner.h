@@ -26,18 +26,38 @@ class HashesCollection;
 
 class Aligner {
  public:
+  Aligner();
   Aligner(const SR_Reference*   reference, 
           const SR_InHashTable* hash_table,
 	  const SR_Reference*   reference_special,
 	  const SR_InHashTable* hash_table_special,
 	  const SR_RefHeader*   reference_header,
-	  const int&            fragment_length,
 	  const Technology&     technology);
   ~Aligner();
-  
+ 
+  // @function:
+  //     Set reference and hash table
+  // @return:
+  //     always true
+  //
+  // @params:
+  //     If not detect special references, then reference_special,
+  //     hash_table_special, and reference_header are not necessary to set.
+  bool SetReference(const SR_Reference*   reference,
+                    const SR_InHashTable* hash_table,
+		    const Technology&     technology         = TECH_ILLUMINA,
+		    const SR_Reference*   reference_special  = NULL,
+		    const SR_InHashTable* hash_table_special = NULL,
+		    const SR_RefHeader*   reference_header   = NULL);
+
   // [NOTICE] Users may not use this function.
   // @function:
   //     Aligns the orphan bam1_t in query_region_
+  //
+  // @return:
+  //     false: when (SR_Reference*) reference is not set 
+  //            or (Technology) technology is TECH_NONE;
+  //     true: otherwise
   //
   // @params:
   //     alignment_filter--the filter for split-read alignment
@@ -45,7 +65,7 @@ class Aligner {
   //                       it'll be set to NULL before exiting the function.
   //     alignments--------all obtained split-read alignments are stored here
   //                       [NOTICE] Users should free bam1_t in the vector
-  void AlignCandidate(const TargetEvent&     target_event,
+  bool AlignCandidate(const TargetEvent&     target_event,
                       const TargetRegion&    target_region,
                       const AlignmentFilter& alignment_filter,
                       SR_BamInStreamIter*    al_ite, 
@@ -54,13 +74,18 @@ class Aligner {
   // @function:
   //     Aligns the orphan bam1_t in query_region_
   //
+  // @return:
+  //     false: when (SR_Reference*) reference is not set
+  //            or (Technology) technology is TECH_NONE;
+  //     true: otherwise
+  //
   // @params:
   //     alignment_filter--the filter for split-read alignment
   //     anchor------------anchor (mapped) mate
   //     target------------target (unmapped) mate which is the split-read target
   //     alignments--------all obtained split-read alignments are stored here
   //                       [NOTICE] Users should free bam1_t in the vector
-  void AlignCandidate(const TargetEvent&     target_event,
+  bool AlignCandidate(const TargetEvent&     target_event,
                       const TargetRegion&    target_region,
                       const AlignmentFilter& alignment_filter,
 		      const bam1_t&          anchor,
@@ -69,7 +94,7 @@ class Aligner {
  private:
   SearchRegionType search_region_type_;
   AnchorRegion     anchor_region_;
-  const Technology technology_;
+  Technology technology_;
 
   const SR_Reference*   reference_;
   const SR_InHashTable* hash_table_;
