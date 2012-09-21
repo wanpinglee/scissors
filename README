@@ -5,6 +5,12 @@ Compiling:
 
 Just enter the src directory, and type "make".
 
+###########
+API Example
+###########
+
+Just enter the src/api directory, and type "make".
+
 ############################
 Building Google C++ Testing:
 ############################
