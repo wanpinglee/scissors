@@ -21,7 +21,7 @@ SUB_DIRS = dataStructures \
 		utilities \
 		outsources
 
-EXECUTABLE = aligner
+EXECUTABLE = scissors
 
 all: $(EXECUTABLE)
 .PHONY: all
