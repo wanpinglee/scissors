@@ -33,12 +33,22 @@ int main() {
   ref_hasher.Load();
   const SR_Reference* ref_ref    = ref_hasher.GetReference();
   const SR_InHashTable* ref_hash = ref_hasher.GetHashTable();
+  // [NOTICE]: If you like to detect special insertions
+  // SpecialHasher sp_hasher(special_fasta_filename);
+  // sp_hasher.Load();
+  // const SR_Reference* sp_ref = sp_hasher.GetReference();
+  // const SR_RefHeader* sp_header = sp_hasher.GetReferenceHeader();
+  // const SR_InHashTable* sp_hash = sp_hasher.GetHashTable();
 
   // ============================
   // Declare a split-read aligner
   // ============================
   Scissors::Aligner aligner;
   aligner.SetReference(ref_ref, ref_hash);
+  // [NOTICE]: If you like to detect special insertions
+  // Scissors::Technology tech;
+  // tech = Scissors::TECH_ILLUMINA;
+  // aligner.SetReference(ref_ref, ref_hash, tech, sp_ref, sp_hash, sp_header);
 
   // ===========================
   // Split-read align the target
@@ -48,6 +58,8 @@ int main() {
   region.fragment_length = 1000; // set the fragment length
   Scissors::AlignmentFilter filter; // default AlignmentFilter
   vector<bam1_t*> result; // resultant alignments are sotred here
+  // [NOTICE]: If you like to detect special insertions
+  // event.special_insertion = true;
   // *** Aligning ***
   aligner.AlignCandidate(event, region, filter, *anchor, *target, &result);
 
