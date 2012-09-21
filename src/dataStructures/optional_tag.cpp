@@ -23,6 +23,7 @@ inline void ExtenedBamDataBuffer(
 namespace OptionalTag {
 void AddOptionalTags(const bam1_t& anchor, bam1_t* alignment) {
   const uint8_t* rg_ptr = bam_aux_get(&anchor, "RG");
+  if (rg_ptr == NULL) return;
   const char* rg = bam_aux2Z(rg_ptr);
   int rg_len = strlen(rg);
 

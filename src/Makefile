@@ -56,8 +56,13 @@ $(OBJ_DIR):
 $(BIN_DIR):
 	@mkdir $(BIN_DIR)
 
+api: $(OBJECTS)
+	ar rvs api/libscissors.a $(OBJ_DIR)/*.o
+
 clean:
 	@echo "Cleaning up......"
-	@rm -rf $(OBJ_DIR) $(BIN_DIR)
+	@rm -rf $(OBJ_DIR) 
+	@rm -rf $(BIN_DIR)
 	@cd outsources/samtools && $(MAKE) clean --no-print-directory
+	@rm api/libscissors.a
 .PHONY: clean
