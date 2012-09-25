@@ -58,6 +58,7 @@ int main() {
   region.fragment_length = 1000; // set the fragment length
   Scissors::AlignmentFilter filter; // default AlignmentFilter
   vector<bam1_t*> result; // resultant alignments are sotred here
+                          // [NOTICE]: bamt_1* has to be freed
   // [NOTICE]: If you like to detect special insertions
   // event.special_insertion = true;
   // *** Aligning ***
@@ -101,6 +102,9 @@ bool Prepare(string* fasta_seq, bam1_t* anchor, bam1_t* target, bam_header_t* he
   header = bam_header_read(bam_reader);
   bam_read1(bam_reader, target); // unmapped mate
   bam_read1(bam_reader, anchor); // mapped mate
+  //anchor->core.tid = 0;
+  //anchor->core.pos = 23539;
+  //anchor->core.flag = 147;
   bam_close(bam_reader);
 
   return true;

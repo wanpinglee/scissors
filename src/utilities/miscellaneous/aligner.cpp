@@ -464,6 +464,24 @@ void Aligner::Align(const TargetEvent& target_event,
     //} // end while
 }
 
+inline bool Aligner::ResetIndelSmithWatermanScore(
+    const uint8_t& match_score,
+    const uint8_t& mismatch_penalty,
+    const uint8_t& gap_opening_penalty,
+    const uint8_t& gap_extending_penalty) {
+  stripe_sw_indel_.Clear();
+  return stripe_sw_indel_.ReBuild(10,20,20,1);
+}
+
+inline bool Aligner::ResetLocalSmithWatermanScore(
+    const uint8_t& match_score,
+    const uint8_t& mismatch_penalty,
+    const uint8_t& gap_opening_penalty,
+    const uint8_t& gap_extending_penalty) {
+  stripe_sw_normal_.Clear();
+  return stripe_sw_normal_.ReBuild(10,20,20,1);
+}
+
 // @function: Gets alignment from the hashes_collection by given id 
 //            in hashes_collection
 bool Aligner::GetAlignment(
