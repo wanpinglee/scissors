@@ -103,16 +103,16 @@ class Aligner {
   //     Change the Smith-Waterman score matrix 
   //     for the medium-sized-indel ssw aligner
   bool ResetIndelSmithWatermanScore(const uint8_t& match_score      = 10,
-                               const uint8_t& mismatch_penalty      = 20,
-	                       const uint8_t& gap_opening_penalty   = 20,
-		               const uint8_t& gap_extending_penalty = 1);
+                                    const uint8_t& mismatch_penalty      = 20,
+	                            const uint8_t& gap_opening_penalty   = 20,
+		                    const uint8_t& gap_extending_penalty = 1);
 
   // @function:
   //     Change the Smith-Waterman score matrix for the local ssw aligner
   bool ResetLocalSmithWatermanScore(const uint8_t& match_score      = 2,
-                               const uint8_t& mismatch_penalty      = 2,
-	                       const uint8_t& gap_opening_penalty   = 3,
-		               const uint8_t& gap_extending_penalty = 1);
+                                    const uint8_t& mismatch_penalty      = 2,
+	                            const uint8_t& gap_opening_penalty   = 3,
+		                    const uint8_t& gap_extending_penalty = 1);
  private:
   SearchRegionType search_region_type_;
   AnchorRegion     anchor_region_;

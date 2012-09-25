@@ -412,56 +412,6 @@ void Aligner::Align(const TargetEvent& target_event,
   al_collection.GetMostConfidentEvent(&best_event, &ssw_al_for_best_event, &common_al_for_best_event);
   StoreAlignment(best_event, ssw_al_for_best_event, common_al_for_best_event, 
       *query_region_->pAnchor, *query_region_->pOrphan, alignments);
-
-      // For normal detection
-      /*
-      const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
-      SearchRegionType::RegionType region_type;
-      LoadRegionType(*(query_region_->pAnchor));
-      while (search_region_type_.GetNextRegionType(is_anchor_forward, 
-                                                   &region_type)) {
-        
-	// Reverse or complement the sequence if necesary
-        SetTargetSequence(region_type, query_region_);
-        HashRegionTableInit(hashes_, read_length);
-        SR_QueryRegionSetRange(query_region_, &hash_length_, reference_->seqLen,
-                               region_type.upstream ? SR_DOWNSTREAM : SR_UPSTREAM);
-	HashRegionTableLoad(hashes_, hash_table_, query_region_);
-
-        HashesCollection hashes_collection;
-        HashesCollection hashes_collection_special;
-	
-	hashes_collection.Init(*(hashes_->pBestCloseRegions));
-	//printf("\nBefore sorting\n");
-	//hashes_collection.Print();
-	hashes_collection.SortByLength();
-	//printf("\nAfter sorting\n");
-	//hashes_collection.Print();
-	unsigned int best1, best2;
-	bool best_pair_found = hashes_collection.GetBestCoverPair(&best1, &best2);
-	Alignment al1, al2;
-	if (best_pair_found) {
-	  GetAlignment(hashes_collection, best1, &al1);
-	  GetAlignment(hashes_collection, best2, &al2);
-	  al1.is_seq_inverse    = region_type.sequence_inverse;
-	  al2.is_seq_inverse    = region_type.sequence_inverse;
-	  al1.is_seq_complement = region_type.sequence_complement;
-	  al2.is_seq_complement = region_type.sequence_complement;
-
-	  // store alignments
-	  bam1_t *al1_bam, *al2_bam;
-	  al1_bam = bam_init1(); // Thread.cpp will free it
-	  al2_bam = bam_init1(); // Thread.cpp will free it
-	  BamUtilities::ConvertAlignmentToBam1(al1, *query_region_->pOrphan, al1_bam);
-	  BamUtilities::ConvertAlignmentToBam1(al2, *query_region_->pOrphan, al2_bam);
-	  alignments->push_back(al1_bam);
-	  alignments->push_back(al2_bam);
-	} else {
-	  // nothing
-	}
-      } // end while
-      */
-    //} // end while
 }
 
 inline bool Aligner::ResetIndelSmithWatermanScore(
@@ -629,51 +579,6 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
   } else {
     return false;
   }
-
-  // Gets the best pair of hashes
-  //unsigned int best1, best2;
-  //bool best_pair_found = false;
-  //if (is_anchor_forward)
-  //  best_pair_found = hashes_collection.GetBestCoverPair(&hashes_collection_special, &best1, &best2);
-  //else 
-  //  best_pair_found = hashes_collection_special.GetBestCoverPair(&hashes_collection, &best2, &best1);
-      
-  // If a pair of hashes is found
-  /*
-  if (best_pair_found) {
-    const char* read_seq = query_region_->orphanSeq;
-    GetAlignment(hashes_collection, best1, false, read_length, read_seq, local_al); // non-special
-    GetAlignment(hashes_collection_special, best2, true, read_length, read_seq, special_al); // special
-	
-    namespace filter_app = AlignmentFilterApplication;
-    bool trimming_al_okay = true;
-    //trimming_al_okay &= filter_app::TrimAlignment(alignment_filter, &al1);
-    //trimming_al_okay &= filter_app::TrimAlignment(alignment_filter, &al2);
-    filter_app::TrimAlignment(alignment_filter, local_al);
-    filter_app::TrimAlignment(alignment_filter, special_al);
-    trimming_al_okay &= ((local_al->reference.size() > 0) && (special_al->reference.size() > 0));
-
-    bool passing_filter = true;
-    passing_filter &= filter_app::FilterByMismatch(alignment_filter, *local_al);
-    passing_filter &= filter_app::FilterByMismatch(alignment_filter, *special_al);
-    passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, *local_al, read_length);
-    passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, *special_al, read_length);
-
-    if (trimming_al_okay && passing_filter) {
-      local_al->  is_seq_inverse    = region_type.sequence_inverse;
-      special_al->is_seq_inverse    = region_type.sequence_inverse;
-      local_al->  is_seq_complement = region_type.sequence_complement;
-      special_al->is_seq_complement = region_type.sequence_complement;
-      return true;
-    }
-    else {
-      return false;
-    }
-  } else {
-    // !best_pair_found
-    return false;
-  }
-  */
 }
 
 bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
