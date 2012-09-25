@@ -14,8 +14,9 @@
 namespace Scissors {
 namespace {
 
-const Scissors::TargetEvent kMediumIndel(false, true);
-const Scissors::TargetEvent kSpecialInsertion(true, false);
+const Scissors::TargetEvent kMediumIndel(false, true, false);
+const Scissors::TargetEvent kSpecialInsertion(true, false, false);
+const Scissors::TargetEvent kInsertion(false, false, true);
 
 
 void SetTargetSequence(const SearchRegionType::RegionType& region_type, 
@@ -101,12 +102,11 @@ bool DetermineMediumIndelBreakpoint(
   bool insertion = ((ssw_al.cigar[indel_cigar_id] & 0x0f) == 1) ? true : false;
 
   unsigned int aligned_base_threshold = floor(read_length * alignment_filter.aligned_base_rate);
-  //fprintf(stderr, "%u\t%u\t", read_length, aligned_base_threshold);
   bool pass_filter = false;
   for(unsigned int i = 0; i < indel_cigar_id; ++i) {
     uint8_t  op = ssw_al.cigar[i] & 0x0f;
     uint32_t length = ssw_al.cigar[i] >> 4;
-    //fprintf(stderr, "%u\t%u\t%u\t", i, op, length);
+    // Cigar operation: M
     if ((op == 0) && (length > aligned_base_threshold)) {
       pass_filter = true;
       break;
@@ -116,7 +116,6 @@ bool DetermineMediumIndelBreakpoint(
   // The first partial doesn't exist to support the detected deletion.
   // So, return false. For deletions, both side partital alignments should flank.
   if (!pass_filter && !insertion) {
-    //fprintf(stderr, "\n");
     return false;
   }
 
@@ -383,7 +382,7 @@ void Aligner::Align(const TargetEvent& target_event,
   StripedSmithWaterman::Alignment local_al;
   Alignment special_al;
   if (target_event.special_insertion) {
-    bool special_found = SearchSpecialReference(target_region, alignment_filter, &local_al, &special_al);
+    bool special_found = SearchSpecialReference(target_region, alignment_filter, &special_al);
     if (special_found) {
       //local_al.reference_id = query_region_->pOrphan->core.tid;
       // adjust reference id for alignments in special insertions
@@ -488,11 +487,9 @@ void Aligner::GetTargetRefRegion(const int& extend_length, const int& hash_begin
   *end   = hash_begin + backward_shift;
 }
 
-bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
-                                     const AlignmentFilter& alignment_filter,
-                                     StripedSmithWaterman::Alignment* local_al, 
-				     Alignment* special_al)
-{
+bool Aligner::SearchLocalPartial(const TargetRegion& target_region,
+                                 const AlignmentFilter& alignment_filter,
+                                 StripedSmithWaterman::Alignment* local_al) {
   namespace Constant = BamFlagConstant;
   const bool is_anchor_mate1 = query_region_->pAnchor->core.flag & Constant::kBamFMate1;
   const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
@@ -504,7 +501,6 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
   // ============================================
   search_region_type_.GetStandardType(is_anchor_forward, &region_type);
   SetTargetSequence(region_type, query_region_);
-  int read_length = query_region_->pOrphan->core.l_qseq;
 
   // Calculate the pivot position and target region
   int anchor_pos = query_region_->pAnchor->core.pos;
@@ -549,6 +545,28 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
   local_al->ref_end   += begin;
   local_al->ref_end_next_best += begin;
 
+  return true;
+}
+
+bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
+                                     const AlignmentFilter& alignment_filter,
+				     Alignment* special_al)
+{
+  
+  namespace Constant = BamFlagConstant;
+  const bool is_anchor_mate1 = query_region_->pAnchor->core.flag & Constant::kBamFMate1;
+  const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
+  search_region_type_.SetTechnologyAndAnchorMate1(technology_, is_anchor_mate1);
+  SearchRegionType::RegionType region_type;
+  search_region_type_.GetStandardType(is_anchor_forward, &region_type);
+  SetTargetSequence(region_type, query_region_);
+  int read_length = query_region_->pOrphan->core.l_qseq;
+
+  // Get the read sequence
+  SetTargetSequence(region_type, query_region_);
+  string read_seq;
+  read_seq.assign(query_region_->orphanSeq, query_region_->pOrphan->core.l_qseq);
+
   // ====================
   // Loads special hashes
   // ====================
@@ -565,6 +583,7 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
   const int best2 = hashes_collection_special.GetSize() - 1;
   GetAlignment(hashes_collection_special, best2, true, read_length, read_seq.c_str(), special_al);
   bool trimming_al_okay = true;
+  namespace filter_app = AlignmentFilterApplication;
   filter_app::TrimAlignment(alignment_filter, special_al);
   trimming_al_okay &= (special_al->reference.size() > 0);
 

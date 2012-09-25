@@ -145,9 +145,11 @@ class Aligner {
              const AlignmentFilter& alignment_filter,
 	     const SR_QueryRegion* query_region_,
 	     vector<bam1_t*>* alignments);
+  bool SearchLocalPartial(const TargetRegion& target_region,
+                          const AlignmentFilter& alignment_filter,
+			  StripedSmithWaterman::Alignment* local_al);
   bool SearchSpecialReference(const TargetRegion& target_region,
                               const AlignmentFilter& alignment_filter,
-                              StripedSmithWaterman::Alignment* local_al, 
 			      Alignment* special_al);
   bool SearchMediumIndel(const TargetRegion& target_region,
                          const AlignmentFilter& alignment_filter,
