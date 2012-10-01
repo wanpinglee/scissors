@@ -59,8 +59,8 @@ struct Parameters {
       , aligned_base_rate(0.3)
       , allowed_mismatch_rate(0.1)
       , trimming_match_score(1)
-      , trimming_mismatch_penalty(2)
-      , trimming_gap_penalty(2)
+      , trimming_mismatch_penalty(7)
+      , trimming_gap_penalty(7)
       , command_line()
   {}
 };

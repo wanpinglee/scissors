@@ -351,10 +351,10 @@ void PrintLongHelp(const string& program) {
 		<< "                         ents. [0.1]" << endl
 		<< "   --trimming-match-score <INT>" << endl
 		<< "                         Match score for alignment trimming. [1]" << endl
-		<< "   --trimming-match-penalty <INT>" << endl
-		<< "                         Mismatch penalty for alignment trimming. [2]" << endl
+		<< "   --trimming-mismatch-penalty <INT>" << endl
+		<< "                         Mismatch penalty for alignment trimming. [7]" << endl
 		<< "   --trimming-gap-penalty <INT>" << endl
-		<< "                         Gap penalty for alignment trimming. [2]" << endl
+		<< "                         Gap penalty for alignment trimming. [7]" << endl
 
 		<< endl;
 }

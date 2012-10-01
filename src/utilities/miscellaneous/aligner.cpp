@@ -357,14 +357,18 @@ void Aligner::Align(const TargetEvent& target_event,
                     const AlignmentFilter& alignment_filter,
 		    const SR_QueryRegion* query_region,
 		    vector<bam1_t*>* alignments) {
-      
+
   query_region_ = (SR_QueryRegion*) query_region;
   // Convert 4-bit representive sequence into chars
   SR_QueryRegionLoadSeq(query_region_);
+
+  //fprintf(stderr,"%s\n", bam1_qname(query_region_->pAnchor));
   
   AlignmentCollection al_collection;
   StripedSmithWaterman::Alignment indel_al;
+  // ====================================
   // Try to align for medium-sized INDELs
+  // ====================================
   if (target_event.medium_sized_indel) {
     bool medium_indel_found = 
         SearchMediumIndel(target_region, alignment_filter, &indel_al);
@@ -378,8 +382,25 @@ void Aligner::Align(const TargetEvent& target_event,
     // nothing
   }
 
-  // Try to align for special insertions
+  // ==================================
+  // Try to align first partial locally
+  // ==================================
   StripedSmithWaterman::Alignment local_al;
+  bool first_partial_found = 
+      SearchLocalPartial(target_region, alignment_filter, &local_al);
+
+  // Since we do not find the first partial, we do not try second partial.
+  if (!first_partial_found) {
+    return;
+  } else {
+    //fprintf(stderr,"first partical flund\n");
+    al_collection.PushANewEvent(kInsertion);
+    al_collection.PushAlignment(local_al);
+  }
+
+  // ===================================
+  // Try to align for special insertions
+  // ===================================
   Alignment special_al;
   if (target_event.special_insertion) {
     bool special_found = SearchSpecialReference(target_region, alignment_filter, &special_al);
@@ -512,6 +533,7 @@ bool Aligner::SearchLocalPartial(const TargetRegion& target_region,
   int begin, end;
   bool special = false;
   GetTargetRefRegion(target_region.local_window_size, pivot, special, &begin, &end);
+  //fprintf(stderr,"%u\t%u\n", begin, end);
   if (end < begin) return false;
 
   // Get the read sequence
@@ -531,10 +553,11 @@ bool Aligner::SearchLocalPartial(const TargetRegion& target_region,
   local_al->is_reverse = region_type.sequence_inverse;
   local_al->is_complement = region_type.sequence_complement;
   // Return false since no alignment is found
-  //fprintf(stderr, "%u\t%u\t%s\n", indel_al->ref_end, indel_al->ref_begin, indel_al->cigar_string.c_str());
+  //fprintf(stderr, "%u\t%u\t%s\n", local_al->ref_end, local_al->ref_begin, local_al->cigar_string.c_str());
   if (local_al->cigar.empty()) return false;
   namespace filter_app = AlignmentFilterApplication;
   filter_app::TrimAlignment(alignment_filter, local_al);
+  //fprintf(stderr, "%u\t%u\t%s\n", local_al->ref_end, local_al->ref_begin, local_al->cigar_string.c_str());
   if (local_al->cigar.size() == 0) return false;
   else {
     if (!PassMismatchFilter(*local_al, alignment_filter, 0)) return false;
