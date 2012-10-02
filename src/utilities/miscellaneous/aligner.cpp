@@ -566,15 +566,17 @@ bool Aligner::SearchLocalPartial(const TargetRegion& target_region,
   local_al->is_complement = region_type.sequence_complement;
   // Return false since no alignment is found
 #ifdef VERBOSE_DEBUG
-  fprintf(stderr, "SSW alignment: end_pos,begin_pos,mismatches,cigar\n");
-  fprintf(stderr, "%u,%u,%u,%s\n", local_al->ref_end, local_al->ref_begin, local_al->mismatches, local_al->cigar_string.c_str());
+  fprintf(stderr, "SSW alignment: end_pos,begin_pos,query_end,query_begin,mismatches,cigar\n");
+  fprintf(stderr, "%d,%d,%d,%d,%d,%s\n", local_al->ref_end, local_al->ref_begin, local_al->query_end,
+      local_al->query_begin, local_al->mismatches, local_al->cigar_string.c_str());
 #endif
   if (local_al->cigar.empty()) return false;
   namespace filter_app = AlignmentFilterApplication;
   filter_app::TrimAlignment(alignment_filter, local_al);
 #ifdef VERBOSE_DEBUG
-  fprintf(stderr, "After trimming: end_pos,begin_pos,mismatches,cigar\n");
-  fprintf(stderr, "%u,%u,%u,", local_al->ref_end, local_al->ref_begin, local_al->mismatches);
+  fprintf(stderr, "After trimming: end_pos,begin_pos,query_end,query_begin,mismatches,cigar\n");
+  fprintf(stderr, "%d,%d,%d,%d,%d,", local_al->ref_end, local_al->ref_begin, local_al->query_end, 
+      local_al->query_begin, local_al->mismatches);
   fprintf(stderr, "%s\n", BamUtilities::ConvertPackedCigarToString(local_al->cigar).c_str());
 #endif
   if (local_al->cigar.size() == 0) return false;
@@ -708,8 +710,9 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   indel_al->is_complement = region_type.sequence_complement;
   // Return false since no alignment is found
 #ifdef VERBOSE_DEBUG
-  fprintf(stderr, "SSW alignment: end_pos,begin_pos,mismatches,cigar\n");
-  fprintf(stderr, "%u,%u,%u,%s\n", indel_al->ref_end, indel_al->ref_begin, indel_al->mismatches, indel_al->cigar_string.c_str());
+  fprintf(stderr, "SSW alignment: end_pos,begin_pos,query_end,query_begin,mismatches,cigar\n");
+  fprintf(stderr, "%d,%d,%d,%d,%d,%s\n", indel_al->ref_end, indel_al->ref_begin, indel_al->query_end,
+      indel_al->query_begin, indel_al->mismatches, indel_al->cigar_string.c_str());
 #endif
   if (indel_al->cigar.empty()) return false;
 
@@ -729,12 +732,16 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   //return indel_found;
 
   if (indel_found) {
+#ifdef VERBOSE_DEBUG
+    fprintf(stderr, "INDEL found: event length: %d\n", event_length);
+#endif
     if (indel_al->cigar.size() > 7) {
       AlignmentFilterApplication::TrimAlignment(alignment_filter, indel_al);
 #ifdef VERBOSE_DEBUG
-  fprintf(stderr, "After trimming: end_pos,begin_pos,mismatches,cigar\n");
-  fprintf(stderr, "%u,%u,%u,", indel_al->ref_end, indel_al->ref_begin, indel_al->mismatches);
-  fprintf(stderr, "%s\n", BamUtilities::ConvertPackedCigarToString(indel_al->cigar).c_str());
+      fprintf(stderr, "After trimming: end_pos,begin_pos,query_end,query_begin,mismatches,cigar\n");
+      fprintf(stderr, "%d,%d,%d,%d,%d", indel_al->ref_end, indel_al->ref_begin, indel_al->ref_begin, 
+          indel_al->query_end, indel_al->mismatches);
+      fprintf(stderr, "%s\n", BamUtilities::ConvertPackedCigarToString(indel_al->cigar).c_str());
 #endif
       if (indel_al->cigar.size() == 0) return false;
       else return PassMismatchFilter(*indel_al, alignment_filter, event_length);

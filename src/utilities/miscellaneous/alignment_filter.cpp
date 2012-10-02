@@ -55,23 +55,31 @@ void TrimAlignment(
   } else if (static_cast<unsigned int>(best_length) == al->cigar.size()){
     // nothing
   } else {
-    int read_clip1 = 0;
-    int mismatch1  = 0;
+    int read_clip1  = 0;
+    int ref_clip1   = 0;
+    int query_clip1 = 0;
+    int mismatch1   = 0;
     // Calculate the beginning soft clip
     for (unsigned int i = 0; i < static_cast<unsigned int>(best_start); ++i) {
       uint32_t op = al->cigar[i] & 0x0000000f;
       uint32_t op_length = al->cigar[i] >> 4;
       switch(op) {
         case 0: // M
+	  read_clip1  += op_length;
+	  ref_clip1   += op_length;
+	  query_clip1 += op_length;
+	  break;
 	case 4: // S
 	  read_clip1 += op_length;
 	  break;
 	case 1: // I
-	  read_clip1 += op_length;
-	  mismatch1 += op_length;
+	  read_clip1  += op_length;
+	  query_clip1 += op_length;
+	  mismatch1   += op_length;
 	  break;
-	case 2:
+	case 2: // D
 	  mismatch1 += op_length;
+	  ref_clip1 += op_length;
 	  break;
 	default:
 	  break;
@@ -81,22 +89,30 @@ void TrimAlignment(
     //std::cerr << "begin clip: " << read_clip1 << std::endl;
 
     // Calculate the ending clip
-    int read_clip2 = 0;
-    int mismatch2  = 0;
+    int read_clip2  = 0;
+    int ref_clip2   = 0;
+    int query_clip2 = 0;
+    int mismatch2   = 0;
     for (unsigned int i = best_start + best_length; i < al->cigar.size(); ++i) {
       uint32_t op = al->cigar[i] & 0x0000000f;
       uint32_t op_length = al->cigar[i] >> 4;
       switch(op) {
         case 0: // M
+	  read_clip2  += op_length;
+	  ref_clip2   += op_length;
+	  query_clip2 += op_length;
+	  break;
 	case 4: // S
 	  read_clip2 += op_length;
 	  break;
 	case 1: // I
-	  read_clip2 += op_length;
-	  mismatch2 += op_length;
+	  read_clip2  += op_length;
+	  query_clip2 += op_length;
+	  mismatch2   += op_length;
 	  break;
-	case 2:
+	case 2: // D
 	  mismatch2 += op_length;
+	  ref_clip2 += op_length;
 	  break;
 	default:
 	  break;
@@ -111,6 +127,8 @@ void TrimAlignment(
       al->cigar.erase(al->cigar.begin() + best_start + best_length, al->cigar.end());
       new_cigar = (read_clip2 << 4 ) | 0x04;
       al->cigar.push_back(new_cigar);
+      al->ref_end    -= ref_clip2;
+      al->query_end  -= query_clip2;
       al->mismatches -= mismatch2;
     }
     new_cigar = 0;
@@ -118,7 +136,9 @@ void TrimAlignment(
       al->cigar.erase(al->cigar.begin(), al->cigar.begin() + best_start);
       new_cigar = (read_clip1 << 4 ) | 0x04;
       al->cigar.insert(al->cigar.begin(), new_cigar);
-      al->mismatches -= mismatch1;
+      al->ref_begin   += ref_clip1;
+      al->query_begin += query_clip1;
+      al->mismatches  -= mismatch1;
     }
 
     if (al->mismatches < 0) // it should not happen

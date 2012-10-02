@@ -6,8 +6,8 @@ export CXX = g++
 export CC = gcc
 export MAKE = make
 export CFLAGS = -Wall -std=gnu99 -O3
-#export CXXFLAGS = -Wall -O3
-export CXXFLAGS = -D VERBOSE_DEBUG -Wall -O3 # enables verbose debugging
+export CXXFLAGS = -Wall -O3
+#export CXXFLAGS = -D VERBOSE_DEBUG -Wall -O3 # enables verbose debugging
 
 # define our sources
 SOURCES = main.cpp
