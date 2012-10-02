@@ -290,6 +290,27 @@ bool GetPackedCigar( vector<uint32_t>& packed_cigar,
 
 }
 
+const string ConvertPackedCigarToString(const vector<uint32_t>& packed_cigar) {
+  std::ostringstream out;
+  for (unsigned int i = 0; i < packed_cigar.size(); ++i) {
+    int op  = packed_cigar[i] & 0x0000000f;
+    int len = packed_cigar[i] >> 4;
+    switch (op) {
+      case 0: out << len << 'M'; break;
+      case 1: out << len << 'I'; break;
+      case 2: out << len << 'D'; break;
+      case 3: out << len << 'N'; break;
+      case 4: out << len << 'S'; break;
+      case 5: out << len << 'H'; break;
+      case 6: out << len << 'P'; break;
+      case 7: out << len << '='; break;
+      case 8: out << len << 'X'; break;
+    }
+  }
+
+  return out.str();
+}
+
 void ConvertAlignmentToBam1(const StripedSmithWaterman::Alignment& al,
                             const bam1_t& original_record,
 			    const bool& is_seq_inverse,

@@ -36,6 +36,8 @@ bool GetPackedCigar(
 	const uint32_t& query_end,
 	const uint32_t& read_length);
 
+const string ConvertPackedCigarToString(const vector<uint32_t>& packed_cigar);
+
 void ConvertAlignmentToBam1(const Alignment& al,
                             const bam1_t& original_record,
 			    bam1_t* new_record);

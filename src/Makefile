@@ -6,7 +6,8 @@ export CXX = g++
 export CC = gcc
 export MAKE = make
 export CFLAGS = -Wall -std=gnu99 -O3
-export CXXFLAGS = -Wall -O3
+#export CXXFLAGS = -Wall -O3
+export CXXFLAGS = -D VERBOSE_DEBUG -Wall -O3 # enables verbose debugging
 
 # define our sources
 SOURCES = main.cpp
@@ -15,16 +16,31 @@ LIBS = -lz -lpthread
 LIBS_DIR = -Loutsources/samtools
 INCLUDE = -I.
 
+EXECUTABLE = scissors
+
+# all
+all: $(EXECUTABLE)
+
+# 
+api: $(OBJECTS)
+	ar rvs api/libscissors.a $(OBJ_DIR)/*.o
+
+# test
+test: $(OBJECTS)
+	@cd googletest && $(MAKE) --no-print-directory
+
+# clean
+clean:
+	@echo "Cleaning up......"
+	@rm -rf $(OBJ_DIR) 
+	@rm -rf $(BIN_DIR)
+	@cd outsources/samtools && $(MAKE) clean --no-print-directory
+	@rm api/libscissors.a
 
 # define our source subdirectories
 SUB_DIRS = dataStructures \
 		utilities \
 		outsources
-
-EXECUTABLE = scissors
-
-all: $(EXECUTABLE)
-.PHONY: all
 
 SAMDIR = outsources/samtools
 SAMOBJS = $(SAMDIR)/bam.o \
@@ -40,10 +56,6 @@ $(EXECUTABLE): $(OBJECTS) | $(BIN_DIR)
 	@echo "  * linking $(EXECUTABLE)"
 	@$(CXX) $(CXXFLAGS) -o $(BIN_DIR)/$@ $(OBJ_DIR)/*.o $(SAMOBJS) $(LIBS_DIR) $(LIBS) 
 
-
-test: $(OBJECTS)
-	@cd googletest && $(MAKE) --no-print-directory
-
 $(OBJECTS): $(SOURCES) | $(OBJ_DIR)
 	@for dir in $(SUB_DIRS); do \
 	$(MAKE) --no-print-directory --directory=$$dir; \
@@ -56,13 +68,4 @@ $(OBJ_DIR):
 $(BIN_DIR):
 	@mkdir $(BIN_DIR)
 
-api: $(OBJECTS)
-	ar rvs api/libscissors.a $(OBJ_DIR)/*.o
-
-clean:
-	@echo "Cleaning up......"
-	@rm -rf $(OBJ_DIR) 
-	@rm -rf $(BIN_DIR)
-	@cd outsources/samtools && $(MAKE) clean --no-print-directory
-	@rm api/libscissors.a
-.PHONY: clean
+.PHONY: all, api, test, clean

@@ -362,8 +362,14 @@ void Aligner::Align(const TargetEvent& target_event,
   // Convert 4-bit representive sequence into chars
   SR_QueryRegionLoadSeq(query_region_);
 
-  //fprintf(stderr,"%s\n", bam1_qname(query_region_->pAnchor));
-  
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "\n\n%s\n", bam1_qname(query_region_->pAnchor));
+  fprintf(stderr, "anchor: flag: %d; chr_id: %d; pos: %d\n", 
+      query_region_->pAnchor->core.flag, 
+      query_region_->pAnchor->core.tid,
+      query_region_->pAnchor->core.pos);
+#endif
+
   AlignmentCollection al_collection;
   StripedSmithWaterman::Alignment indel_al;
   // ====================================
@@ -511,6 +517,10 @@ void Aligner::GetTargetRefRegion(const int& extend_length, const int& hash_begin
 bool Aligner::SearchLocalPartial(const TargetRegion& target_region,
                                  const AlignmentFilter& alignment_filter,
                                  StripedSmithWaterman::Alignment* local_al) {
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "=== Local partial alignment ===\n");
+#endif
+
   namespace Constant = BamFlagConstant;
   const bool is_anchor_mate1 = query_region_->pAnchor->core.flag & Constant::kBamFMate1;
   const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
@@ -533,7 +543,9 @@ bool Aligner::SearchLocalPartial(const TargetRegion& target_region,
   int begin, end;
   bool special = false;
   GetTargetRefRegion(target_region.local_window_size, pivot, special, &begin, &end);
-  //fprintf(stderr,"%u\t%u\n", begin, end);
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "looking window: %d-%d\n", begin, end);
+#endif
   if (end < begin) return false;
 
   // Get the read sequence
@@ -548,16 +560,23 @@ bool Aligner::SearchLocalPartial(const TargetRegion& target_region,
   // If the difference between beginnng and ending is larger than distance_filter,
   // then we don't think that it's medium-sized indels and don't need to trace
   // the alignment.
-  filter.distance_filter = read_seq.size();
+  filter.distance_filter = read_seq.size() * 2;
   stripe_sw_normal_.Align(read_seq.c_str(), ref_seq, ref_length, filter, local_al);
   local_al->is_reverse = region_type.sequence_inverse;
   local_al->is_complement = region_type.sequence_complement;
   // Return false since no alignment is found
-  //fprintf(stderr, "%u\t%u\t%s\n", local_al->ref_end, local_al->ref_begin, local_al->cigar_string.c_str());
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "SSW alignment: end_pos,begin_pos,mismatches,cigar\n");
+  fprintf(stderr, "%u,%u,%u,%s\n", local_al->ref_end, local_al->ref_begin, local_al->mismatches, local_al->cigar_string.c_str());
+#endif
   if (local_al->cigar.empty()) return false;
   namespace filter_app = AlignmentFilterApplication;
   filter_app::TrimAlignment(alignment_filter, local_al);
-  //fprintf(stderr, "%u\t%u\t%s\n", local_al->ref_end, local_al->ref_begin, local_al->cigar_string.c_str());
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "After trimming: end_pos,begin_pos,mismatches,cigar\n");
+  fprintf(stderr, "%u,%u,%u,", local_al->ref_end, local_al->ref_begin, local_al->mismatches);
+  fprintf(stderr, "%s\n", BamUtilities::ConvertPackedCigarToString(local_al->cigar).c_str());
+#endif
   if (local_al->cigar.size() == 0) return false;
   else {
     if (!PassMismatchFilter(*local_al, alignment_filter, 0)) return false;
@@ -576,6 +595,9 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
 				     Alignment* special_al)
 {
   
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "=== Special insertion alignment ===\n");
+#endif
   namespace Constant = BamFlagConstant;
   const bool is_anchor_mate1 = query_region_->pAnchor->core.flag & Constant::kBamFMate1;
   const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
@@ -626,7 +648,9 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
 bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
                                 const AlignmentFilter& alignment_filter,
                                 StripedSmithWaterman::Alignment* indel_al) {
-  
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "=== Medium-sized INDELs alignment ===\n");
+#endif
   namespace Constant = BamFlagConstant;
   const bool is_anchor_mate1 = query_region_->pAnchor->core.flag & Constant::kBamFMate1;
   const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
@@ -638,7 +662,6 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   // ============================
   search_region_type_.GetStandardType(is_anchor_forward, &region_type);
 
-  //fprintf(stderr,"%s\n", bam1_qname(query_region_->pAnchor));
   //fprintf(stderr, "%c%c%c\n", region_type.upstream?'T':'F', region_type.sequence_inverse?'T':'F', region_type.sequence_complement?'T':'F');
 
   // ==============================================
@@ -653,7 +676,9 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   int begin, end;
   bool special = false;
   GetTargetRefRegion(target_region.local_window_size, pivot, special, &begin, &end);
-  //fprintf(stderr, "%u\t%u\n", begin, end);
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "looking window: %d-%d\n", begin, end);
+#endif
   if (end < begin) return false;
 
   // =====================
@@ -682,7 +707,10 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   indel_al->is_reverse = region_type.sequence_inverse;
   indel_al->is_complement = region_type.sequence_complement;
   // Return false since no alignment is found
-  //fprintf(stderr, "%u\t%u\t%s\n", indel_al->ref_end, indel_al->ref_begin, indel_al->cigar_string.c_str());
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "SSW alignment: end_pos,begin_pos,mismatches,cigar\n");
+  fprintf(stderr, "%u,%u,%u,%s\n", indel_al->ref_end, indel_al->ref_begin, indel_al->mismatches, indel_al->cigar_string.c_str());
+#endif
   if (indel_al->cigar.empty()) return false;
 
   // Adjust the positions
@@ -703,6 +731,11 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   if (indel_found) {
     if (indel_al->cigar.size() > 7) {
       AlignmentFilterApplication::TrimAlignment(alignment_filter, indel_al);
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "After trimming: end_pos,begin_pos,mismatches,cigar\n");
+  fprintf(stderr, "%u,%u,%u,", indel_al->ref_end, indel_al->ref_begin, indel_al->mismatches);
+  fprintf(stderr, "%s\n", BamUtilities::ConvertPackedCigarToString(indel_al->cigar).c_str());
+#endif
       if (indel_al->cigar.size() == 0) return false;
       else return PassMismatchFilter(*indel_al, alignment_filter, event_length);
     } else { // deletion

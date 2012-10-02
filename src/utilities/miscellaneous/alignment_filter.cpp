@@ -70,6 +70,9 @@ void TrimAlignment(
 	  read_clip1 += op_length;
 	  mismatch1 += op_length;
 	  break;
+	case 2:
+	  mismatch1 += op_length;
+	  break;
 	default:
 	  break;
       }
@@ -90,6 +93,9 @@ void TrimAlignment(
 	  break;
 	case 1: // I
 	  read_clip2 += op_length;
+	  mismatch2 += op_length;
+	  break;
+	case 2:
 	  mismatch2 += op_length;
 	  break;
 	default:
