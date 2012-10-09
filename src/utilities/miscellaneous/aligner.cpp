@@ -138,32 +138,6 @@ bool DetermineMediumIndelBreakpoint(
   return pass_filter;
 }
 
-bool PassMismatchFilter(
-    const StripedSmithWaterman::Alignment& ssw_al,
-    const AlignmentFilter& alignment_filter,
-    const int& event_length) {
-  int bases = 0;
-  for (unsigned int i = 0; i < ssw_al.cigar.size(); ++i) {
-    uint8_t  op = ssw_al.cigar[i] & 0x0f;
-    uint32_t length = 0;
-    switch(op) {
-      case 0: // M
-      case 1: // I
-        length = ssw_al.cigar[i] >> 4;
-	bases += length;
-	break;
-      default:
-        break;
-    } // end switch
-  } // end for
-
-  float allowed_mismatches = ceil(bases * alignment_filter.allowed_mismatch_rate);
-  int mismatches = ssw_al.mismatches - event_length;
-  if (mismatches < static_cast<int>(allowed_mismatches)) return true;
-  else return false;
-}
-
-
 void StoreAlignment(
     const TargetEvent& event,
     const vector <StripedSmithWaterman::Alignment*>& ssw_als,
@@ -561,7 +535,7 @@ bool Aligner::SearchLocalPartial(const TargetRegion& target_region,
   read_seq.assign(query_region_->orphanSeq, query_region_->pOrphan->core.l_qseq);
 
   // Apply SSW to the region
-  int ref_length = end - begin + 1;
+  const int ref_length = end - begin + 1;
   const char* ref_seq = GetSequence(begin, special);
   StripedSmithWaterman::Filter filter;
   // If the difference between beginnng and ending is larger than distance_filter,
@@ -590,9 +564,13 @@ if (local_al->cigar.empty()) return false;
   fprintf(stderr, "%s\n", BamUtilities::ConvertPackedCigarToString(local_al->cigar).c_str());
 #endif
 
-if (local_al->cigar.size() == 0) return false;
+  if (local_al->cigar.size() == 0) return false;
   else {
-    if (!PassMismatchFilter(*local_al, alignment_filter, 0)) return false;
+    if (!filter_app::PassMismatchFilter(*local_al, alignment_filter, 0)) 
+      return false;
+    if (!filter_app::FilterByAlignedBaseThreshold(alignment_filter, 
+        *local_al, static_cast<int>(read_seq.size()))) 
+      return false;
   }
 
   // Adjust the positions
@@ -618,7 +596,7 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
   SearchRegionType::RegionType region_type;
   search_region_type_.GetStandardType(is_anchor_forward, &region_type);
   SetTargetSequence(region_type, query_region_);
-  int read_length = query_region_->pOrphan->core.l_qseq;
+  const int read_length = query_region_->pOrphan->core.l_qseq;
 
   // Get the read sequence
   SetTargetSequence(region_type, query_region_);
@@ -651,7 +629,8 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
   trimming_al_okay &= (special_al->cigar.size() > 0);
 
   bool passing_filter = true;
-  passing_filter &= PassMismatchFilter(*special_al, alignment_filter, 0);
+  passing_filter &= filter_app::PassMismatchFilter(*special_al, alignment_filter, 0);
+  passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, *special_al, read_length);
   //passing_filter &= filter_app::FilterByMismatch(alignment_filter, *special_al);
   //passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, *special_al, read_length);
   
@@ -760,7 +739,7 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
       fprintf(stderr, "%s\n", BamUtilities::ConvertPackedCigarToString(indel_al->cigar).c_str());
 #endif
       if (indel_al->cigar.size() == 0) return false;
-      else return PassMismatchFilter(*indel_al, alignment_filter, event_length);
+      else return AlignmentFilterApplication::PassMismatchFilter(*indel_al, alignment_filter, event_length);
     } else { // deletion
       return true;
     }

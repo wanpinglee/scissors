@@ -214,5 +214,31 @@ void TrimAlignment(
   }
 } // TrimAlignment
 
+
+bool PassMismatchFilter(
+    const StripedSmithWaterman::Alignment& ssw_al,
+    const AlignmentFilter& alignment_filter,
+    const int& event_length) {
+  int bases = 0;
+  for (unsigned int i = 0; i < ssw_al.cigar.size(); ++i) {
+    uint8_t  op = ssw_al.cigar[i] & 0x0f;
+    uint32_t length = 0;
+    switch(op) {
+      case 0: // M
+      case 1: // I
+        length = ssw_al.cigar[i] >> 4;
+	bases += length;
+	break;
+      default:
+        break;
+    } // end switch
+  } // end for
+
+  float allowed_mismatches = ceil(bases * alignment_filter.allowed_mismatch_rate);
+  int mismatches = ssw_al.mismatches - event_length;
+  if (mismatches < static_cast<int>(allowed_mismatches)) return true;
+  else return false;
+} //PassMismatchFilter
+
 } //namespace AlignmentFilter
 } //namespaceScissors

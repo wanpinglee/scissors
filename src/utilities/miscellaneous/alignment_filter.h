@@ -37,12 +37,17 @@ struct AlignmentFilter {
 namespace AlignmentFilterApplication {
 void TrimAlignment(const AlignmentFilter& filter, Alignment* al);
 void TrimAlignment(const AlignmentFilter& filter, StripedSmithWaterman::Alignment* al);
+bool PassMismatchFilter( const StripedSmithWaterman::Alignment& ssw_al,
+        const AlignmentFilter& alignment_filter, const int& event_length);
 
 inline bool FilterByMismatch(const AlignmentFilter& filter, const Alignment& al);
 
 inline bool FilterByAlignedBaseThreshold(const AlignmentFilter& filter,
                                          const Alignment& al,
 					 const int& read_length);
+inline bool FilterByAlignedBaseThreshold(const AlignmentFilter& filter,
+                                         const StripedSmithWaterman::Alignment& al,
+	                                 const int& read_length);
 } // AlignmentFilterApplication
 
 // ================
@@ -59,6 +64,16 @@ inline bool AlignmentFilterApplication::FilterByMismatch(
 inline bool AlignmentFilterApplication::FilterByAlignedBaseThreshold(
     const AlignmentFilter& filter,
     const Alignment& al,
+    const int& read_length) {
+  int aligned_base_threshold = floor(read_length * filter.aligned_base_rate);
+  int aligned_bases = al.query_end - al.query_begin + 1;
+  if (aligned_bases > aligned_base_threshold) return true;
+  else return false;
+}
+
+inline bool AlignmentFilterApplication::FilterByAlignedBaseThreshold(
+    const AlignmentFilter& filter,
+    const StripedSmithWaterman::Alignment& al,
     const int& read_length) {
   int aligned_base_threshold = floor(read_length * filter.aligned_base_rate);
   int aligned_bases = al.query_end - al.query_begin + 1;
