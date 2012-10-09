@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-namespace Scissors {
 namespace StripedSmithWaterman {
 
 struct Alignment {
@@ -21,23 +20,8 @@ struct Alignment {
   std::vector<uint32_t> cigar; // Cigar stored in the BAM format
                                //   high 28 bits: length
 			       //   low 4 bits: M/I/D/S/X (0/1/2/4/8);
-  bool is_reverse;             // Used for Scissors
-  bool is_complement;          // Used for Scissors
-
-  Alignment()
-      : sw_score(0)
-      , sw_score_next_best(0)
-      , ref_begin(0)
-      , ref_end(0)
-      , query_begin(0)
-      , query_end(0)
-      , ref_end_next_best(0)
-      , mismatches(0)
-      , cigar_string()
-      , cigar()
-      , is_reverse(false)
-      , is_complement(false)
-  {};
+  bool is_reverse;
+  bool is_complement;
   void Clear() {
     sw_score           = 0;
     sw_score_next_best = 0;
@@ -47,10 +31,10 @@ struct Alignment {
     query_end          = 0;
     ref_end_next_best  = 0;
     mismatches         = 0;
+    is_reverse         = false;
+    is_complement      = false;
     cigar_string.clear();
     cigar.clear();
-    is_reverse = false;
-    is_complement = false;
   };
 };
 
@@ -227,6 +211,5 @@ inline void Aligner::CleanReferenceSequence(void) {
   reference_length_ = 0;
 }
 } // namespace StripedSmithWaterman
-} // namespace Scissors
 
 #endif // COMPLETE_STRIPED_SMITH_WATERMAN_CPP_H_

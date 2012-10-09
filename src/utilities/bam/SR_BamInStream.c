@@ -93,6 +93,8 @@ struct SR_BamInStreamPrvt
 // Read the next bam record from the bam file and store it in pBamInStream->pNewNode
 static inline int SR_BamInStreamLoadNext(SR_BamInStream* pBamInStream)
 {
+    if (pBamInStream->bam_cur_status < 0) return -1;
+
     // for the bam alignment array, if we need to expand its space
     // we have to initialize those newly created bam alignment 
     // and update the query name hash since the address of those
@@ -106,6 +108,8 @@ static inline int SR_BamInStreamLoadNext(SR_BamInStream* pBamInStream)
       ret = bam_iter_read(pBamInStream->fpBamInput, *(pBamInStream->pBamIterator), &(pBamInStream->pNewNode->alignment));
     else
       ret = bam_read1(pBamInStream->fpBamInput, &(pBamInStream->pNewNode->alignment));
+
+    pBamInStream->bam_cur_status = ret;
 
     return ret;
 }
@@ -141,6 +145,8 @@ SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename, uint32_t binLen, un
     SR_BamInStream* pBamInStream = (SR_BamInStream*) calloc(1, sizeof(SR_BamInStream));
     if (pBamInStream == NULL)
         SR_ErrQuit("ERROR: Not enough memory for a bam input stream object.");
+
+    pBamInStream->bam_cur_status = -1;
 
     pBamInStream->fpBamInput = bam_open(bamFilename, "r");
     if (pBamInStream->fpBamInput == NULL)
@@ -199,6 +205,8 @@ SR_BamInStream* SR_BamInStreamAlloc(const char* bamFilename, uint32_t binLen, un
     kh_resize(queryName, pBamInStream->pNameHashes[CURR_BIN], reportSize);
 
     pBamInStream->pMemPool = SR_BamMemPoolAlloc(buffCapacity);
+
+    pBamInStream->bam_cur_status = 1;
 
     return pBamInStream;
 }

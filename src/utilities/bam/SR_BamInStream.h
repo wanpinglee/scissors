@@ -81,6 +81,8 @@ typedef struct SR_BamInStream
 
     bam_iter_t* pBamIterator;                  // pointer to bam iterator for jumping bam
 
+    int bam_cur_status;                        // the current status of fpBamInput
+
     SR_BamFilter filterFunc;                   // customized filter function 
 
     const void* filterData;                    // data used by the filter function

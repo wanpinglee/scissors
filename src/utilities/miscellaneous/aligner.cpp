@@ -1,5 +1,6 @@
 #include "aligner.h"
 
+#include <assert.h>
 #include <list>
 
 #include "dataStructures/target_event.h"
@@ -407,20 +408,20 @@ void Aligner::Align(const TargetEvent& target_event,
   // ===================================
   // Try to align for special insertions
   // ===================================
-  Alignment special_al;
+  StripedSmithWaterman::Alignment special_al;
   if (target_event.special_insertion) {
     bool special_found = SearchSpecialReference(target_region, alignment_filter, &special_al);
     if (special_found) {
       //local_al.reference_id = query_region_->pOrphan->core.tid;
       // adjust reference id for alignments in special insertions
       uint32_t s_pos;
-      uint32_t s_length = special_al.reference_end - special_al.reference_begin;
+      uint32_t s_length = special_al.ref_end - special_al.ref_begin;
       int32_t s_ref_id;
       SR_GetRefFromSpecialPos(special_ref_view_, &s_ref_id, &s_pos, reference_header_,
-          reference_special_, special_al.reference_begin);
-      special_al.reference_begin = s_pos;
-      special_al.reference_end = s_pos + s_length;
-      special_al.reference_id = s_ref_id;
+          reference_special_, special_al.ref_begin);
+      special_al.ref_begin = s_pos;
+      special_al.ref_end = s_pos + s_length;
+      //special_al.reference_id = s_ref_id;
 	  
       // push the event and its corresponding alignments in the collection
       al_collection.PushANewEvent(kSpecialInsertion);
@@ -466,7 +467,7 @@ bool Aligner::GetAlignment(
     const bool& special,
     const int& read_length,
     const char* read_seq,
-    Alignment* al){
+    StripedSmithWaterman::Alignment* al){
   
   if (static_cast<int>(id) >= hashes_collection.GetSize()) {
     return false;
@@ -476,13 +477,19 @@ bool Aligner::GetAlignment(
     GetTargetRefRegion(read_length, hash_begin, special, &begin, &end);
     int ref_length = end - begin + 1;
     const char* ref_seq = GetSequence(begin, special);
-    BandedSmithWatermanHashRegion hr;
-    hr.reference_begin = hash_begin - begin;
-    hr.query_begin = (hashes_collection.Get(id))->queryBegin;
-    banded_sw_aligner_.Align(*al, ref_seq, ref_length, read_seq, read_length, hr);
-    al->reference_begin += begin;
-
-    return true;
+    StripedSmithWaterman::Filter filter;
+    filter.distance_filter = read_length * 2;
+    stripe_sw_normal_.Align(read_seq, ref_seq, ref_length, filter, al);
+    //BandedSmithWatermanHashRegion hr;
+    //hr.reference_begin = hash_begin - begin;
+    //hr.query_begin = (hashes_collection.Get(id))->queryBegin;
+    //banded_sw_aligner_.Align(*al, ref_seq, ref_length, read_seq, read_length, hr);
+    if (al->cigar.empty()) return false;
+    else {
+      al->ref_begin += begin;
+      al->ref_end   += begin;
+      return true;
+    }
   }
 }
 
@@ -565,21 +572,25 @@ bool Aligner::SearchLocalPartial(const TargetRegion& target_region,
   local_al->is_reverse = region_type.sequence_inverse;
   local_al->is_complement = region_type.sequence_complement;
   // Return false since no alignment is found
+
 #ifdef VERBOSE_DEBUG
   fprintf(stderr, "SSW alignment: end_pos,begin_pos,query_end,query_begin,mismatches,cigar\n");
   fprintf(stderr, "%d,%d,%d,%d,%d,%s\n", local_al->ref_end, local_al->ref_begin, local_al->query_end,
       local_al->query_begin, local_al->mismatches, local_al->cigar_string.c_str());
 #endif
-  if (local_al->cigar.empty()) return false;
+
+if (local_al->cigar.empty()) return false;
   namespace filter_app = AlignmentFilterApplication;
   filter_app::TrimAlignment(alignment_filter, local_al);
+
 #ifdef VERBOSE_DEBUG
   fprintf(stderr, "After trimming: end_pos,begin_pos,query_end,query_begin,mismatches,cigar\n");
   fprintf(stderr, "%d,%d,%d,%d,%d,", local_al->ref_end, local_al->ref_begin, local_al->query_end, 
       local_al->query_begin, local_al->mismatches);
   fprintf(stderr, "%s\n", BamUtilities::ConvertPackedCigarToString(local_al->cigar).c_str());
 #endif
-  if (local_al->cigar.size() == 0) return false;
+
+if (local_al->cigar.size() == 0) return false;
   else {
     if (!PassMismatchFilter(*local_al, alignment_filter, 0)) return false;
   }
@@ -594,7 +605,7 @@ bool Aligner::SearchLocalPartial(const TargetRegion& target_region,
 
 bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
                                      const AlignmentFilter& alignment_filter,
-				     Alignment* special_al)
+				     StripedSmithWaterman::Alignment* special_al)
 {
   
 #ifdef VERBOSE_DEBUG
@@ -627,20 +638,26 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
   if (hashes_collection_special.Get(hashes_collection_special.GetSize() - 1) == NULL) return false;
   if (hashes_collection_special.Get(hashes_collection_special.GetSize() - 1)->length == 0) return false;
 
+  special_al->is_reverse = region_type.sequence_inverse;
+  special_al->is_complement = region_type.sequence_complement;
   const int best2 = hashes_collection_special.GetSize() - 1;
-  GetAlignment(hashes_collection_special, best2, true, read_length, read_seq.c_str(), special_al);
+  bool isSpecialGet = GetAlignment(hashes_collection_special, 
+                                   best2, true, read_length, read_seq.c_str(), special_al);
+  if (!isSpecialGet) return false;
+
   bool trimming_al_okay = true;
   namespace filter_app = AlignmentFilterApplication;
   filter_app::TrimAlignment(alignment_filter, special_al);
-  trimming_al_okay &= (special_al->reference.size() > 0);
+  trimming_al_okay &= (special_al->cigar.size() > 0);
 
   bool passing_filter = true;
-  passing_filter &= filter_app::FilterByMismatch(alignment_filter, *special_al);
-  passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, *special_al, read_length);
+  passing_filter &= PassMismatchFilter(*special_al, alignment_filter, 0);
+  //passing_filter &= filter_app::FilterByMismatch(alignment_filter, *special_al);
+  //passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, *special_al, read_length);
   
   if (trimming_al_okay && passing_filter) {
-    special_al->is_seq_inverse    = region_type.sequence_inverse;
-    special_al->is_seq_complement = region_type.sequence_complement;
+    //special_al->is_seq_inverse    = region_type.sequence_inverse;
+    //special_al->is_seq_complement = region_type.sequence_complement;
     return true;
   } else {
     return false;
@@ -678,9 +695,6 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   int begin, end;
   bool special = false;
   GetTargetRefRegion(target_region.local_window_size, pivot, special, &begin, &end);
-#ifdef VERBOSE_DEBUG
-  fprintf(stderr, "looking window: %d-%d\n", begin, end);
-#endif
   if (end < begin) return false;
 
   // =====================
@@ -696,10 +710,12 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   // =======================
   int ref_length = end - begin + 1;
   const char* ref_seq = GetSequence(begin, special);
+  assert(ref_seq != NULL);
   //fprintf(stderr, "%d\t%u\n", reference_->id, reference_->seqLen);
   //for (unsigned int i = 0; i < 10; ++i)
   //  fprintf(stderr, "%c", *(ref_seq+i));
   //fprintf(stderr, "\n");
+  
   StripedSmithWaterman::Filter filter;
   // If the difference between beginnng and ending is larger than distance_filter,
   // then we don't think that it's medium-sized indels and don't need to trace

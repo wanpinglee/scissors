@@ -425,17 +425,16 @@ bool AppendReferenceSequence(const char** names,
                              const int& n_sequences,
 			     bam_header_t* const header) {
   // for sizing
-  char char_a;
   uint32_t uint32_t_a;
 
   int total_names = header->n_targets + n_sequences;
-  char** new_names = (char**)calloc(total_names, sizeof(&char_a));
+  char** new_names = (char**)calloc(total_names, sizeof(char*));
   uint32_t* new_lens = (uint32_t*)calloc(total_names, sizeof(uint32_t_a));
 
   // copy the original names and lengths
   for (int i = 0; i < header->n_targets; ++i) {
     int len_name = strlen(header->target_name[i]);
-    new_names[i] = (char*)calloc(len_name, sizeof(char_a));
+    new_names[i] = (char*)calloc(len_name + 1, sizeof(char));
     memcpy(new_names[i], header->target_name[i], len_name);
     new_lens[i] = header->target_len[i];
     free(header->target_name[i]);
@@ -448,7 +447,7 @@ bool AppendReferenceSequence(const char** names,
   // append the new names and lengths
   for (int i = 0; i < n_sequences; ++i) {
     int len_name = strlen(names[i]);
-    new_names[i + header->n_targets] = (char*)calloc(len_name, sizeof(char_a));
+    new_names[i + header->n_targets] = (char*)calloc(len_name + 1, sizeof(char));
     memcpy(new_names[i + header->n_targets], names[i], len_name);
     new_lens[i + header->n_targets] = lens[i];
     additional_text << "@SQ\tSN:" << names[i] << "\tLN:" << lens[i] << "\tM5:" << md5s[i] << endl;
@@ -475,7 +474,7 @@ bool AppendReferenceSequence(const char** names,
   new_text += additional_text.str();
   new_text += original_text.substr(sq_end + 1);
   free(header->text);
-  header->text = (char*) calloc(new_text.size(), sizeof(char_a));
+  header->text = (char*) calloc(new_text.size(), sizeof(char));
   memcpy(header->text, new_text.c_str(), new_text.size());
   header->l_text = new_text.size();
 

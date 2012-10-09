@@ -137,7 +137,7 @@ class Aligner {
   const char* GetSequence(const size_t& start, const bool& special) const;
   bool GetAlignment(const HashesCollection& hashes_collection, 
                     const unsigned int& id, const bool& special, const int& read_length,
-                    const char* read_seq, Alignment* al);
+                    const char* read_seq, StripedSmithWaterman::Alignment* al);
   void GetTargetRefRegion(const int& extend_length, const int& hash_begin,
                           const bool& special, int* begin, int* end);
   void Align(const TargetEvent& target_event,
@@ -150,7 +150,7 @@ class Aligner {
 			  StripedSmithWaterman::Alignment* local_al);
   bool SearchSpecialReference(const TargetRegion& target_region,
                               const AlignmentFilter& alignment_filter,
-			      Alignment* special_al);
+			      StripedSmithWaterman::Alignment* special_al);
   bool SearchMediumIndel(const TargetRegion& target_region,
                          const AlignmentFilter& alignment_filter,
                          StripedSmithWaterman::Alignment* ssw_al);

@@ -107,6 +107,10 @@ void CBandedSmithWaterman::Align(
 	, const unsigned int& s2Length
 	, const BandedSmithWatermanHashRegion& hash_region ) {
 
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "%u\t%u\n", s1Length, s2Length);
+#endif
+
 	
 	uint32_t rowStart = min( hash_region.reference_begin , hash_region.query_begin );
 

@@ -5,10 +5,10 @@
 extern "C" {
 #include "ssw.h"
 }
-namespace Scissors {
+
 namespace {
 
-static int8_t kBaseTranslation[128] = {
+const int8_t kBaseTranslation[128] = {
     4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
     4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
     4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
@@ -260,7 +260,7 @@ bool Aligner::Align(const char* query, const Filter& filter,
   s_align* s_al = ssw_align(profile, translated_reference_, reference_length_,
                                  static_cast<int>(gap_opening_penalty_), 
 				 static_cast<int>(gap_extending_penalty_),
-				 flag, filter.score_filter, filter.distance_filter);
+				 flag, filter.score_filter, filter.distance_filter, query_len);
   
   alignment->Clear();
   ConvertAlignment(*s_al, query_len, alignment);
@@ -304,7 +304,7 @@ bool Aligner::Align(const char* query, const char* ref, const int& ref_len,
   s_align* s_al = ssw_align(profile, translated_ref, valid_ref_len,
                                  static_cast<int>(gap_opening_penalty_), 
 				 static_cast<int>(gap_extending_penalty_),
-				 flag, filter.score_filter, filter.distance_filter);
+				 flag, filter.score_filter, filter.distance_filter, query_len);
   
   alignment->Clear();
   ConvertAlignment(*s_al, query_len, alignment);
@@ -392,9 +392,8 @@ bool Aligner::ReBuild(
 void Aligner::BuildDefaultMatrix(void) {
   score_matrix_ = new int8_t[score_matrix_size_ * score_matrix_size_];
   BuildSwScoreMatrix(match_score_, mismatch_penalty_, score_matrix_);
-  translation_matrix_ = kBaseTranslation;
+  translation_matrix_ = (int8_t*)kBaseTranslation;
   matrix_built_   = true;
   default_matrix_ = true;
 }
 } // namespace StripedSmithWaterman
-} // namespace Scissors

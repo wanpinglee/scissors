@@ -269,8 +269,8 @@ void AppendReferenceSequence(bam_header_t* const bam_header, const string& refer
     delete [] ptr;
     MD5Final(md5, &context);
     // set md5
-    md5s[i] = new char[32];
-    md5s[i][31] = '\0';
+    md5s[i] = new char[33];
+    md5s[i][32] = '\0';
     ptr = md5s[i];
     for (int j = 0; j < md5_length; ++j) {
       sprintf(ptr, "%02X", md5[j]);

@@ -5,7 +5,7 @@ OBJ_DIR = ../../../obj
 # ----------------------------------
 SOURCES = BandedSmithWaterman.cpp \
 		SmithWatermanGotoh.cpp \
-		ssw_cpp.cpp
+		ssw_cpp.cpp 
 
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES) )
 INCLUDE = -I../..
