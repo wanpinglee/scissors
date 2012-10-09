@@ -3,9 +3,7 @@ OBJ_DIR = ../../../obj
 # ----------------------------------
 # define our source and object files
 # ----------------------------------
-SOURCES = BandedSmithWaterman.cpp \
-		SmithWatermanGotoh.cpp \
-		ssw_cpp.cpp 
+SOURCES = ssw_cpp.cpp 
 
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SOURCES) )
 INCLUDE = -I../..

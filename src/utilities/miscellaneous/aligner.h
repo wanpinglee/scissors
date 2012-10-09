@@ -13,7 +13,6 @@ extern "C" {
 #include "dataStructures/anchor_region.h"
 #include "dataStructures/search_region_type.h"
 #include "dataStructures/technology.h"
-#include "utilities/smithwaterman/BandedSmithWaterman.h"
 #include "utilities/smithwaterman/ssw_cpp.h"
 
 namespace Scissors {
@@ -129,7 +128,6 @@ class Aligner {
   SR_SearchArgs         hash_length_;
   SR_RefView*           special_ref_view_;
 
-  CBandedSmithWaterman  banded_sw_aligner_;
   StripedSmithWaterman::Aligner stripe_sw_indel_;
   StripedSmithWaterman::Aligner stripe_sw_normal_;
 

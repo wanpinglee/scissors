@@ -191,7 +191,6 @@ Aligner::Aligner()
     , hashes_special_(NULL)
     , hash_length_()
     , special_ref_view_()
-    , banded_sw_aligner_()
     , stripe_sw_indel_()
     , stripe_sw_normal_() {
   query_region_     = SR_QueryRegionAlloc();
@@ -222,7 +221,6 @@ Aligner::Aligner(const SR_Reference* reference,
     , hashes_special_(NULL)
     , hash_length_()
     , special_ref_view_()
-    , banded_sw_aligner_()
     , stripe_sw_indel_()
     , stripe_sw_normal_() {
   
