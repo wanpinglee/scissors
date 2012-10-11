@@ -353,8 +353,11 @@ void SetAlignmentFilter(const Parameters& parameters,
 
 void SetTargetEvent(const Parameters& parameters,
                     TargetEvent* target_event) {
-  target_event->special_insertion  = parameters.detect_special;
-  target_event->medium_sized_indel = !parameters.not_medium_sized_indel;
+  target_event->special_insertion           = parameters.detect_special;
+  target_event->special_inversive_insertion = 
+      !parameters.not_special_insertion_inversion;
+  target_event->medium_sized_indel          = 
+      !parameters.not_medium_sized_indel;
 }
 
 void SetTargetRegion(const Parameters& parameters,

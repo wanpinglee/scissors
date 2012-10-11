@@ -15,9 +15,10 @@
 namespace Scissors {
 namespace {
 
-const Scissors::TargetEvent kMediumIndel(false, true, false);
-const Scissors::TargetEvent kSpecialInsertion(true, false, false);
-const Scissors::TargetEvent kInsertion(false, false, true);
+const Scissors::TargetEvent kMediumIndel(false, false, true, false);
+const Scissors::TargetEvent kSpecialInsertion(true, false, false, false);
+const Scissors::TargetEvent kSpecialInvertedInsertion(false, true, false, false);
+const Scissors::TargetEvent kInsertion(false, false, false, true);
 
 
 void SetTargetSequence(const SearchRegionType::RegionType& region_type, 
@@ -384,26 +385,6 @@ void Aligner::Align(const TargetEvent& target_event,
   if (target_event.special_insertion) {
     bool special_found = SearchSpecialReference(target_region, alignment_filter, &special_al);
     if (special_found) {
-      //local_al.reference_id = query_region_->pOrphan->core.tid;
-      // adjust reference id for alignments in special insertions
-      uint32_t s_pos;
-      uint32_t s_length = special_al.ref_end - special_al.ref_begin;
-      int32_t s_ref_id;
-#ifdef VERBOSE_DEBUG
-      fprintf(stderr, "Original begin pos: %d\n", special_al.ref_begin);
-#endif
-      SR_GetRefFromSpecialPos(special_ref_view_, &s_ref_id, &s_pos, reference_header_,
-          reference_special_, special_al.ref_begin);
-      s_ref_id += reference_header_->pSpecialRefInfo->ref_id_start_no;
-      special_al.ref_begin = s_pos;
-      special_al.ref_end = s_pos + s_length;
-      special_al.ref_id = s_ref_id;
-
-#ifdef VERBOSE_DEBUG
-      fprintf(stderr, "Special ref id and pos: %d %d\n", s_ref_id, s_pos);
-#endif
-      //special_al.reference_id = s_ref_id;
-	  
       // push the event and its corresponding alignments in the collection
       al_collection.PushANewEvent(kSpecialInsertion);
       al_collection.PushAlignment(local_al);
@@ -649,6 +630,15 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
 #endif
 
   if (trimming_al_okay && passing_filter) {
+    uint32_t s_pos;
+    uint32_t s_length = special_al->ref_end - special_al->ref_begin;
+    int32_t s_ref_id;
+    SR_GetRefFromSpecialPos(special_ref_view_, &s_ref_id, &s_pos, reference_header_,
+        reference_special_, special_al->ref_begin);
+    s_ref_id += reference_header_->pSpecialRefInfo->ref_id_start_no;
+    special_al->ref_begin = s_pos;
+    special_al->ref_end = s_pos + s_length;
+    special_al->ref_id = s_ref_id;
     //special_al->is_seq_inverse    = region_type.sequence_inverse;
     //special_al->is_seq_complement = region_type.sequence_complement;
     return true;
