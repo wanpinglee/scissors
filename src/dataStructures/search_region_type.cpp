@@ -200,18 +200,6 @@ bool SearchRegionType::SetCurrentTypeSuccess(const bool is_anchor_forward){
 
 }
 
-// TODO@WP: Only consider illumina; has to deal with 454 and others
-bool SearchRegionType::GetStandardType(const bool is_anchor_forward,
-    RegionType* region_type) {
-  if (is_anchor_forward) {
-    *region_type = forward_anchor_type_vector_[0];
-  } else {
-    *region_type = reverse_anchor_type_vector_[0];
-  }
-
-  return true;
-}
-
 bool SearchRegionType::GetNextRegionType(const bool is_anchor_forward, 
     RegionType* region_type) {
 

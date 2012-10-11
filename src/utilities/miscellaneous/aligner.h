@@ -151,10 +151,8 @@ class Aligner {
 			  StripedSmithWaterman::Alignment* local_al);
   bool SearchSpecialReference(const TargetRegion& target_region,
                               const AlignmentFilter& alignment_filter,
+			      const bool& inversive,
 			      StripedSmithWaterman::Alignment* special_al);
-  bool SearchInvertedSpecialReference(const TargetRegion& target_region,
-                                      const AlignmentFilter& alignment_filter,
-                                      StripedSmithWaterman::Alignment* special_inv_al);
   bool SearchMediumIndel(const TargetRegion& target_region,
                          const AlignmentFilter& alignment_filter,
                          StripedSmithWaterman::Alignment* ssw_al);

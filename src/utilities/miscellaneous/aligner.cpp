@@ -383,7 +383,8 @@ void Aligner::Align(const TargetEvent& target_event,
   // ==================================
   StripedSmithWaterman::Alignment special_al;
   if (target_event.special_insertion) {
-    bool special_found = SearchSpecialReference(target_region, alignment_filter, &special_al);
+    const bool inversive = false;
+    const bool special_found = SearchSpecialReference(target_region, alignment_filter, inversive, &special_al);
     if (special_found) {
       // push the event and its corresponding alignments in the collection
       al_collection.PushANewEvent(kSpecialInsertion);
@@ -399,7 +400,8 @@ void Aligner::Align(const TargetEvent& target_event,
   // ==================================
   StripedSmithWaterman::Alignment special_inv_al;
   if (target_event.special_insertion && target_event.special_inversive_insertion) {
-    bool special_inv_found = SearchInvertedSpecialReference(target_region, alignment_filter, &special_inv_al);
+    const bool inversive = true;
+    const bool special_inv_found = SearchSpecialReference(target_region, alignment_filter, inversive, &special_inv_al);
     if (special_inv_found) {
       // push the event and its corresponding alignments in the collection
       al_collection.PushANewEvent(kSpecialInvertedInsertion);
@@ -516,7 +518,6 @@ bool Aligner::SearchLocalPartial(const TargetRegion& target_region,
   // Loads hashes for the first partial alignment
   // ============================================
   search_region_type_.GetStandardType(is_anchor_forward, &region_type);
-  SetTargetSequence(region_type, query_region_);
 
   // Calculate the pivot position and target region
   int anchor_pos = query_region_->pAnchor->core.pos;
@@ -586,32 +587,22 @@ if (local_al->cigar.empty()) return false;
   return true;
 }
 
-bool Aligner::SearchInvertedSpecialReference(const TargetRegion& target_region,
-				     const AlignmentFilter& alignment_filter,
-				     StripedSmithWaterman::Alignment* special_al) {
-#ifdef VERBOSE_DEBUG
-  fprintf(stderr, "=== Special inversion insertion alignment ===\n");
-#endif
-  
-  return true;
-}
-
-
-
 bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
                                      const AlignmentFilter& alignment_filter,
+				     const bool& inversive,
 				     StripedSmithWaterman::Alignment* special_al)
 {
 #ifdef VERBOSE_DEBUG
-  fprintf(stderr, "=== Special insertion alignment ===\n");
+  if (inversive) fprintf(stderr, "=== Special inversion insertion alignment===\n");
+  else fprintf(stderr, "=== Special insertion alignment ===\n");
 #endif
   namespace Constant = BamFlagConstant;
   const bool is_anchor_mate1 = query_region_->pAnchor->core.flag & Constant::kBamFMate1;
   const bool is_anchor_forward = !bam1_strand(query_region_->pAnchor);
   search_region_type_.SetTechnologyAndAnchorMate1(technology_, is_anchor_mate1);
   SearchRegionType::RegionType region_type;
-  search_region_type_.GetStandardType(is_anchor_forward, &region_type);
-  SetTargetSequence(region_type, query_region_);
+  if (inversive) search_region_type_.GetInversionType(is_anchor_forward, &region_type);
+  else search_region_type_.GetStandardType(is_anchor_forward, &region_type);
   const int read_length = query_region_->pOrphan->core.l_qseq;
 
   // Get the read sequence
@@ -626,13 +617,13 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
   const bool load_hash_okay = LoadHashes(true, read_length, &hashes_collection_special);
   if (!load_hash_okay) return false;
 
-  special_al->is_reverse = region_type.sequence_inverse;
-  special_al->is_complement = region_type.sequence_complement;
+  // Get an alignment
   const int best2 = hashes_collection_special.GetSize() - 1;
   bool isSpecialGet = GetAlignment(hashes_collection_special, 
                                    best2, true, read_length, read_seq.c_str(), special_al);
   if (!isSpecialGet) return false;
 
+  // Apply the filter
   bool trimming_al_okay = true;
   namespace filter_app = AlignmentFilterApplication;
   filter_app::TrimAlignment(alignment_filter, special_al);
@@ -658,8 +649,8 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
     special_al->ref_begin = s_pos;
     special_al->ref_end = s_pos + s_length;
     special_al->ref_id = s_ref_id;
-    //special_al->is_seq_inverse    = region_type.sequence_inverse;
-    //special_al->is_seq_complement = region_type.sequence_complement;
+    special_al->is_reverse = region_type.sequence_inverse;
+    special_al->is_complement = region_type.sequence_complement;
     return true;
   } else {
     return false;

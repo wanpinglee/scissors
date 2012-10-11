@@ -27,9 +27,10 @@ class SearchRegionType {
   //~SearchRegionType();
 
   bool GetNextRegionType(const bool is_anchor_forward, RegionType* region_type);
-  bool GetStandardType(const bool is_anchor_forward, RegionType* region_type);
   bool SetCurrentTypeSuccess(const bool is_anchor_forward);
   void ResetRegionTypeList(void);
+  inline bool GetStandardType(const bool is_anchor_forward, RegionType* region_type);
+  inline bool GetInversionType(const bool is_anchor_forward, RegionType* region_type);
   inline void RewindRegionTypeList(void);
   inline void SetTechnologyAndAnchorMate1(const Technology& technology, const bool& mate1);
   inline void SetTechnology(const Technology& technology);
@@ -59,8 +60,30 @@ class SearchRegionType {
 
 };
 
-
+// ================
 // inline functions
+// ================
+
+inline bool SearchRegionType::GetStandardType(const bool is_anchor_forward,
+                                              RegionType* region_type) {
+  if (is_anchor_forward)
+    *region_type = forward_anchor_type_vector_[0];
+  else
+    *region_type = reverse_anchor_type_vector_[0];
+
+  return true;
+}
+
+inline bool SearchRegionType::GetInversionType(const bool is_anchor_forward, 
+                                               RegionType* region_type) {
+  if (is_anchor_forward)
+    *region_type = forward_anchor_type_vector_[2];
+  else
+    *region_type = reverse_anchor_type_vector_[2];
+
+  return true;
+}
+
 inline void SearchRegionType::RewindRegionTypeList(void) {
   current_forward_anchor_type_preference_ = 0;
   current_reverse_anchor_type_preference_ = 0;
