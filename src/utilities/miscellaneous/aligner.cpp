@@ -378,9 +378,9 @@ void Aligner::Align(const TargetEvent& target_event,
     al_collection.PushAlignment(local_al);
   }
 
-  // ===================================
-  // Try to align for special insertions
-  // ===================================
+  // ==================================
+  // Try to align to special insertions
+  // ==================================
   StripedSmithWaterman::Alignment special_al;
   if (target_event.special_insertion) {
     bool special_found = SearchSpecialReference(target_region, alignment_filter, &special_al);
@@ -390,6 +390,23 @@ void Aligner::Align(const TargetEvent& target_event,
       al_collection.PushAlignment(local_al);
       al_collection.PushAlignment(special_al);
     } else { // !special_found
+      // nothing
+    }
+  }
+
+  // ==================================
+  // Try to align to special insertions
+  // ==================================
+  StripedSmithWaterman::Alignment special_inv_al;
+  if (target_event.special_insertion && target_event.special_inversive_insertion) {
+    //bool special_inv_found = SearchSpecialReference(target_region, alignment_filter, &special_al);
+    bool special_inv_found = false;
+    if (special_inv_found) {
+      // push the event and its corresponding alignments in the collection
+      al_collection.PushANewEvent(kSpecialInvertedInsertion);
+      al_collection.PushAlignment(local_al);
+      al_collection.PushAlignment(special_inv_al);
+    } else { // !special_inv_found
       // nothing
     }
   }
