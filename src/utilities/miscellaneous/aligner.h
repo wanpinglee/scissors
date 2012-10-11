@@ -42,6 +42,8 @@ class Aligner {
   // @params:
   //     If not detect special references, then reference_special,
   //     hash_table_special, and reference_header are not necessary to set.
+  //
+  // @example: api/example.cpp
   bool SetReference(const SR_Reference*   reference,
                     const SR_InHashTable* hash_table,
 		    const Technology&     technology         = TECH_ILLUMINA,
@@ -92,6 +94,7 @@ class Aligner {
   //                       [NOTICE] tid, flag, bases, and qualities are needed.
   //     alignments--------all obtained split-read alignments are stored here;
   //                       [NOTICE] Users should free bam1_t in the vector.
+  // @example: api/example.cpp
   bool AlignCandidate(const TargetEvent&     target_event,
                       const TargetRegion&    target_region,
                       const AlignmentFilter& alignment_filter,

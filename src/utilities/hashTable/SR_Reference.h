@@ -54,6 +54,8 @@ typedef struct SR_SpecialRefInfo
 
     uint32_t capacity;
 
+    uint32_t ref_id_start_no;
+
 }SR_SpecialRefInfo;
 
 // reference header strcture

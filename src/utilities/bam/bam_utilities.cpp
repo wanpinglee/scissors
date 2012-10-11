@@ -317,7 +317,7 @@ void ConvertAlignmentToBam1(const StripedSmithWaterman::Alignment& al,
 			    const bool& is_seq_complement,
 			    bam1_t* new_record) {
   // copy the core info
-  new_record->core.tid     = original_record.core.tid;
+  new_record->core.tid     = al.ref_id;
   new_record->core.pos     = al.ref_begin;
   new_record->core.bin     = bam_reg2bin(al.ref_begin, al.ref_end);
   new_record->core.qual    = original_record.core.qual;

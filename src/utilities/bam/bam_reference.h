@@ -9,6 +9,8 @@ class BamReference {
   void Init(const SR_BamHeader& bam_header);
   inline const int GetCount() const;
   inline const char* GetName(const int& id) const;
+
+  int             count_no_special;
  private:
   int             count;
   const char**    names;

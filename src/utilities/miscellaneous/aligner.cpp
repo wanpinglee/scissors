@@ -389,10 +389,19 @@ void Aligner::Align(const TargetEvent& target_event,
       uint32_t s_pos;
       uint32_t s_length = special_al.ref_end - special_al.ref_begin;
       int32_t s_ref_id;
+#ifdef VERBOSE_DEBUG
+      fprintf(stderr, "Original begin pos: %d\n", special_al.ref_begin);
+#endif
       SR_GetRefFromSpecialPos(special_ref_view_, &s_ref_id, &s_pos, reference_header_,
           reference_special_, special_al.ref_begin);
+      s_ref_id += reference_header_->pSpecialRefInfo->ref_id_start_no;
       special_al.ref_begin = s_pos;
       special_al.ref_end = s_pos + s_length;
+      special_al.ref_id = s_ref_id;
+
+#ifdef VERBOSE_DEBUG
+      fprintf(stderr, "Special ref id and pos: %d %d\n", s_ref_id, s_pos);
+#endif
       //special_al.reference_id = s_ref_id;
 	  
       // push the event and its corresponding alignments in the collection
@@ -574,6 +583,7 @@ if (local_al->cigar.empty()) return false;
   // Adjust the positions
   local_al->ref_begin += begin;
   local_al->ref_end   += begin;
+  local_al->ref_id     = query_region_->pAnchor->core.tid;
   local_al->ref_end_next_best += begin;
 
   return true;
@@ -632,6 +642,12 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
   //passing_filter &= filter_app::FilterByMismatch(alignment_filter, *special_al);
   //passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, *special_al, read_length);
   
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "SSW alignment: end_pos,begin_pos,query_end,query_begin,mismatches,cigar\n");
+  fprintf(stderr, "%d,%d,%d,%d,%d,%s\n", special_al->ref_end, special_al->ref_begin, special_al->query_end,
+      special_al->query_begin, special_al->mismatches, special_al->cigar_string.c_str());
+#endif
+
   if (trimming_al_okay && passing_filter) {
     //special_al->is_seq_inverse    = region_type.sequence_inverse;
     //special_al->is_seq_complement = region_type.sequence_complement;
@@ -712,6 +728,7 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   // Adjust the positions
   indel_al->ref_begin += begin;
   indel_al->ref_end   += begin;
+  indel_al->ref_id     = query_region_->pAnchor->core.tid;
   indel_al->ref_end_next_best += begin;
 
   // ==================================

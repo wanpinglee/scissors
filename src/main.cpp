@@ -86,6 +86,7 @@ int main (int argc, char** argv) {
 
   // Write bam header
   ResetSoBamHeader(vars.bam_header->pOrigHeader);
+  int original_ref_no = vars.bam_header->pOrigHeader->n_targets;
   if (parameters.detect_special)
     AppendReferenceSequence(vars.bam_header->pOrigHeader, parameters.input_special_fasta);
   // load the reference header
@@ -96,7 +97,8 @@ int main (int argc, char** argv) {
   // =========
   BamReference bam_reference;
   bam_reference.Init(*vars.bam_header);
-  
+  bam_reference.count_no_special = original_ref_no;
+
   Thread thread(&bam_reference,
 		parameters.allowed_clip,
 		parameters.processors,
@@ -203,24 +205,26 @@ void InitVariablesOrDie(const Parameters& parameters,
   SetTargetRegion(parameters, &(vars->target_region));
 
   // print bam header
-  /*
+#ifdef VERBOSE_DEBUG
+  cerr << "=== The original references in the bam header ===" << endl;
   int n_target = vars->bam_header->pOrigHeader->n_targets;
-  cout << vars->bam_header->pOrigHeader->n_targets << endl;
+  cerr << "Reference names" << endl;
+  cerr << vars->bam_header->pOrigHeader->n_targets << endl;
   for (int i = 0; i < n_target; ++i)
-    cout << vars->bam_header->pOrigHeader->target_name[i] << endl;
+    cerr << vars->bam_header->pOrigHeader->target_name[i] << endl;
   
+  cerr << "Reference lengths" << endl;
   for (int i = 0; i < n_target; ++i)
-    cout << vars->bam_header->pOrigHeader->target_len[i] << endl;
+    cerr << vars->bam_header->pOrigHeader->target_len[i] << endl;
 
-  cout << vars->bam_header->pOrigHeader->l_text << endl;
-  cout << vars->bam_header->pOrigHeader->n_text << endl;
-  cout << vars->bam_header->pOrigHeader->text << endl;
+  cerr << "Total length of the header text: \t" << vars->bam_header->pOrigHeader->l_text << endl;
+  //cerr << vars->bam_header->pOrigHeader->n_text << endl;
+  cerr << "Text:" << endl << vars->bam_header->pOrigHeader->text << endl;
 
-  cout << ((vars->bam_header->pOrigHeader->dict == NULL) ? "NULL" : "Non-null") << endl;
-  cout << ((vars->bam_header->pOrigHeader->rg2lib == NULL) ? "NULL" : "Non-null") << endl;
+  //cerr << ((vars->bam_header->pOrigHeader->dict == NULL) ? "NULL" : "Non-null") << endl;
+  //cerr << ((vars->bam_header->pOrigHeader->rg2lib == NULL) ? "NULL" : "Non-null") << endl;
+#endif
   
-  exit(1);
-  */
 }
 
 void CheckFileOrDie(const Parameters& parameters,
@@ -280,6 +284,7 @@ void AppendReferenceSequence(bam_header_t* const bam_header, const string& refer
     //fprintf(stderr,"@SQ\tSN:%s\tLN:%d\tM5:%s\n", names[i], lens[i],md5s[i]);
     //fprintf(stderr,"%s\n", sp_reader.index->sequenceNames[i].c_str());
   }
+
   BamUtilities::AppendReferenceSequence((const char**)names, lens, (const char**)md5s, n_special, bam_header);
 
   // delete

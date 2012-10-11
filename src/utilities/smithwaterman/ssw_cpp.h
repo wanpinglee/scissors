@@ -20,8 +20,11 @@ struct Alignment {
   std::vector<uint32_t> cigar; // Cigar stored in the BAM format
                                //   high 28 bits: length
 			       //   low 4 bits: M/I/D/S/X (0/1/2/4/8);
+  // The following fields are not in ssw originally, 
+  // and they are used by Scissors only.
   bool is_reverse;
   bool is_complement;
+  int32_t ref_id;
   void Clear() {
     sw_score           = 0;
     sw_score_next_best = 0;
@@ -33,6 +36,7 @@ struct Alignment {
     mismatches         = 0;
     is_reverse         = false;
     is_complement      = false;
+    ref_id             = -1;
     cigar_string.clear();
     cigar.clear();
   };

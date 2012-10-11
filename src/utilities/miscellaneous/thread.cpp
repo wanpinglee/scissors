@@ -174,6 +174,7 @@ void Thread::Init() {
   // load special references and their hash tables if necessary
   if (target_event_.special_insertion) {
     sp_hasher_.SetFastaName(special_fasta_.c_str());
+    sp_hasher_.SetRefIdStartNo(bam_reference_->count_no_special);
     if (!sp_hasher_.Load()) {
       fprintf(stderr,"ERROR: The program cannot load special references.\n");
       exit(1);

@@ -10,7 +10,9 @@ extern "C" {
 class SpecialHasher {
  public:
   SpecialHasher(void);
-  SpecialHasher(const char* fasta, const int& hash_size = 7);
+  SpecialHasher(const char* fasta, 
+                const int& hash_size = 7, 
+		const int& ref_id_start_no = 0);
   ~SpecialHasher(void);
 
   // @function: Setting fasta filename.
@@ -18,13 +20,27 @@ class SpecialHasher {
   //            If the filename is already given in the constructor,
   //            then you don't have to use this function.
   // @param:    fasta: fasta filename
-  void SetFastaName(const char* fasta) {fasta_ = fasta;};
+  void SetFastaName(const char* fasta) {
+    if (!is_loaded_) fasta_ = fasta;
+  };
 
   // @function: Setting hash size.
   //            Notice that 1) Default hash size is 7; 
-  //            2) before Load(), the hash size should be set.
+  //            2) after Load(), the hash size cannot be reset.
   //            The size also can be given in the constructor.
-  void SetHashSize(const int& hash_size) {hash_size_ = hash_size;};
+  void SetHashSize(const int& hash_size) {
+    if (!is_loaded_) hash_size_ = hash_size;
+  };
+
+  // @function: Setting the start number of special references.
+  //            Since special references are attached after the original references
+  //            in the bam header, the start number of special references is 
+  //            recommended to be set if the output format is bam.
+  void SetRefIdStartNo(const int& start_no) {
+    ref_id_start_no_ = start_no;
+    if (reference_header_->pSpecialRefInfo) 
+      reference_header_->pSpecialRefInfo->ref_id_start_no = ref_id_start_no_;
+  };
 
   // @function: Loading special references from the fasta file 
   //            and hashing them.
@@ -41,6 +57,7 @@ class SpecialHasher {
   SR_InHashTable* hash_table_;
   int hash_size_;
   bool is_loaded_;
+  int ref_id_start_no_;
 
   void Init(void);
   SpecialHasher (const SpecialHasher&);

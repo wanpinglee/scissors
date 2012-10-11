@@ -262,6 +262,8 @@ SR_SpecialRefInfo* SR_SpecialRefInfoAlloc(uint32_t capacity)
     if (pSpecialRefInfo->endPos == NULL)
         SR_ErrQuit("ERROR: Not enough memory for the storage of end indices of special references.\n");
 
+    pSpecialRefInfo->ref_id_start_no = 0;
+
     return pSpecialRefInfo;
 }
 
