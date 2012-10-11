@@ -56,6 +56,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		{"processors", required_argument, NULL, 'p'},
 		{"special-insertion", no_argument, NULL, 's'},
 		{"not-medium-sized-indel", no_argument, NULL, 5},
+		{"not-special-insertion-inversion", no_argument, NULL, 7},
 		{"technology", required_argument, NULL, 't'},
 
 		// original bam alignment filters
@@ -131,6 +132,8 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 				break;
 			case 5:
 				param->not_medium_sized_indel = true;
+				break;
+			case 7: param->not_special_insertion_inversion = false;
 				break;
 			case 't': 
 			        Convert_Technology(optarg, &(param->technology));
@@ -327,6 +330,8 @@ void PrintLongHelp(const string& program) {
 		<< "   --is-input-sorted" << endl
 		<< "   -p --processors <INT> Use # of processors." << endl
 		<< "   --not-medium-sized-indel" << endl
+		<< "   --not-special-insertion-inversion" << endl
+		<< "                         When -s is given, the default is on." << endl
 		<< "   -t --technology <STR> ILLUMINA, 454, or SOLID." << endl
 		<< endl
 

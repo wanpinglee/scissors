@@ -19,9 +19,13 @@ struct Parameters {
   int   mate_window_size;       // -w --window-size; default: fragment_length * 2
   int   discovery_window_size;  // --discovery-window-size
   bool  is_input_sorted;        // --is-input-sorted
+                                // getopt returns 6
   int   processors;             // -p --processors
-  bool  detect_special;         // -S --special-reference
+  bool  detect_special;         // when -s <FASTA> is given 
   bool  not_medium_sized_indel; // --not-medium-sized-indel
+                                // getopt returns 5
+  bool  not_special_insertion_inversion; // --not-special-insertion-inversion
+                                         // getopt returns 7
   Technology technology;        // -t --technology
 
   // original alignment filters
@@ -33,8 +37,11 @@ struct Parameters {
   float aligned_base_rate;         // -B --aligned-base-rate
   float allowed_mismatch_rate;     // -M --allowed-mismatch-rate
   int   trimming_match_score;      // --trimming-match-score
+                                   // getopt returns 2
   int   trimming_mismatch_penalty; // --trimming-mismatch-penalty
+                                   // getopt returns 3
   int   trimming_gap_penalty;      // --trimming-gap-penalty
+                                   // getopt returns 4
 	
   // command line
   string command_line;
@@ -52,6 +59,7 @@ struct Parameters {
       , processors(1)
       , detect_special(false)
       , not_medium_sized_indel(false)
+      , not_special_insertion_inversion(true)
       , technology(TECH_NONE)
       , mapping_quality_threshold(10)
       , allowed_clip(0.2)
