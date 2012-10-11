@@ -399,8 +399,7 @@ void Aligner::Align(const TargetEvent& target_event,
   // ==================================
   StripedSmithWaterman::Alignment special_inv_al;
   if (target_event.special_insertion && target_event.special_inversive_insertion) {
-    //bool special_inv_found = SearchSpecialReference(target_region, alignment_filter, &special_al);
-    bool special_inv_found = false;
+    bool special_inv_found = SearchInvertedSpecialReference(target_region, alignment_filter, &special_inv_al);
     if (special_inv_found) {
       // push the event and its corresponding alignments in the collection
       al_collection.PushANewEvent(kSpecialInvertedInsertion);
@@ -587,11 +586,22 @@ if (local_al->cigar.empty()) return false;
   return true;
 }
 
+bool Aligner::SearchInvertedSpecialReference(const TargetRegion& target_region,
+				     const AlignmentFilter& alignment_filter,
+				     StripedSmithWaterman::Alignment* special_al) {
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "=== Special inversion insertion alignment ===\n");
+#endif
+  
+  return true;
+}
+
+
+
 bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
                                      const AlignmentFilter& alignment_filter,
 				     StripedSmithWaterman::Alignment* special_al)
 {
-  
 #ifdef VERBOSE_DEBUG
   fprintf(stderr, "=== Special insertion alignment ===\n");
 #endif
@@ -612,15 +622,9 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
   // ====================
   // Loads special hashes
   // ====================
-  HashRegionTableInit(hashes_special_, read_length);
-  SR_QueryRegionSetRangeSpecial(query_region_, reference_special_->seqLen);
-  HashRegionTableLoad(hashes_special_, hash_table_special_, query_region_);
   HashesCollection hashes_collection_special;
-  hashes_collection_special.Init(*(hashes_special_->pBestCloseRegions));
-  //hashes_collection_special.Print();
-  hashes_collection_special.SortByLength();
-  if (hashes_collection_special.Get(hashes_collection_special.GetSize() - 1) == NULL) return false;
-  if (hashes_collection_special.Get(hashes_collection_special.GetSize() - 1)->length == 0) return false;
+  const bool load_hash_okay = LoadHashes(true, read_length, &hashes_collection_special);
+  if (!load_hash_okay) return false;
 
   special_al->is_reverse = region_type.sequence_inverse;
   special_al->is_complement = region_type.sequence_complement;
@@ -637,8 +641,6 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
   bool passing_filter = true;
   passing_filter &= filter_app::PassMismatchFilter(*special_al, alignment_filter, 0);
   passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, *special_al, read_length);
-  //passing_filter &= filter_app::FilterByMismatch(alignment_filter, *special_al);
-  //passing_filter &= filter_app::FilterByAlignedBaseThreshold(alignment_filter, *special_al, read_length);
   
 #ifdef VERBOSE_DEBUG
   fprintf(stderr, "SSW alignment: end_pos,begin_pos,query_end,query_begin,mismatches,cigar\n");
@@ -662,6 +664,21 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
   } else {
     return false;
   }
+}
+
+bool Aligner::LoadHashes(const bool& special, const int& read_length, HashesCollection* hashes_collection) {
+  HashRegionTable* hashes = special ? hashes_special_ : hashes_;
+  const SR_Reference* ref = special ? reference_special_ : reference_;
+  const SR_InHashTable* hash_table = special ? hash_table_special_ : hash_table_;
+  HashRegionTableInit(hashes, read_length);
+  SR_QueryRegionSetRangeSpecial(query_region_, ref->seqLen);
+  HashRegionTableLoad(hashes, hash_table, query_region_);
+  hashes_collection->Init(*(hashes->pBestCloseRegions));
+  hashes_collection->SortByLength();
+  if (hashes_collection->Get(hashes_collection->GetSize() - 1) == NULL) return false;
+  if (hashes_collection->Get(hashes_collection->GetSize() - 1)->length == 0) return false;
+
+  return true;
 }
 
 bool Aligner::SearchMediumIndel(const TargetRegion& target_region,

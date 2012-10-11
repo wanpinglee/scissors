@@ -158,6 +158,9 @@ class Aligner {
   bool SearchMediumIndel(const TargetRegion& target_region,
                          const AlignmentFilter& alignment_filter,
                          StripedSmithWaterman::Alignment* ssw_al);
+  bool LoadHashes(const bool& special, 
+                  const int& read_length, 
+                  HashesCollection* hashes_collection);
 
   Aligner (const Aligner&);
   Aligner& operator= (const Aligner&);
