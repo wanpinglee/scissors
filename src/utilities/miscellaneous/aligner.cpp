@@ -201,6 +201,8 @@ Aligner::Aligner()
 
   stripe_sw_indel_.Clear();
   stripe_sw_indel_.ReBuild(10,20,20,1);
+  stripe_sw_normal_.Clear();
+  stripe_sw_normal_.ReBuild(1,3,5,2);
 }
 
 Aligner::Aligner(const SR_Reference* reference, 
@@ -232,6 +234,8 @@ Aligner::Aligner(const SR_Reference* reference,
 
   stripe_sw_indel_.Clear();
   stripe_sw_indel_.ReBuild(10,20,20,1);
+  stripe_sw_normal_.Clear();
+  stripe_sw_normal_.ReBuild(1,3,5,2);
   //stripe_sw_aligner_.SetGapPenalty(4, 0);
 
   //hash_length_.fragLen = fragment_length;
@@ -427,7 +431,7 @@ inline bool Aligner::ResetIndelSmithWatermanScore(
     const uint8_t& gap_opening_penalty,
     const uint8_t& gap_extending_penalty) {
   stripe_sw_indel_.Clear();
-  return stripe_sw_indel_.ReBuild(10,20,20,1);
+  return stripe_sw_indel_.ReBuild(match_score, mismatch_penalty, gap_opening_penalty, gap_extending_penalty);
 }
 
 inline bool Aligner::ResetLocalSmithWatermanScore(
@@ -436,7 +440,7 @@ inline bool Aligner::ResetLocalSmithWatermanScore(
     const uint8_t& gap_opening_penalty,
     const uint8_t& gap_extending_penalty) {
   stripe_sw_normal_.Clear();
-  return stripe_sw_normal_.ReBuild(10,20,20,1);
+  return stripe_sw_normal_.ReBuild(match_score, mismatch_penalty, gap_opening_penalty, gap_extending_penalty);
 }
 
 // @function: Gets alignment from the hashes_collection by given id 
@@ -538,6 +542,9 @@ bool Aligner::SearchLocalPartial(const TargetRegion& target_region,
   SetTargetSequence(region_type, query_region_);
   string read_seq;
   read_seq.assign(query_region_->orphanSeq, query_region_->pOrphan->core.l_qseq);
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "%s\n", read_seq.c_str());
+#endif
 
   // Apply SSW to the region
   const int ref_length = end - begin + 1;
@@ -556,6 +563,7 @@ bool Aligner::SearchLocalPartial(const TargetRegion& target_region,
   fprintf(stderr, "SSW alignment: end_pos,begin_pos,query_end,query_begin,mismatches,cigar\n");
   fprintf(stderr, "%d,%d,%d,%d,%d,%s\n", local_al->ref_end, local_al->ref_begin, local_al->query_end,
       local_al->query_begin, local_al->mismatches, local_al->cigar_string.c_str());
+  fprintf(stderr, "second best score and pos: %u\t%d\n", local_al->sw_score_next_best, local_al->ref_end_next_best);
 #endif
 
 if (local_al->cigar.empty()) return false;
@@ -609,6 +617,9 @@ bool Aligner::SearchSpecialReference(const TargetRegion& target_region,
   SetTargetSequence(region_type, query_region_);
   string read_seq;
   read_seq.assign(query_region_->orphanSeq, query_region_->pOrphan->core.l_qseq);
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "%s\n", read_seq.c_str());
+#endif
 
   // ====================
   // Loads special hashes
@@ -703,6 +714,9 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   int begin, end;
   bool special = false;
   GetTargetRefRegion(target_region.local_window_size, pivot, special, &begin, &end);
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "looking window: %d-%d\n", begin, end);
+#endif
   if (end < begin) return false;
 
   // =====================
@@ -711,7 +725,9 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   SetTargetSequence(region_type, query_region_);
   string read_seq;
   read_seq.assign(query_region_->orphanSeq, query_region_->pOrphan->core.l_qseq);
-  //fprintf(stderr, "%s\n", read_seq.c_str());
+#ifdef VERBOSE_DEBUG
+  fprintf(stderr, "%s\n", read_seq.c_str());
+#endif
 
   // =======================
   // Apply SSW to the region

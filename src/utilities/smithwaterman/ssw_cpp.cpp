@@ -8,7 +8,7 @@ extern "C" {
 
 namespace {
 
-const int8_t kBaseTranslation[128] = {
+static int8_t kBaseTranslation[128] = {
     4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
     4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
     4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
@@ -392,7 +392,7 @@ bool Aligner::ReBuild(
 void Aligner::BuildDefaultMatrix(void) {
   score_matrix_ = new int8_t[score_matrix_size_ * score_matrix_size_];
   BuildSwScoreMatrix(match_score_, mismatch_penalty_, score_matrix_);
-  translation_matrix_ = (int8_t*)kBaseTranslation;
+  translation_matrix_ = kBaseTranslation;
   matrix_built_   = true;
   default_matrix_ = true;
 }

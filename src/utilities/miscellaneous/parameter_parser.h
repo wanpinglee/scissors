@@ -59,7 +59,7 @@ struct Parameters {
       , processors(1)
       , detect_special(false)
       , not_medium_sized_indel(false)
-      , not_special_insertion_inversion(true)
+      , not_special_insertion_inversion(false)
       , technology(TECH_NONE)
       , mapping_quality_threshold(10)
       , allowed_clip(0.2)
