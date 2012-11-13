@@ -285,6 +285,7 @@ bool Aligner::AlignCandidate(const TargetEvent& target_event,
 			     SR_BamInStreamIter* al_ite,
                              vector<bam1_t*>* alignments,
 			     vector<bam1_t*>* alignments_anchor) {
+  if (!output_complete_bam) fprintf(stderr, "===ERROR===\n");
   if (!CheckSetting(reference_, technology_)) {
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK); // empty the buffer
     al_ite = NULL;
@@ -429,9 +430,12 @@ void Aligner::Align(const TargetEvent& target_event,
   StoreAlignment(best_event, ssw_al_for_best_event, common_al_for_best_event, 
       *query_region_->pAnchor, *query_region_->pOrphan, alignments);
 
-  // store the anchor
+  // Store the anchor
   if (output_complete_bam) {
     alignments_anchor->push_back(bam_dup1(query_region_->pAnchor));
+    // We do not rescue the target alignment, so store it in anchor alignment vector
+    if (ssw_al_for_best_event.empty() && common_al_for_best_event.empty())
+      alignments_anchor->push_back(bam_dup1(query_region_->pOrphan));
   }
 }
 

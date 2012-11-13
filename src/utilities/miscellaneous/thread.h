@@ -45,7 +45,7 @@ struct ThreadData{
   SR_RefHeader*       reference_header;
   bamFile*            bam_writer;
   bamFile*            bam_writer_complete_bam;
-  vector<Alignment>   alignments;
+  //vector<Alignment>   alignments;
   vector<bam1_t*>     alignments_bam;
   vector<bam1_t*>     alignments_anchor;
 };

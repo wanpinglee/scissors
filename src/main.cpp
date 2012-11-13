@@ -45,7 +45,9 @@ struct MainVars{
 
 
 // Prototype of functions
-void Deconstruct(MainFiles* files, MainVars* vars);
+void Deconstruct(const Parameters& parameters, 
+                 MainFiles* files, 
+		 MainVars* vars);
 void InitFiles(const Parameters& parameters, MainFiles* files);
 void InitVariablesOrDie(const Parameters& parameter_parser, 
                         MainFiles* files, 
@@ -123,7 +125,7 @@ int main (int argc, char** argv) {
   
 
   // free memory and close files
-  Deconstruct(&files, &vars);
+  Deconstruct(parameters, &files, &vars);
 
   return 0;
 
@@ -134,10 +136,12 @@ int main (int argc, char** argv) {
 // ====================
 // Aux functions
 // ====================
-void Deconstruct(MainFiles* files, MainVars* vars) {
+void Deconstruct(const Parameters& parameters, MainFiles* files, MainVars* vars) {
   // close files
   SR_BamInStreamFree(files->bam_reader);
   bam_close(files->bam_writer);
+  if (!parameters.output_complete_bam.empty())
+    bam_close(files->bam_writer_complete_bam);
 
   // free variables
   SR_BamHeaderFree(vars->bam_header);
@@ -243,9 +247,9 @@ void CheckFileOrDie(const Parameters& parameters,
          << " for writing." << endl
          << "       Please check -o option." << endl;
 	  error_found = true;
-	}
+  }
 	
-	if (error_found) exit(1);
+  if (error_found) exit(1);
 
 }
 

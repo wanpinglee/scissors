@@ -41,10 +41,12 @@ void StoreAlignmentInBam(const vector<bam1_t*>& alignments_bam,
   // if the complete bam is required, output alignments to them.
   pthread_mutex_lock(&bam_out_mutex_complete_bam);
   if (bam_writer_complete_bam != NULL) {
-    for (unsigned int i = 0; i < alignments_anchor.size(); ++i)
+    for (unsigned int i = 0; i < alignments_anchor.size(); ++i) {
       bam_write1(*bam_writer_complete_bam, alignments_anchor[i]);
-    for (unsigned int i = 0; i < alignments_bam.size(); ++i)
+    }
+    for (unsigned int i = 0; i < alignments_bam.size(); ++i) {
       bam_write1(*bam_writer_complete_bam, alignments_bam[i]);
+    }
   }
   pthread_mutex_unlock(&bam_out_mutex_complete_bam);
   
@@ -124,12 +126,12 @@ void* RunThread (void* thread_data_) {
     if (terminate) break;
 
     if (td->alignment_list.pBamNode != NULL) {
-      td->alignments.clear();
+      //td->alignments.clear();
       aligner.AlignCandidate(td->target_event, 
                              td->target_region,
 			     td->alignment_filter,
 			     // output complete bam or not
-			     (td->bam_writer_complete_bam ? true : false),
+			     ((td->bam_writer_complete_bam != NULL) ? true : false),
 			     &td->alignment_list, 
 			     &td->alignments_bam,
 			     &td->alignments_anchor);
@@ -241,7 +243,7 @@ void Thread::InitThreadData() {
     thread_data_[i].bam_status               = &bam_status_;
     thread_data_[i].bam_writer               = bam_writer_;
     thread_data_[i].bam_writer_complete_bam  = bam_writer_complete_bam_;
-    thread_data_[i].alignments.clear();
+    //thread_data_[i].alignments.clear();
     FreeAlignmentBam(&thread_data_[i].alignments_bam);
     FreeAlignmentBam(&thread_data_[i].alignments_anchor);
     SR_BamInStreamClearRetList(bam_reader_, i);
