@@ -120,8 +120,9 @@ SR_AlgnType SR_GetAlignmentType(SR_BamNode** ppAlgnOne, SR_BamNode** ppAlgnTwo, 
 //
 // args:
 //      1. pBamInStream: a pointer to a bam in stream object
-//      2. threadID: the ID of the thread
-//      3. scTolerance: soft clipping tolerance
+//      2. bam_writer_complete_bam: a pointer to a bam writer which stores all alignments
+//      3. threadID: the ID of the thread
+//      4. scTolerance: soft clipping tolerance
 //
 // return:
 //      status of the bam in stream. if we reach the end of a
@@ -129,7 +130,8 @@ SR_AlgnType SR_GetAlignmentType(SR_BamNode** ppAlgnOne, SR_BamNode** ppAlgnTwo, 
 //      the file, return SR_EOF; if an error happens, return
 //      SR_ERR; else return SR_OK
 //==================================================================
-SR_Status SR_LoadAlgnPairs(SR_BamInStream* pBamInStream, SR_FragLenDstrb* pDstrb, unsigned int threadID, double scTolerance, double maxMismatchRate, unsigned char minMQ);
+SR_Status SR_LoadAlgnPairs(SR_BamInStream* pBamInStream, SR_FragLenDstrb* pDstrb, bamFile* bam_writer_complete_bam,
+    unsigned int threadID, double scTolerance, double maxMismatchRate, unsigned char minMQ);
 
 //====================================================================
 // function:

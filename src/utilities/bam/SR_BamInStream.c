@@ -349,7 +349,10 @@ SR_BamHeader* SR_BamInStreamLoadHeader(SR_BamInStream* pBamInStream)
 }
 
 // load a unique-orphan pair from a bam file
-SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppUpAlgn, SR_BamNode** ppDownAlgn, SR_BamInStream* pBamInStream) 
+SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppUpAlgn, 
+                                 SR_BamNode** ppDownAlgn, 
+                                 SR_BamInStream* pBamInStream, 
+				 bamFile* bam_writer_complete_bam) 
 {
     (*ppUpAlgn) = NULL;
     (*ppDownAlgn) = NULL;
@@ -360,12 +363,15 @@ SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppUpAlgn, SR_BamNode** ppDownAlgn,
     int ret = 1;
     while(ret > 0 && (ret = SR_BamInStreamLoadNext(pBamInStream)) > 0)
     {
-        // exclude those reads who are non-paired-end, qc-fail, duplicate-marked, proper-paired, 
+	// exclude those reads who are non-paired-end, qc-fail, duplicate-marked, proper-paired?!, 
         // both aligned, secondary-alignment and no-name-specified.
         SR_Bool shouldBeFiltered = pBamInStream->filterFunc(pBamInStream->pNewNode, pBamInStream->filterData);
         if (shouldBeFiltered)
         {
-            SR_BamNodeFree(pBamInStream->pNewNode, pBamInStream->pMemPool);
+	    if (bam_writer_complete_bam != NULL) 
+	      bam_write1(*bam_writer_complete_bam, &(pBamInStream->pNewNode->alignment));
+	    
+	    SR_BamNodeFree(pBamInStream->pNewNode, pBamInStream->pMemPool);
             pBamInStream->pNewNode = NULL;
             continue;
         }
@@ -387,7 +393,22 @@ SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppUpAlgn, SR_BamNode** ppDownAlgn,
             kh_clear(queryName, pNameHashPrev);
             kh_clear(queryName, pNameHashCurr);
 
-            SR_BamListReset(&(pBamInStream->pAlgnLists[PREV_BIN]), pBamInStream->pMemPool);
+            // Store alignments before releasing them
+            if (bam_writer_complete_bam != NULL) {
+	      SR_BamNode* cur = pBamInStream->pAlgnLists[PREV_BIN].first;
+	      for (int i = 0; i < pBamInStream->pAlgnLists[PREV_BIN].numNode; ++i) {
+	        if (cur != NULL) bam_write1(*bam_writer_complete_bam, &(cur->alignment));
+		cur = cur->next;
+	      } // end for
+
+	      cur = pBamInStream->pAlgnLists[CURR_BIN].first;
+	      for (int i = 0; i < pBamInStream->pAlgnLists[CURR_BIN].numNode; ++i) {
+	        if (cur != NULL) bam_write1(*bam_writer_complete_bam, &(cur->alignment));
+		cur = cur->next;
+	      } // end for
+	    } // end if
+	      
+	    SR_BamListReset(&(pBamInStream->pAlgnLists[PREV_BIN]), pBamInStream->pMemPool);
             SR_BamListReset(&(pBamInStream->pAlgnLists[CURR_BIN]), pBamInStream->pMemPool);
 
         }
@@ -398,7 +419,16 @@ SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppUpAlgn, SR_BamNode** ppDownAlgn,
             kh_clear(queryName, pNameHashPrev);
             SR_SWAP(pNameHashPrev, pNameHashCurr, khash_t(queryName)*);
 
-            SR_BamListReset(&(pBamInStream->pAlgnLists[PREV_BIN]), pBamInStream->pMemPool);
+            // Store alignments before releasing them
+	    if (bam_writer_complete_bam != NULL) {
+	      SR_BamNode* cur = pBamInStream->pAlgnLists[PREV_BIN].first;
+	      for (int i = 0; i < pBamInStream->pAlgnLists[PREV_BIN].numNode; ++i) {
+	        if (cur != NULL) bam_write1(*bam_writer_complete_bam, &(cur->alignment));
+		cur = cur->next;
+              }
+	    } // end if
+
+	    SR_BamListReset(&(pBamInStream->pAlgnLists[PREV_BIN]), pBamInStream->pMemPool);
 
             SR_SWAP(pBamInStream->pAlgnLists[PREV_BIN], pBamInStream->pAlgnLists[CURR_BIN], SR_BamList);
         }

@@ -233,14 +233,20 @@ SR_Bool SR_ReadPairFilter(SR_BamNode* pBamNode, const void* filterData)
     return TRUE;
 }
 
-SR_Status SR_LoadAlgnPairs(SR_BamInStream* pBamInStream, SR_FragLenDstrb* pDstrb, unsigned int threadID, double scTolerance, double maxMismatchRate, unsigned char minMQ)
+SR_Status SR_LoadAlgnPairs(SR_BamInStream* pBamInStream, 
+                           SR_FragLenDstrb* pDstrb, 
+			   bamFile* bam_writer_complete_bam,  // store non-candidate alignments
+			   unsigned int threadID, 
+			   double scTolerance, 
+			   double maxMismatchRate, 
+			   unsigned char minMQ)
 {
     SR_BamNode* pAlgnOne = NULL;
     SR_BamNode* pAlgnTwo = NULL;
 
     SR_Status readerStatus = SR_OK;
     SR_Status bufferStatus = SR_OK;
-    while ((readerStatus = SR_BamInStreamLoadPair(&pAlgnOne, &pAlgnTwo, pBamInStream)) == SR_OK)
+    while ((readerStatus = SR_BamInStreamLoadPair(&pAlgnOne, &pAlgnTwo, pBamInStream, bam_writer_complete_bam)) == SR_OK)
     {
         SR_AlgnType algnType = SR_GetAlignmentType(&pAlgnOne, &pAlgnTwo, scTolerance, maxMismatchRate, minMQ);
         if ((algnType == SR_UNIQUE_ORPHAN || algnType == SR_UNIQUE_SOFT || algnType == SR_UNIQUE_MULTIPLE) && pBamInStream->numThreads > 0)
@@ -250,7 +256,7 @@ SR_Status SR_LoadAlgnPairs(SR_BamInStream* pBamInStream, SR_FragLenDstrb* pDstrb
 
             SR_BamInStreamSetAlgnType(pBamInStream, threadID, algnType);
         }
-        else
+        else // the pair is not a candidate pair
         {
             if (algnType == SR_UNIQUE_NORMAL && pDstrb != NULL)
             {
@@ -260,7 +266,11 @@ SR_Status SR_LoadAlgnPairs(SR_BamInStream* pBamInStream, SR_FragLenDstrb* pDstrb
                     SR_FragLenDstrbUpdate(pDstrb, &pairStats);
             }
 
-            SR_BamInStreamRecycle(pBamInStream, pAlgnOne);
+            if (bam_writer_complete_bam != NULL) {
+	      bam_write1(*bam_writer_complete_bam, &(pAlgnOne->alignment));
+	      bam_write1(*bam_writer_complete_bam, &(pAlgnTwo->alignment));
+	    }
+	    SR_BamInStreamRecycle(pBamInStream, pAlgnOne);
             SR_BamInStreamRecycle(pBamInStream, pAlgnTwo);
         }
 

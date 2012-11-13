@@ -237,6 +237,7 @@ static inline SR_Status SR_BamInStreamRead(bam1_t* pAlignment, SR_BamInStream* p
 //      1. ppAlgnOne: a pointer to the pointer of an alignment
 //      2. ppAlgnTwo: a pointer to the pointer of an alignment
 //      3. pBamInStream : a pointer to an bam instream structure
+//      4. bam_writer_complete_bam: a pointer to a bam writer which stores all alignments
 //
 // return:
 //      if we get enough unique-orphan pair, return SR_OK; 
@@ -244,7 +245,7 @@ static inline SR_Status SR_BamInStreamRead(bam1_t* pAlignment, SR_BamInStream* p
 //      the current chromosome, return SR_OUT_OF_RANGE; 
 //      else, return SR_ERR
 //==================================================================
-SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppAlgnOne, SR_BamNode** ppAlgnTwo, SR_BamInStream* pBamInStream);
+SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppAlgnOne, SR_BamNode** ppAlgnTwo, SR_BamInStream* pBamInStream, bamFile* bam_writer_complete_bam);
 
 //================================================================
 // function:

@@ -102,17 +102,28 @@ void* RunThread (void* thread_data_) {
     bool terminate = false;
     if (td->alignment_list.pBamNode == NULL) {
       if (bam_status == SR_OK) {
-        // TODO @WP: make sure each field of Jiantao
-        bam_status = SR_LoadAlgnPairs(td->bam_reader,
+        // Non-candidate alignments are stored in the complete bam,
+	// so we have to mutex bam_out_mutex_complete_bam
+	if (td->bam_writer_complete_bam != NULL)
+	  pthread_mutex_lock(&bam_out_mutex_complete_bam);
+        
+	// TODO @WP: make sure each field of Jiantao
+	bam_status = SR_LoadAlgnPairs(td->bam_reader,
 				      NULL, 
 			              // the pointer to frag length 
 				      // distribution; NULL means
 				      // we don't want to load it
-                                      td->id, 
+                                      td->bam_writer_complete_bam,
+				      // if bam_writer_complete_bam is not NULL,
+				      // then we store non-candidate alignments
+				      td->id, 
                                       td->allowed_clip,
 				      0.1, //maxMismatchRate
 			              // min mapping quality
 			              td->bam_mq_threshold);
+	if (td->bam_writer_complete_bam != NULL)
+	  pthread_mutex_unlock(&bam_out_mutex_complete_bam);
+
         *(td->bam_status) = bam_status;
         SR_BamInStreamSetIter(&td->alignment_list,
 	                      td->bam_reader,
@@ -272,7 +283,10 @@ bool Thread::LoadReference() {
 				   // the pointer to frag length
 				   // distribution; NULL means
 				   // we don't want to load it
-                                   thread_id,
+                                   bam_writer_complete_bam_,
+				   // if bam_writer_complete_bam is not NULL,
+				   // then we store non-candidate alignments
+				   thread_id,
   				   allowed_clip_,
 				   0.1, // maxMismatchRate
 				   //1);
