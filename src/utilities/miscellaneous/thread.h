@@ -44,8 +44,10 @@ struct ThreadData{
   SR_InHashTable*     hash_table_special;
   SR_RefHeader*       reference_header;
   bamFile*            bam_writer;
+  bamFile*            bam_writer_complete_bam;
   vector<Alignment>   alignments;
   vector<bam1_t*>     alignments_bam;
+  vector<bam1_t*>     alignments_anchor;
 };
 
 class Thread {
@@ -62,7 +64,8 @@ class Thread {
 	 const string           special_fasta,
 	 FastaReference*        ref_reader,
 	 SR_BamInStream* bam_reader,
-	 bamFile*        bam_writer);
+	 bamFile*        bam_writer,
+	 bamFile*        bam_writer_complete_bam);
   ~Thread();
  bool Start();
  private:
@@ -79,6 +82,7 @@ class Thread {
   FastaReference* ref_reader_;
   SR_BamInStream* bam_reader_;
   bamFile*        bam_writer_;
+  bamFile*        bam_writer_complete_bam_;
   SR_Status       bam_status_;
   //SR_Reference*   reference_;
   //SR_Reference*   reference_special_;

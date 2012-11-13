@@ -13,6 +13,7 @@ struct Parameters {
   string input_reference_fasta; // -f  --fasta
   string input_special_fasta;   // -s  --special-fasta
   string output_bam;            // -o  --output
+  string output_complete_bam;   // -O  --complete-bam
 
   // operation parameters
   int   fragment_length;        // -l --fragmenr-length
@@ -52,6 +53,7 @@ struct Parameters {
       , input_reference_fasta()
       , input_special_fasta()
       , output_bam()
+      , output_complete_bam()
       , fragment_length(-1)
       , mate_window_size(-1)
       , discovery_window_size(10000)

@@ -72,8 +72,10 @@ class Aligner {
   bool AlignCandidate(const TargetEvent&     target_event,
                       const TargetRegion&    target_region,
                       const AlignmentFilter& alignment_filter,
+		      const bool&            output_complete_bam,
                       SR_BamInStreamIter*    al_ite, 
-                      vector<bam1_t*>*       alignments);
+                      vector<bam1_t*>*       alignments,
+		      vector<bam1_t*>*       alignments_anchor);
 
   // @function:
   //     Aligns the orphan bam1_t in query_region_
@@ -145,7 +147,9 @@ class Aligner {
              const TargetRegion& target_region,
              const AlignmentFilter& alignment_filter,
 	     const SR_QueryRegion* query_region_,
-	     vector<bam1_t*>* alignments);
+	     const bool& output_complete_bam,
+	     vector<bam1_t*>* alignments,
+	     vector<bam1_t*>* alignments_anchor);
   bool SearchLocalPartial(const TargetRegion& target_region,
                           const AlignmentFilter& alignment_filter,
 			  StripedSmithWaterman::Alignment* local_al);

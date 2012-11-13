@@ -29,6 +29,7 @@ using namespace Scissors;
 struct MainFiles {
   SR_BamInStream* bam_reader;  // bam reader
   bamFile         bam_writer;  // bam writer
+  bamFile         bam_writer_complete_bam; // bam writer for complete bam
   FastaReference  ref_reader;
 };
 
@@ -91,6 +92,8 @@ int main (int argc, char** argv) {
     AppendReferenceSequence(vars.bam_header->pOrigHeader, parameters.input_special_fasta);
   // load the reference header
   bam_header_write(files.bam_writer, vars.bam_header->pOrigHeader);
+  if (!parameters.output_complete_bam.empty())
+    bam_header_write(files.bam_writer_complete_bam, vars.bam_header->pOrigHeader);
 
   // =========
   // Algorithm
@@ -111,7 +114,8 @@ int main (int argc, char** argv) {
 		parameters.input_special_fasta,
 		&files.ref_reader,
 		files.bam_reader,
-		&files.bam_writer);
+		&files.bam_writer,
+		(parameters.output_complete_bam.empty() ? NULL : &files.bam_writer_complete_bam));
   bool thread_status = thread.Start();
   if (!thread_status)
     cerr << "threads fail" << endl;
@@ -161,9 +165,10 @@ void InitFiles(const Parameters& parameters, MainFiles* files) {
       2, // number of alignments should be cached before report
       &streamMode);
 
-  // Initialize bam output writer
-  files->bam_writer = bam_open( parameters.output_bam.c_str(), "w" );
-  //files->bam_writer.Open(parameters.output_bam);
+  // Initialize bam output and complete_bam output writers
+  files->bam_writer = bam_open(parameters.output_bam.c_str(), "w");
+  if (!parameters.output_complete_bam.empty())
+    files->bam_writer_complete_bam = bam_open(parameters.output_complete_bam.c_str(), "w");
 
   // Initialize reference input reader
   files->ref_reader.open(parameters.input_reference_fasta);

@@ -35,7 +35,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		param->command_line += argv[i];
 	}
 
-	const char *short_option = "hi:f:s:o:l:w:c:r:p:Q:B:M:t:";
+	const char *short_option = "hi:f:s:o:O:l:w:c:r:p:Q:B:M:t:";
 
 	const struct option long_option[] = {
 		// long help
@@ -44,6 +44,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		// i/o parameters
 		{"input", required_argument, NULL, 'i'},
 		{"output", required_argument, NULL, 'o'},
+		{"complete-bam", required_argument, NULL, 'O'},
 		{"fasta", required_argument, NULL, 'f'},
 		{"special-fasta", required_argument, NULL, 's'},
 
@@ -100,6 +101,9 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 				break;
 			case 'o':
 				param->output_bam = optarg;
+				break;
+			case 'O':
+				param->output_complete_bam = optarg;
 				break;
 			case 'f':
 				param->input_reference_fasta = optarg;
@@ -313,6 +317,9 @@ void PrintLongHelp(const string& program) {
 		<< endl
 		<< "   -i --input <FILE>     Input BAM file." << endl
 		<< "   -o --output <FILE>    Output BAM file." << endl
+		<< "   -O --complete-bam <FILE>" << endl
+		<< "                         A generated bam contains original records" << endl
+		<< "                         and alignments rescued by this split-read aligner." << endl
 		<< "   -f --fasta            Input FASTA file." << endl
 		<< "   -s --special-fasta <FILE>" << endl
 		<< "                         A FASTA file of insertion sequences." << endl

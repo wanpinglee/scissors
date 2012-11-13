@@ -21,6 +21,7 @@ using std::endl;
 
 pthread_mutex_t bam_in_mutex;
 pthread_mutex_t bam_out_mutex;
+pthread_mutex_t bam_out_mutex_complete_bam;
 
 namespace Scissors {
 namespace {
@@ -34,7 +35,20 @@ inline void GetChromosomeId(const SR_BamListIter& alignment_list,
 }
 
 void StoreAlignmentInBam(const vector<bam1_t*>& alignments_bam,
-                         bamFile* bam_writer) {
+                         const vector<bam1_t*>& alignments_anchor,
+			 bamFile* bam_writer,
+			 bamFile* bam_writer_complete_bam) {
+  // if the complete bam is required, output alignments to them.
+  pthread_mutex_lock(&bam_out_mutex_complete_bam);
+  if (bam_writer_complete_bam != NULL) {
+    for (unsigned int i = 0; i < alignments_anchor.size(); ++i)
+      bam_write1(*bam_writer_complete_bam, alignments_anchor[i]);
+    for (unsigned int i = 0; i < alignments_bam.size(); ++i)
+      bam_write1(*bam_writer_complete_bam, alignments_bam[i]);
+  }
+  pthread_mutex_unlock(&bam_out_mutex_complete_bam);
+  
+  
   pthread_mutex_lock(&bam_out_mutex);
   for (unsigned int i = 0; i < alignments_bam.size(); ++i) {
     bam_write1(*bam_writer, alignments_bam[i]);
@@ -113,11 +127,15 @@ void* RunThread (void* thread_data_) {
       td->alignments.clear();
       aligner.AlignCandidate(td->target_event, 
                              td->target_region,
-			     td->alignment_filter, 
+			     td->alignment_filter,
+			     // output complete bam or not
+			     (td->bam_writer_complete_bam ? true : false),
 			     &td->alignment_list, 
-			     &td->alignments_bam);
-      StoreAlignmentInBam(td->alignments_bam, td->bam_writer);
+			     &td->alignments_bam,
+			     &td->alignments_anchor);
+      StoreAlignmentInBam(td->alignments_bam, td->alignments_anchor, td->bam_writer, td->bam_writer_complete_bam);
       FreeAlignmentBam(&td->alignments_bam);
+      FreeAlignmentBam(&td->alignments_anchor);
       
       pthread_mutex_lock(&bam_in_mutex);
       SR_BamInStreamClearRetList(td->bam_reader, td->id);
@@ -132,6 +150,7 @@ void* RunThread (void* thread_data_) {
 }
 } //namespace
 
+
 Thread::Thread(const BamReference*    bam_reference,
 	       const float&           allowed_clip,
 	       const int&             thread_count,
@@ -144,7 +163,8 @@ Thread::Thread(const BamReference*    bam_reference,
 	       const string           special_fasta,
 	       FastaReference*        ref_reader,
 	       SR_BamInStream*        bam_reader,
-	       bamFile*               bam_writer)
+	       bamFile*               bam_writer,
+	       bamFile*               bam_writer_complete_bam)
     : bam_reference_(bam_reference)
     , allowed_clip_(allowed_clip)
     , thread_count_(thread_count)
@@ -158,6 +178,7 @@ Thread::Thread(const BamReference*    bam_reference,
     , ref_reader_(ref_reader)
     , bam_reader_(bam_reader)
     , bam_writer_(bam_writer)
+    , bam_writer_complete_bam_(bam_writer_complete_bam)
     , bam_status_(SR_OK)
     , thread_data_()
     , ref_hasher_()
@@ -219,8 +240,10 @@ void Thread::InitThreadData() {
     thread_data_[i].alignment_list.pAlgnType = NULL;
     thread_data_[i].bam_status               = &bam_status_;
     thread_data_[i].bam_writer               = bam_writer_;
+    thread_data_[i].bam_writer_complete_bam  = bam_writer_complete_bam_;
     thread_data_[i].alignments.clear();
     FreeAlignmentBam(&thread_data_[i].alignments_bam);
+    FreeAlignmentBam(&thread_data_[i].alignments_anchor);
     SR_BamInStreamClearRetList(bam_reader_, i);
   }
 }

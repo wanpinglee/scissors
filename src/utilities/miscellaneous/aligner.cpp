@@ -151,8 +151,6 @@ void StoreAlignment(
       ite != ssw_als.end(); ++ite) {
     bam1_t *al_bam;
     al_bam = bam_init1(); // Thread.cpp will free it
-    //const bool is_anchor_forward = !bam1_strand(&anchor);
-    //fprintf(stderr,"%c%c\n", (*ite)->is_reverse?'T':'F', (*ite)->is_complement?'T':'F');
     BamUtilities::ConvertAlignmentToBam1(**ite, target, (*ite)->is_reverse, (*ite)->is_complement, al_bam);
     AdjustBamFlag(anchor, al_bam);
     OptionalTag::AddOptionalTags(anchor, al_bam);
@@ -283,8 +281,10 @@ void Aligner::LoadRegionType(const bam1_t& anchor) {
 bool Aligner::AlignCandidate(const TargetEvent& target_event,
                              const TargetRegion& target_region,
 			     const AlignmentFilter& alignment_filter,
+			     const bool& output_complete_bam,
 			     SR_BamInStreamIter* al_ite,
-                             vector<bam1_t*>* alignments) {
+                             vector<bam1_t*>* alignments,
+			     vector<bam1_t*>* alignments_anchor) {
   if (!CheckSetting(reference_, technology_)) {
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK); // empty the buffer
     al_ite = NULL;
@@ -300,7 +300,8 @@ bool Aligner::AlignCandidate(const TargetEvent& target_event,
     // TODO@WP: it may be removed later
     if (query_region_->algnType != SR_UNIQUE_ORPHAN) continue;
 
-    Align(target_event, target_region, alignment_filter, query_region_, alignments);
+    Align(target_event, target_region, alignment_filter, query_region_, 
+          output_complete_bam, alignments, alignments_anchor);
   } // end while
 
   al_ite = NULL;
@@ -325,7 +326,9 @@ bool Aligner::AlignCandidate(const TargetEvent& target_event,
   
   query_region_->pAnchor = (bam1_t*) &anchor;
   query_region_->pOrphan = (bam1_t*) &target;
-  Align(target_event, target_region, alignment_filter, query_region_, alignments);
+  const bool output_complete_bam = false;
+  Align(target_event, target_region, alignment_filter, query_region_, 
+        output_complete_bam, alignments, NULL);
 
   return true;
 }
@@ -334,7 +337,9 @@ void Aligner::Align(const TargetEvent& target_event,
                     const TargetRegion& target_region,
                     const AlignmentFilter& alignment_filter,
 		    const SR_QueryRegion* query_region,
-		    vector<bam1_t*>* alignments) {
+		    const bool& output_complete_bam,
+		    vector<bam1_t*>* alignments,
+		    vector<bam1_t*>* alignments_anchor) {
 
   query_region_ = (SR_QueryRegion*) query_region;
   // Convert 4-bit representive sequence into chars
@@ -423,6 +428,11 @@ void Aligner::Align(const TargetEvent& target_event,
   al_collection.GetMostConfidentEvent(&best_event, &ssw_al_for_best_event, &common_al_for_best_event);
   StoreAlignment(best_event, ssw_al_for_best_event, common_al_for_best_event, 
       *query_region_->pAnchor, *query_region_->pOrphan, alignments);
+
+  // store the anchor
+  if (output_complete_bam) {
+    alignments_anchor->push_back(bam_dup1(query_region_->pAnchor));
+  }
 }
 
 inline bool Aligner::ResetIndelSmithWatermanScore(
