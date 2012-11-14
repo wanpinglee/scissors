@@ -9,6 +9,7 @@
 #include "outsources/samtools/sam_header.h"
 #include "bam_constant.h"
 #include "dataStructures/alignment.h"
+#include "utilities/bam/bam_constant.h"
 #include "utilities/bam/seq_converter.h"
 #include "utilities/smithwaterman/ssw_cpp.h"
 
@@ -311,6 +312,32 @@ const string ConvertPackedCigarToString(const vector<uint32_t>& packed_cigar) {
   return out.str();
 }
 
+void CalculateIsize(const bam1_t& myself, const bam1_t& mymate, int* isize) {
+  namespace Constant = BamCigarConstant;
+
+  int myself_begin = myself.core.pos, myself_end = myself.core.pos;
+  uint32_t* ptr = bam1_cigar(&myself);
+  for (int i = 0; i < myself.core.n_cigar; ++i) {
+    int op  = (*ptr) & 0x0000000f;
+    int len = (*ptr) >> 4;
+    if ((op == Constant::kBamCmatch) || (op == Constant::kBamCdel)) myself_end += len;
+    ++ptr;
+  }
+
+  int mymate_begin = mymate.core.pos, mymate_end = mymate.core.pos;
+  ptr = bam1_cigar(&mymate);
+  for (int i = 0; i < mymate.core.n_cigar; ++i) {
+    int op  = (*ptr) & 0x0000000f;
+    int len = (*ptr) >> 4;
+    if ((op == Constant::kBamCmatch) || (op == Constant::kBamCdel)) mymate_end += len;
+    ++ptr;
+  }
+
+  if (myself_begin < mymate_begin) *isize = mymate_end - myself_begin - 1;
+  else *isize = mymate_begin - myself_end + 1;
+
+}
+
 void ConvertAlignmentToBam1(const StripedSmithWaterman::Alignment& al,
                             const bam1_t& original_record,
 			    const bool& is_seq_inverse,
@@ -322,11 +349,13 @@ void ConvertAlignmentToBam1(const StripedSmithWaterman::Alignment& al,
   new_record->core.bin     = bam_reg2bin(al.ref_begin, al.ref_end);
   new_record->core.qual    = original_record.core.qual;
   new_record->core.l_qname = original_record.core.l_qname;
+  // will be set later by AdjustBamFlag in utilities/miscellaneous/aligner.cpp
   new_record->core.flag    = 0;
   new_record->core.n_cigar = al.cigar.size();
   new_record->core.l_qseq  = original_record.core.l_qseq;
   new_record->core.mtid    = original_record.core.mtid;
   new_record->core.mpos    = original_record.core.mpos;
+  // will be set later by AdjustBamFlag in utilities/miscellaneous/aligner.cpp
   new_record->core.isize   = 0;
 
   SetDataToBam1(original_record, is_seq_inverse, is_seq_complement, al.cigar, new_record);

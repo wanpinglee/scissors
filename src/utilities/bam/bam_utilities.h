@@ -38,10 +38,14 @@ bool GetPackedCigar(
 
 const string ConvertPackedCigarToString(const vector<uint32_t>& packed_cigar);
 
+void CalculateIsize(const bam1_t& myself, const bam1_t& mymate, int* isize);
+
+// For banded SW alignments; we don't use banded SW anymore.
 void ConvertAlignmentToBam1(const Alignment& al,
                             const bam1_t& original_record,
 			    bam1_t* new_record);
 
+// For SSW alignments
 void ConvertAlignmentToBam1(const StripedSmithWaterman::Alignment& al,
                             const bam1_t& original_record,
 			    const bool& is_seq_inverse,

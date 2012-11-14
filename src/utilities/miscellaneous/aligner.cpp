@@ -48,10 +48,27 @@ void SetTargetSequence(const SearchRegionType::RegionType& region_type,
   
 }
 
-void AdjustBamFlag(const bam1_t& al_bam_anchor, bam1_t* partial_al1) {
+void AdjustAnchorInfo(const bam1_t& partial, bam1_t* anchor) {
+  namespace Constant = BamFlagConstant;
+  const bool partial_reverse = partial.core.flag & Constant::kBamFReverse;
+
+  int16_t anchor_flag = 0;
+  anchor_flag |= Constant::kBamFPaired;
+  anchor_flag |= Constant::kBamFProperPair;
+  anchor_flag &= 0xfff3; // !kBamFUnmapped and !kBamFUnmappedMate
+  if (partial_reverse) anchor_flag |= Constant::kBamFReverseMate;
+  anchor->core.flag = anchor_flag;
+
+  anchor->core.mpos = partial.core.pos;
+
+  BamUtilities::CalculateIsize(*anchor, partial, &(anchor->core.isize));
+  
+}
+
+void AdjustBamFlag(const bam1_t& al_bam_anchor, const bool& complement, bam1_t* partial_al1) {
   namespace Constant = BamFlagConstant;
   const bool anchor_mate1 = al_bam_anchor.core.flag & Constant::kBamFMate1;
-  bool anchor_reverse = al_bam_anchor.core.flag & Constant::kBamFReverse;
+  const bool anchor_reverse = al_bam_anchor.core.flag & Constant::kBamFReverse;
 
   // set anchor's flag
   //al_bam_anchor->core.flag &= 0xfff7; // mate is not unmapped
@@ -61,11 +78,17 @@ void AdjustBamFlag(const bam1_t& al_bam_anchor, bam1_t* partial_al1) {
   //set partial alignments flags
   int16_t partial_flag = 0;
   partial_flag |= Constant::kBamFPaired;
+  partial_flag |= Constant::kBamFProperPair;
+  if (complement)     partial_flag |= Constant::kBamFReverse;
+
   if (anchor_reverse) partial_flag |= Constant::kBamFReverseMate;
-  else partial_flag |= Constant::kBamFReverse;
-  if (anchor_mate1) partial_flag |= Constant::kBamFMate2;
-  else partial_flag |= Constant::kBamFMate1;
+
+  if (anchor_mate1)   partial_flag |= Constant::kBamFMate2;
+  else                partial_flag |= Constant::kBamFMate1;
+  
   partial_al1->core.flag = partial_flag;
+
+  BamUtilities::CalculateIsize(*partial_al1, al_bam_anchor, &(partial_al1->core.isize));
 }
 
 bool FindMediumIndel(const StripedSmithWaterman::Alignment& ssw_al,
@@ -145,24 +168,28 @@ void StoreAlignment(
     const vector <Alignment*>& common_als,
     const bam1_t& anchor,
     const bam1_t& target,
-    vector<bam1_t*>* alignments) {
+    vector<bam1_t*>* alignments,
+    bam1_t** primary_partial) {
+  
   // Stores alignments that are obtained by SSW
   for (vector <StripedSmithWaterman::Alignment*>::const_iterator ite = ssw_als.begin();
       ite != ssw_als.end(); ++ite) {
     bam1_t *al_bam;
     al_bam = bam_init1(); // Thread.cpp will free it
     BamUtilities::ConvertAlignmentToBam1(**ite, target, (*ite)->is_reverse, (*ite)->is_complement, al_bam);
-    AdjustBamFlag(anchor, al_bam);
+    AdjustBamFlag(anchor, (*ite)->is_complement, al_bam);
     OptionalTag::AddOptionalTags(anchor, al_bam);
     alignments->push_back(al_bam);
+    *primary_partial = al_bam;
   }
 
   for (vector <Alignment*>::const_iterator ite = common_als.begin();
       ite != common_als.end(); ++ite) {
+    fprintf(stdout,"SW\n");
     bam1_t *al_bam;
     al_bam = bam_init1(); // Thread.cpp will free it
     BamUtilities::ConvertAlignmentToBam1(**ite, target, al_bam);
-    AdjustBamFlag(anchor, al_bam);
+    AdjustBamFlag(anchor, true, al_bam);
     OptionalTag::AddOptionalTags(anchor, al_bam);
     alignments->push_back(al_bam);
   }
@@ -382,14 +409,7 @@ void Aligner::Align(const TargetEvent& target_event,
       SearchLocalPartial(target_region, alignment_filter, &local_al);
 
   // Since we do not find the first partial, we do not try second partial.
-  if (!first_partial_found) {
-    if (output_complete_bam) {
-      alignments_anchor->push_back(bam_dup1(query_region_->pAnchor));
-      alignments_anchor->push_back(bam_dup1(query_region_->pOrphan));
-    }
-    return;
-  } else {
-    //fprintf(stderr,"first partical flund\n");
+  if (first_partial_found) {
     al_collection.PushANewEvent(kInsertion);
     al_collection.PushAlignment(local_al);
   }
@@ -398,7 +418,7 @@ void Aligner::Align(const TargetEvent& target_event,
   // Try to align to special insertions
   // ==================================
   StripedSmithWaterman::Alignment special_al;
-  if (target_event.special_insertion) {
+  if (first_partial_found && target_event.special_insertion) {
     const bool inversive = false;
     const bool special_found = SearchSpecialReference(target_region, alignment_filter, inversive, &special_al);
     if (special_found) {
@@ -413,7 +433,7 @@ void Aligner::Align(const TargetEvent& target_event,
   // Try to align to special insertions
   // ==================================
   StripedSmithWaterman::Alignment special_inv_al;
-  if (target_event.special_insertion && target_event.special_inversive_insertion) {
+  if (first_partial_found && target_event.special_insertion && target_event.special_inversive_insertion) {
     const bool inversive = true;
     const bool special_inv_found = SearchSpecialReference(target_region, alignment_filter, inversive, &special_inv_al);
     if (special_inv_found) {
@@ -429,14 +449,18 @@ void Aligner::Align(const TargetEvent& target_event,
   vector <StripedSmithWaterman::Alignment*> ssw_al_for_best_event;
   vector <Alignment*> common_al_for_best_event;
   al_collection.GetMostConfidentEvent(&best_event, &ssw_al_for_best_event, &common_al_for_best_event);
+  bam1_t* primary_partial = NULL;
   StoreAlignment(best_event, ssw_al_for_best_event, common_al_for_best_event, 
-      *query_region_->pAnchor, *query_region_->pOrphan, alignments);
+      *query_region_->pAnchor, *query_region_->pOrphan, alignments, &primary_partial);
 
   // Store the anchor
   if (output_complete_bam) {
-    alignments_anchor->push_back(bam_dup1(query_region_->pAnchor));
+    bool no_rescued = ssw_al_for_best_event.empty() && common_al_for_best_event.empty();
+    bam1_t* anchor = bam_dup1(query_region_->pAnchor);
+    if (primary_partial != NULL) AdjustAnchorInfo(*primary_partial, anchor);
+    alignments_anchor->push_back(anchor);
     // We do not rescue the target alignment, so store it in anchor alignment vector
-    if (ssw_al_for_best_event.empty() && common_al_for_best_event.empty()) {
+    if (no_rescued) {
       alignments_anchor->push_back(bam_dup1(query_region_->pOrphan));
     }
   }
