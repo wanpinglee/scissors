@@ -285,7 +285,6 @@ bool Aligner::AlignCandidate(const TargetEvent& target_event,
 			     SR_BamInStreamIter* al_ite,
                              vector<bam1_t*>* alignments,
 			     vector<bam1_t*>* alignments_anchor) {
-  if (!output_complete_bam) fprintf(stderr, "===ERROR===\n");
   if (!CheckSetting(reference_, technology_)) {
     while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK); // empty the buffer
     al_ite = NULL;
@@ -299,7 +298,14 @@ bool Aligner::AlignCandidate(const TargetEvent& target_event,
   hash_length_.farRange   = target_region.discovery_window_size;
   while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
     // TODO@WP: it may be removed later
-    if (query_region_->algnType != SR_UNIQUE_ORPHAN) continue;
+    if (query_region_->algnType != SR_UNIQUE_ORPHAN) {
+      // Save alignments in complete bam if necessary
+      if (output_complete_bam) {
+        alignments_anchor->push_back(bam_dup1(query_region_->pAnchor));
+	alignments_anchor->push_back(bam_dup1(query_region_->pOrphan));
+      }
+      continue;
+    }
 
     Align(target_event, target_region, alignment_filter, query_region_, 
           output_complete_bam, alignments, alignments_anchor);
@@ -365,11 +371,7 @@ void Aligner::Align(const TargetEvent& target_event,
     if (medium_indel_found) { // push the event and its corresponding alignments in the collection
       al_collection.PushANewEvent(kMediumIndel);
       al_collection.PushAlignment(indel_al);
-    } else { // !medium_indel_found
-      // nothing
     }
-  } else { // !target_event.medium_sized_indel
-    // nothing
   }
 
   // ==================================
@@ -381,6 +383,10 @@ void Aligner::Align(const TargetEvent& target_event,
 
   // Since we do not find the first partial, we do not try second partial.
   if (!first_partial_found) {
+    if (output_complete_bam) {
+      alignments_anchor->push_back(bam_dup1(query_region_->pAnchor));
+      alignments_anchor->push_back(bam_dup1(query_region_->pOrphan));
+    }
     return;
   } else {
     //fprintf(stderr,"first partical flund\n");
@@ -400,8 +406,6 @@ void Aligner::Align(const TargetEvent& target_event,
       al_collection.PushANewEvent(kSpecialInsertion);
       al_collection.PushAlignment(local_al);
       al_collection.PushAlignment(special_al);
-    } else { // !special_found
-      // nothing
     }
   }
 
@@ -417,8 +421,6 @@ void Aligner::Align(const TargetEvent& target_event,
       al_collection.PushANewEvent(kSpecialInvertedInsertion);
       al_collection.PushAlignment(local_al);
       al_collection.PushAlignment(special_inv_al);
-    } else { // !special_inv_found
-      // nothing
     }
   }
 
@@ -434,8 +436,9 @@ void Aligner::Align(const TargetEvent& target_event,
   if (output_complete_bam) {
     alignments_anchor->push_back(bam_dup1(query_region_->pAnchor));
     // We do not rescue the target alignment, so store it in anchor alignment vector
-    if (ssw_al_for_best_event.empty() && common_al_for_best_event.empty())
+    if (ssw_al_for_best_event.empty() && common_al_for_best_event.empty()) {
       alignments_anchor->push_back(bam_dup1(query_region_->pOrphan));
+    }
   }
 }
 

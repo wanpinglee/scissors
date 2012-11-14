@@ -270,6 +270,7 @@ SR_Status SR_LoadAlgnPairs(SR_BamInStream* pBamInStream,
 	      bam_write1(*bam_writer_complete_bam, &(pAlgnOne->alignment));
 	      bam_write1(*bam_writer_complete_bam, &(pAlgnTwo->alignment));
 	    }
+
 	    SR_BamInStreamRecycle(pBamInStream, pAlgnOne);
             SR_BamInStreamRecycle(pBamInStream, pAlgnTwo);
         }

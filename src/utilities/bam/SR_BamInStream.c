@@ -368,8 +368,7 @@ SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppUpAlgn,
         SR_Bool shouldBeFiltered = pBamInStream->filterFunc(pBamInStream->pNewNode, pBamInStream->filterData);
         if (shouldBeFiltered)
         {
-	    if (bam_writer_complete_bam != NULL) 
-	      bam_write1(*bam_writer_complete_bam, &(pBamInStream->pNewNode->alignment));
+	    if (bam_writer_complete_bam != NULL) bam_write1(*bam_writer_complete_bam, &(pBamInStream->pNewNode->alignment));
 	    
 	    SR_BamNodeFree(pBamInStream->pNewNode, pBamInStream->pMemPool);
             pBamInStream->pNewNode = NULL;
