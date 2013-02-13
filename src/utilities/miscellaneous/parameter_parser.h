@@ -66,7 +66,7 @@ struct Parameters {
       , mapping_quality_threshold(10)
       , allowed_clip(0.2)
       , region()
-      , aligned_base_rate(0.3)
+      , aligned_base_rate(0.2)
       , allowed_mismatch_rate(0.1)
       , trimming_match_score(1)
       , trimming_mismatch_penalty(7)
