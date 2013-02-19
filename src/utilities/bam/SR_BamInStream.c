@@ -348,15 +348,12 @@ SR_BamHeader* SR_BamInStreamLoadHeader(SR_BamInStream* pBamInStream)
     return pBamHeader;
 }
 
-// load a unique-orphan pair from a bam file
+// load a pair from a bam file
 SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppUpAlgn, 
                                  SR_BamNode** ppDownAlgn, 
                                  SR_BamInStream* pBamInStream, 
 				 bamFile* bam_writer_complete_bam) 
 {
-    (*ppUpAlgn) = NULL;
-    (*ppDownAlgn) = NULL;
-
     khash_t(queryName)* pNameHashPrev = pBamInStream->pNameHashes[PREV_BIN];
     khash_t(queryName)* pNameHashCurr = pBamInStream->pNameHashes[CURR_BIN];
 
@@ -379,30 +376,33 @@ SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppUpAlgn,
         // different value. The name hash and the bam array will be reset
         if (pNameHashPrev != NULL 
             && (pBamInStream->pNewNode->alignment.core.tid != pBamInStream->currRefID
-            || pBamInStream->pNewNode->alignment.core.pos >= pBamInStream->currBinPos + 2 * pBamInStream->binLen))
+                || pBamInStream->pNewNode->alignment.core.pos >= pBamInStream->currBinPos + 2 * pBamInStream->binLen))
         {
             if (pBamInStream->pNewNode->alignment.core.tid != pBamInStream->currRefID)
             {
-                ret = SR_OUT_OF_RANGE;
+                ret = SR_OUT_OF_RANGE; // different chromosome id
             }
 
             pBamInStream->currRefID  = pBamInStream->pNewNode->alignment.core.tid;
             pBamInStream->currBinPos = pBamInStream->pNewNode->alignment.core.pos;
 
-            kh_clear(queryName, pNameHashPrev);
+            // Clear the hash buffer
+	    kh_clear(queryName, pNameHashPrev);
             kh_clear(queryName, pNameHashCurr);
 
             // Store alignments before releasing them
             if (bam_writer_complete_bam != NULL) {
 	      SR_BamNode* cur = pBamInStream->pAlgnLists[PREV_BIN].first;
 	      for (int i = 0; i < pBamInStream->pAlgnLists[PREV_BIN].numNode; ++i) {
-	        if (cur != NULL) bam_write1(*bam_writer_complete_bam, &(cur->alignment));
+	        // if the cur is not NULL, store the cur in the complete bam
+		if (cur != NULL) bam_write1(*bam_writer_complete_bam, &(cur->alignment));
 		cur = cur->next;
 	      } // end for
 
 	      cur = pBamInStream->pAlgnLists[CURR_BIN].first;
 	      for (int i = 0; i < pBamInStream->pAlgnLists[CURR_BIN].numNode; ++i) {
-	        if (cur != NULL) bam_write1(*bam_writer_complete_bam, &(cur->alignment));
+	        // if the cur is not NULL, store the cur in the complete bam
+		if (cur != NULL) bam_write1(*bam_writer_complete_bam, &(cur->alignment));
 		cur = cur->next;
 	      } // end for
 	    } // end if
@@ -422,7 +422,8 @@ SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppUpAlgn,
 	    if (bam_writer_complete_bam != NULL) {
 	      SR_BamNode* cur = pBamInStream->pAlgnLists[PREV_BIN].first;
 	      for (int i = 0; i < pBamInStream->pAlgnLists[PREV_BIN].numNode; ++i) {
-	        if (cur != NULL) bam_write1(*bam_writer_complete_bam, &(cur->alignment));
+	        // if the cur is not NULL, store the cur in the complete bam
+		if (cur != NULL) bam_write1(*bam_writer_complete_bam, &(cur->alignment));
 		cur = cur->next;
               }
 	    } // end if
@@ -431,18 +432,24 @@ SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppUpAlgn,
 
             SR_SWAP(pBamInStream->pAlgnLists[PREV_BIN], pBamInStream->pAlgnLists[CURR_BIN], SR_BamList);
         }
+	else
+	{
+	} // end if-elseif-else
 
         SR_BamListPushHead(&(pBamInStream->pAlgnLists[CURR_BIN]), pBamInStream->pNewNode);
 
-        (*ppUpAlgn) = NULL;
+        // Clear the pointers
+	(*ppUpAlgn) = NULL;
         (*ppDownAlgn) = NULL;
+        
+	khiter_t khIter = 0;
 
-        khiter_t khIter = 0;
-
-        if (pNameHashPrev != NULL)
+        // try to get the mate from the previous bin
+	if (pNameHashPrev != NULL)
             khIter = kh_get(queryName, pNameHashPrev, bam1_qname(&(pBamInStream->pNewNode->alignment)));
 
-        if (pNameHashPrev != NULL && khIter != kh_end(pNameHashPrev))
+        // the mate is found in the previous bin
+	if (pNameHashPrev != NULL && khIter != kh_end(pNameHashPrev))
         {
             ret = SR_OK;
             (*ppUpAlgn) = kh_value(pNameHashPrev, khIter);
@@ -453,12 +460,13 @@ SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppUpAlgn,
             SR_BamListRemove(&(pBamInStream->pAlgnLists[PREV_BIN]), (*ppUpAlgn));
             SR_BamListRemove(&(pBamInStream->pAlgnLists[CURR_BIN]), (*ppDownAlgn));
         }
+	// the mate is not in the previous bin
         else
         {
             int khRet = 0;
             khIter = kh_put(queryName, pNameHashCurr, bam1_qname(&(pBamInStream->pNewNode->alignment)), &khRet);
 
-            if (khRet == 0) // we found a pair of alignments 
+            if (khRet == 0) // we found a pair of alignments in the current bin
             {
                 ret = SR_OK;
                 (*ppUpAlgn) = kh_value(pNameHashCurr, khIter);

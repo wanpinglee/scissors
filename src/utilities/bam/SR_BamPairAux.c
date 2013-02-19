@@ -30,14 +30,14 @@
 // alignment status
 enum AlignmentStatus
 {
-    NONE_GOOD   = -1,       // neither a good anchor nor a good orphan candidate
-
+    NONE_GOOD      = -1,    // neither a good anchor nor a good orphan candidate
+    
     GOOD_ANCHOR    = 0,     // a good anchor candidate
-
+    
     GOOD_ORPHAN    = 1,     // a good orphan candidate
-
+    
     GOOD_SOFT      = 2,     // a good soft clipping candidate
-
+    
     GOOD_MULTIPLE  = 3,     // a good multiple aligned candidate
 };
 
@@ -59,7 +59,7 @@ static double SR_GetMismatchRate(const bam1_t* pAlignment)
 
 static int SR_CheckAlignment(const bam1_t* pAlignment, double scTolerance, double maxMismatchRate, unsigned char minMQ)
 {
-    if ((pAlignment->core.flag & BAM_FUNMAP) != 0)
+    if ((pAlignment->core.flag & BAM_FUNMAP) != 0) // the read itself is unmapped
         return GOOD_ORPHAN;
 
     unsigned int scLimit = scTolerance * pAlignment->core.l_qseq;
@@ -83,19 +83,12 @@ static int SR_CheckAlignment(const bam1_t* pAlignment, double scTolerance, doubl
 
     if (!isHeadSC && !isTailSC) 
     {
-        if (pAlignment->core.qual >= minMQ)
+        double mismatchRate = SR_GetMismatchRate(pAlignment);
+	if ((pAlignment->core.qual >= minMQ) && (mismatchRate <= maxMismatchRate))
             return GOOD_ANCHOR;
-        else if (maxMismatchRate > 0.0)
-        {
-            double mismatchRate = SR_GetMismatchRate(pAlignment);
-            if (mismatchRate <= maxMismatchRate)
-                return GOOD_MULTIPLE;
-        }
-
-        return NONE_GOOD;
+	else
+	    return GOOD_MULTIPLE;
     }
-    else if (isHeadSC && isTailSC)
-        return NONE_GOOD;
     else
         return GOOD_SOFT;
 }
@@ -237,8 +230,8 @@ SR_Status SR_LoadAlgnPairs(SR_BamInStream* pBamInStream,
                            SR_FragLenDstrb* pDstrb, 
 			   bamFile* bam_writer_complete_bam,  // store non-candidate alignments
 			   unsigned int threadID, 
-			   double scTolerance, 
-			   double maxMismatchRate, 
+			   double scTolerance, // the allowed clips of anchor alignments
+			   double maxMismatchRate, // the allowed mismatches of anchor alignments 
 			   unsigned char minMQ)
 {
     SR_BamNode* pAlgnOne = NULL;
@@ -246,8 +239,11 @@ SR_Status SR_LoadAlgnPairs(SR_BamInStream* pBamInStream,
 
     SR_Status readerStatus = SR_OK;
     SR_Status bufferStatus = SR_OK;
+    // SR_BamInStreamLoadPair is in utilities/bam/SR_BamInStream.c
     while ((readerStatus = SR_BamInStreamLoadPair(&pAlgnOne, &pAlgnTwo, pBamInStream, bam_writer_complete_bam)) == SR_OK)
     {
+        // Load a pair of alignments and store them in pAlgnOne and pAlgnTwo;
+	// the position of pAlgnOne is smaller than the one of pAlgnTwo
         SR_AlgnType algnType = SR_GetAlignmentType(&pAlgnOne, &pAlgnTwo, scTolerance, maxMismatchRate, minMQ);
         if ((algnType == SR_UNIQUE_ORPHAN || algnType == SR_UNIQUE_SOFT || algnType == SR_UNIQUE_MULTIPLE) && pBamInStream->numThreads > 0)
         {
@@ -266,7 +262,8 @@ SR_Status SR_LoadAlgnPairs(SR_BamInStream* pBamInStream,
                     SR_FragLenDstrbUpdate(pDstrb, &pairStats);
             }
 
-            if (bam_writer_complete_bam != NULL) {
+            // Store alignments in the complete bam
+	    if (bam_writer_complete_bam != NULL) {
 	      bam_write1(*bam_writer_complete_bam, &(pAlgnOne->alignment));
 	      bam_write1(*bam_writer_complete_bam, &(pAlgnTwo->alignment));
 	    }

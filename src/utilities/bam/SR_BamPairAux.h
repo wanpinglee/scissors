@@ -63,14 +63,29 @@ static const unsigned int SR_READ_PAIR_FMASK = (BAM_FSECONDARY | BAM_FQCFAIL | B
 // Interface functions
 //======================
 
+static inline SR_Bool SR_ClippedFilter(SR_BamNode* pBamNode, const void* filterData) {
+    if ((pBamNode->alignment.core.flag & BAM_FPAIRED) == 0 // the mate in not paired-end
+        // the mapped reference name is not set
+        || strcmp(bam1_qname(&(pBamNode->alignment)), "*") == 0)
+    {    
+	return TRUE; // the mate should be filtered
+    }
+
+    return FALSE;
+
+}
+
 static inline SR_Bool SR_CommonFilter(SR_BamNode* pBamNode, const void* filterData)
 {
-    if ((pBamNode->alignment.core.flag & BAM_FPAIRED) == 0
-        || strcmp(bam1_qname(&(pBamNode->alignment)), "*") == 0
-        || (pBamNode->alignment.core.flag & SR_UNIQUE_ORPHAN_FMASK) != 0
+    if ((pBamNode->alignment.core.flag & BAM_FPAIRED) == 0 // the mate in not paired-end
+        // the mapped reference name is not set
+	|| strcmp(bam1_qname(&(pBamNode->alignment)), "*") == 0
+        // the mate is not secondary, qual_fail, or duplication
+	|| (pBamNode->alignment.core.flag & SR_UNIQUE_ORPHAN_FMASK) != 0 
+	// both of the mate amd its mate are mapped
         || (pBamNode->alignment.core.flag | (BAM_FUNMAP | BAM_FMUNMAP)) == pBamNode->alignment.core.flag)
     {
-        return TRUE;
+        return TRUE; // the mate should be filtered 
     }
     
     return FALSE;
@@ -78,12 +93,16 @@ static inline SR_Bool SR_CommonFilter(SR_BamNode* pBamNode, const void* filterDa
 
 static inline SR_Bool SR_NormalFilter(SR_BamNode* pBamNode, const void* filterData)
 {
-    if ((pBamNode->alignment.core.flag & BAM_FPAIRED) == 0
-        || strcmp(bam1_qname(&(pBamNode->alignment)), "*") == 0
+    if ((pBamNode->alignment.core.flag & BAM_FPAIRED) == 0 // the mate in not paired-end
+        // the mapped reference name is not set
+	|| strcmp(bam1_qname(&(pBamNode->alignment)), "*") == 0
+	// the mate is not secondary, qual_fail, duplication, unmapped and 
+	// , unmapped and its mate is not unmappedits mate is not unmapped
         || (pBamNode->alignment.core.flag & SR_NORMAL_FMASK) != 0
+        // the fragment l        // the fragment length is zeroength is zero
         || (pBamNode->alignment.core.isize == 0))
     {
-        return TRUE;
+        return TRUE; // the mate should be filtered
     }
 
     // any reads aligned to different chromosome will be kept as SV candidates
