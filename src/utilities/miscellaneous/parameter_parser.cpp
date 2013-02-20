@@ -35,7 +35,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		param->command_line += argv[i];
 	}
 
-	const char *short_option = "hi:f:s:o:O:l:w:c:r:p:Q:B:M:t:";
+	const char *short_option = "hi:f:s:o:O:l:w:c:r:p:Q:B:M:bt:";
 
 	const struct option long_option[] = {
 		// long help
@@ -55,7 +55,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		{"region", required_argument, NULL, 'r'},
 		{"is-input-sorted", no_argument, NULL, 6},
 		{"processors", required_argument, NULL, 'p'},
-		{"special-insertion", no_argument, NULL, 's'},
+		{"use-bad-mapped-mate", no_argument, NULL, 'b'},
 		{"not-medium-sized-indel", no_argument, NULL, 5},
 		{"not-special-insertion-inversion", no_argument, NULL, 7},
 		{"technology", required_argument, NULL, 't'},
@@ -134,6 +134,8 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 				if (!convert_from_string(optarg, param->processors))
 					cerr << "WARNING: Cannot parse -p --processors." << endl;
 				break;
+			case 'b': param->use_bad_mapped_mate = true;
+
 			case 5:
 				param->not_medium_sized_indel = true;
 				break;
@@ -224,6 +226,12 @@ bool CheckParameters(Parameters* param) {
   if (param->technology == TECH_NONE) {
     cerr << "ERROR: Please specify the technology, -t." << endl
          << "       It should be ILLUMINA, 454, or SOLID." << endl;
+    errorFound = true;
+  }
+
+  if(param->use_bad_mapped_mate && param->output_complete_bam.empty()) {
+    cerr << "ERROR: Please specify the complete bam, -o," << endl
+         << "       since -b is enabled." << endl;
     errorFound = true;
   }
 
@@ -336,6 +344,9 @@ void PrintLongHelp(const string& program) {
 		<< "                         Window size for discovering events. [10000]" << endl
 		<< "   --is-input-sorted" << endl
 		<< "   -p --processors <INT> Use # of processors." << endl
+		<< "   -b --use-bad-mapped-mate" << endl
+		<< "                         Use pairs with one mare good and the other mate that" << endl
+		<< "                         are mapped but cannot pass -Q and -c filters." << endl
 		<< "   --not-medium-sized-indel" << endl
 		<< "   --not-special-insertion-inversion" << endl
 		<< "                         When -s is given, the default is on." << endl
@@ -350,7 +361,7 @@ void PrintLongHelp(const string& program) {
 		<< "   -c --allowed-clip <FLOAT>"  << endl
 		<< "                         Percentage (0.0 - 1.0) of allowed soft clip of anchors." << endl
 		<< "                         [0.2]" << endl
-		<< "   -r --region <STR>     Targeted region; example: -R 1:500000-600000. [NULL]"
+		<< "   -r --region <STR>     Targeted region; example: -r 1:500000-600000." << endl
 		<< endl
 
 		<< "Split-read alignment filters:" << endl

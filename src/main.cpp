@@ -150,12 +150,16 @@ void Deconstruct(const Parameters& parameters, MainFiles* files, MainVars* vars)
 void InitFiles(const Parameters& parameters, MainFiles* files) {
   // Set the stream mode to "UO" (unique orphan).
   // If the region is specified, than index of the bam is necessary.
+  SR_BamFilter SR_filter;
+  if (parameters.use_bad_mapped_mate) SR_filter = SR_BadMateFilter;
+  else SR_filter = SR_CommonFilter;
+
   SR_StreamMode streamMode;
   if (parameters.region.empty())
-    SR_SetStreamMode(&streamMode, SR_CommonFilter, NULL, SR_NO_SPECIAL_CONTROL);
+    SR_SetStreamMode(&streamMode, SR_filter, NULL, SR_NO_SPECIAL_CONTROL);
   else
     // Needs the index of the bam
-    SR_SetStreamMode(&streamMode, SR_CommonFilter, NULL, SR_USE_BAM_INDEX);
+    SR_SetStreamMode(&streamMode, SR_filter, NULL, SR_USE_BAM_INDEX);
 
     
   // Initialize bam input reader.

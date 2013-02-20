@@ -22,7 +22,8 @@ struct Parameters {
   bool  is_input_sorted;        // --is-input-sorted
                                 // getopt returns 6
   int   processors;             // -p --processors
-  bool  detect_special;         // when -s <FASTA> is given 
+  bool  detect_special;         // when -s <FASTA> is given
+  bool  use_bad_mapped_mate;    // -b  --use-bad-mapped-mate
   bool  not_medium_sized_indel; // --not-medium-sized-indel
                                 // getopt returns 5
   bool  not_special_insertion_inversion; // --not-special-insertion-inversion
@@ -60,6 +61,7 @@ struct Parameters {
       , is_input_sorted(false)
       , processors(1)
       , detect_special(false)
+      , use_bad_mapped_mate(false)
       , not_medium_sized_indel(false)
       , not_special_insertion_inversion(false)
       , technology(TECH_NONE)

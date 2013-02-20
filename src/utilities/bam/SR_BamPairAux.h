@@ -63,7 +63,7 @@ static const unsigned int SR_READ_PAIR_FMASK = (BAM_FSECONDARY | BAM_FQCFAIL | B
 // Interface functions
 //======================
 
-static inline SR_Bool SR_ClippedFilter(SR_BamNode* pBamNode, const void* filterData) {
+static inline SR_Bool SR_BadMateFilter(SR_BamNode* pBamNode, const void* filterData) {
     if ((pBamNode->alignment.core.flag & BAM_FPAIRED) == 0 // the mate in not paired-end
         // the mapped reference name is not set
         || strcmp(bam1_qname(&(pBamNode->alignment)), "*") == 0)

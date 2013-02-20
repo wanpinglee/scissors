@@ -482,14 +482,31 @@ SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppUpAlgn,
                 kh_value(pNameHashCurr, khIter) = pBamInStream->pNewNode;
             }
         }
-    }
+    } // end while
 
     pBamInStream->pNameHashes[PREV_BIN] = pNameHashPrev;
     pBamInStream->pNameHashes[CURR_BIN] = pNameHashCurr;
 
     if (ret < 0)
     {
-        if ( ret != SR_OUT_OF_RANGE && ret != SR_EOF)
+        if ((ret == SR_EOF) && (bam_writer_complete_bam != NULL)) {
+            // Store alignments before releasing them
+	    SR_BamNode* cur = pBamInStream->pAlgnLists[PREV_BIN].first;
+	    for (int i = 0; i < pBamInStream->pAlgnLists[PREV_BIN].numNode; ++i) {
+	      // if the cur is not NULL, store the cur in the complete bam
+	        if (cur != NULL) bam_write1(*bam_writer_complete_bam, &(cur->alignment));
+		cur = cur->next;
+	      } // end for
+
+	      cur = pBamInStream->pAlgnLists[CURR_BIN].first;
+	      for (int i = 0; i < pBamInStream->pAlgnLists[CURR_BIN].numNode; ++i) {
+	        // if the cur is not NULL, store the cur in the complete bam
+		if (cur != NULL) bam_write1(*bam_writer_complete_bam, &(cur->alignment));
+		cur = cur->next;
+	      } // end for
+        }
+
+	if ( ret != SR_OUT_OF_RANGE && ret != SR_EOF)
             return SR_ERR;
     }
 

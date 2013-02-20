@@ -247,7 +247,13 @@ SR_Status SR_LoadAlgnPairs(SR_BamInStream* pBamInStream,
         SR_AlgnType algnType = SR_GetAlignmentType(&pAlgnOne, &pAlgnTwo, scTolerance, maxMismatchRate, minMQ);
         if ((algnType == SR_UNIQUE_ORPHAN || algnType == SR_UNIQUE_SOFT || algnType == SR_UNIQUE_MULTIPLE) && pBamInStream->numThreads > 0)
         {
-            SR_BamInStreamPush(pBamInStream, pAlgnOne, threadID);
+            #ifdef VERBOSE_DEBUG
+	      if (algnType == SR_UNIQUE_ORPHAN) fprintf(stderr, "SR_UNIQUE_ORPHAN\n");
+	      else if (algnType == SR_UNIQUE_SOFT) fprintf(stderr, "SR_UNIQUE_SOFT\n");
+	      else if(algnType == SR_UNIQUE_MULTIPLE) fprintf(stderr, "SR_UNIQUE_MULTIPLE\n");
+	      else;
+	    #endif
+	    bufferStatus = SR_BamInStreamPush(pBamInStream, pAlgnOne, threadID);
             bufferStatus = SR_BamInStreamPush(pBamInStream, pAlgnTwo, threadID);
 
             SR_BamInStreamSetAlgnType(pBamInStream, threadID, algnType);
