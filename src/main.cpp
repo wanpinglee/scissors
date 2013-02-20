@@ -151,8 +151,18 @@ void InitFiles(const Parameters& parameters, MainFiles* files) {
   // Set the stream mode to "UO" (unique orphan).
   // If the region is specified, than index of the bam is necessary.
   SR_BamFilter SR_filter;
-  if (parameters.use_bad_mapped_mate) SR_filter = SR_BadMateFilter;
-  else SR_filter = SR_CommonFilter;
+  if (parameters.use_poor_mapped_mate) {
+    SR_filter = SR_BadMateFilter;
+    #ifdef VERBOSE_DEBUG
+      cerr << "Using SR_BadMateFilter." << endl;
+    #endif
+  } else {
+    SR_filter = SR_OrphanFilter;
+    #ifdef VERBOSE_DEBUG
+      cerr << "Using SR_OrphanFilter." << endl;
+    #endif
+  }
+
 
   SR_StreamMode streamMode;
   if (parameters.region.empty())

@@ -498,12 +498,15 @@ SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppUpAlgn,
 		cur = cur->next;
 	      } // end for
 
-	      cur = pBamInStream->pAlgnLists[CURR_BIN].first;
-	      for (int i = 0; i < pBamInStream->pAlgnLists[CURR_BIN].numNode; ++i) {
-	        // if the cur is not NULL, store the cur in the complete bam
-		if (cur != NULL) bam_write1(*bam_writer_complete_bam, &(cur->alignment));
-		cur = cur->next;
-	      } // end for
+	    cur = pBamInStream->pAlgnLists[CURR_BIN].first;
+	    for (int i = 0; i < pBamInStream->pAlgnLists[CURR_BIN].numNode; ++i) {
+	      // if the cur is not NULL, store the cur in the complete bam
+              if (cur != NULL) bam_write1(*bam_writer_complete_bam, &(cur->alignment));
+	      cur = cur->next;
+	    } // end for
+
+	    SR_BamListReset(&(pBamInStream->pAlgnLists[PREV_BIN]), pBamInStream->pMemPool);
+            SR_BamListReset(&(pBamInStream->pAlgnLists[CURR_BIN]), pBamInStream->pMemPool);
         }
 
 	if ( ret != SR_OUT_OF_RANGE && ret != SR_EOF)

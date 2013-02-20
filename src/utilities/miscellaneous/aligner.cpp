@@ -325,14 +325,14 @@ bool Aligner::AlignCandidate(const TargetEvent& target_event,
   hash_length_.farRange   = target_region.discovery_window_size;
   while (SR_QueryRegionLoadPair(query_region_, al_ite) == SR_OK) {
     // TODO@WP: it may be removed later
-    if (query_region_->algnType != SR_UNIQUE_ORPHAN) {
+    //if (query_region_->algnType != SR_UNIQUE_ORPHAN) {
       // Save alignments in complete bam if necessary
-      if (output_complete_bam) {
-        alignments_anchor->push_back(bam_dup1(query_region_->pAnchor));
-	alignments_anchor->push_back(bam_dup1(query_region_->pOrphan));
-      }
-      continue;
-    }
+      //if (output_complete_bam) {
+      //  alignments_anchor->push_back(bam_dup1(query_region_->pAnchor));
+      //  alignments_anchor->push_back(bam_dup1(query_region_->pOrphan));
+      //}
+      //continue;
+    //}
 
     Align(target_event, target_region, alignment_filter, query_region_, 
           output_complete_bam, alignments, alignments_anchor);
@@ -380,7 +380,7 @@ void Aligner::Align(const TargetEvent& target_event,
   SR_QueryRegionLoadSeq(query_region_);
 
 #ifdef VERBOSE_DEBUG
-  fprintf(stderr, "\n\n%s\n", bam1_qname(query_region_->pAnchor));
+  fprintf(stderr, "%s\n", bam1_qname(query_region_->pAnchor));
   fprintf(stderr, "anchor: flag: %d; chr_id: %d; pos: %d\n", 
       query_region_->pAnchor->core.flag, 
       query_region_->pAnchor->core.tid,

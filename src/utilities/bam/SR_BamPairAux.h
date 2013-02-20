@@ -66,7 +66,29 @@ static const unsigned int SR_READ_PAIR_FMASK = (BAM_FSECONDARY | BAM_FQCFAIL | B
 static inline SR_Bool SR_BadMateFilter(SR_BamNode* pBamNode, const void* filterData) {
     if ((pBamNode->alignment.core.flag & BAM_FPAIRED) == 0 // the mate in not paired-end
         // the mapped reference name is not set
-        || strcmp(bam1_qname(&(pBamNode->alignment)), "*") == 0)
+        || strcmp(bam1_qname(&(pBamNode->alignment)), "*") == 0
+	// the mate is not secondary, qual_fail, or duplication
+        || (pBamNode->alignment.core.flag & SR_UNIQUE_ORPHAN_FMASK) != 0
+	// both mates are unmapped
+	|| (pBamNode->alignment.core.flag | (BAM_FUNMAP | BAM_FMUNMAP)) == pBamNode->alignment.core.flag)
+    {    
+	return TRUE; // the mate should be filtered
+    }
+
+    return FALSE;
+
+}
+
+static inline SR_Bool SR_OrphanFilter(SR_BamNode* pBamNode, const void* filterData) {
+    if ((pBamNode->alignment.core.flag & BAM_FPAIRED) == 0 // the mate in not paired-end
+        // the mapped reference name is not set
+        || strcmp(bam1_qname(&(pBamNode->alignment)), "*") == 0
+	// the mate is not secondary, qual_fail, or duplication
+        || (pBamNode->alignment.core.flag & SR_UNIQUE_ORPHAN_FMASK) != 0
+	// both mates are unmapped
+	|| (pBamNode->alignment.core.flag | (BAM_FUNMAP | BAM_FMUNMAP)) == pBamNode->alignment.core.flag
+	// both mates are mapped
+	|| (pBamNode->alignment.core.flag & (BAM_FUNMAP | BAM_FMUNMAP)) == 0)
     {    
 	return TRUE; // the mate should be filtered
     }

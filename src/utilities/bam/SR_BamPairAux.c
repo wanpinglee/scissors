@@ -39,6 +39,8 @@ enum AlignmentStatus
     GOOD_SOFT      = 2,     // a good soft clipping candidate
     
     GOOD_MULTIPLE  = 3,     // a good multiple aligned candidate
+
+    GOOD_POOR      = 4,     // a good candidate that poorly mapped
 };
 
 static double SR_GetMismatchRate(const bam1_t* pAlignment)
@@ -81,16 +83,19 @@ static int SR_CheckAlignment(const bam1_t* pAlignment, double scTolerance, doubl
         isTailSC = TRUE;
     }
 
+    // the alignment passes the soft-clip checker
     if (!isHeadSC && !isTailSC) 
     {
         double mismatchRate = SR_GetMismatchRate(pAlignment);
 	if ((pAlignment->core.qual >= minMQ) && (mismatchRate <= maxMismatchRate))
             return GOOD_ANCHOR;
 	else
-	    return GOOD_MULTIPLE;
+	    return GOOD_POOR;
     }
-    else
+    // the alignment has too many soft clips
+    else {
         return GOOD_SOFT;
+    }
 }
 
 SR_AlgnType SR_GetAlignmentType(SR_BamNode** ppAlgnOne, SR_BamNode** ppAlgnTwo, double scTolerance, double maxMismatchRate, unsigned char minMQ)
@@ -114,8 +119,8 @@ SR_AlgnType SR_GetAlignmentType(SR_BamNode** ppAlgnOne, SR_BamNode** ppAlgnTwo, 
             case GOOD_SOFT:
                 return SR_UNIQUE_SOFT;
                 break;
-            case GOOD_MULTIPLE:
-                return SR_UNIQUE_MULTIPLE;
+            case GOOD_POOR:
+                return SR_UNIQUE_POOR;
                 break;
             case GOOD_ANCHOR:
                 return SR_UNIQUE_NORMAL;
@@ -245,12 +250,12 @@ SR_Status SR_LoadAlgnPairs(SR_BamInStream* pBamInStream,
         // Load a pair of alignments and store them in pAlgnOne and pAlgnTwo;
 	// the position of pAlgnOne is smaller than the one of pAlgnTwo
         SR_AlgnType algnType = SR_GetAlignmentType(&pAlgnOne, &pAlgnTwo, scTolerance, maxMismatchRate, minMQ);
-        if ((algnType == SR_UNIQUE_ORPHAN || algnType == SR_UNIQUE_SOFT || algnType == SR_UNIQUE_MULTIPLE) && pBamInStream->numThreads > 0)
+        if ((algnType == SR_UNIQUE_ORPHAN || algnType == SR_UNIQUE_SOFT || algnType == SR_UNIQUE_POOR) && pBamInStream->numThreads > 0)
         {
             #ifdef VERBOSE_DEBUG
-	      if (algnType == SR_UNIQUE_ORPHAN) fprintf(stderr, "SR_UNIQUE_ORPHAN\n");
-	      else if (algnType == SR_UNIQUE_SOFT) fprintf(stderr, "SR_UNIQUE_SOFT\n");
-	      else if(algnType == SR_UNIQUE_MULTIPLE) fprintf(stderr, "SR_UNIQUE_MULTIPLE\n");
+	      if (algnType == SR_UNIQUE_ORPHAN) fprintf(stderr, "\n\nSR_UNIQUE_ORPHAN\n");
+	      else if (algnType == SR_UNIQUE_SOFT) fprintf(stderr, "\n\nSR_UNIQUE_SOFT\n");
+	      else if(algnType == SR_UNIQUE_POOR) fprintf(stderr, "\n\nSR_UNIQUE_POOR\n");
 	      else;
 	    #endif
 	    bufferStatus = SR_BamInStreamPush(pBamInStream, pAlgnOne, threadID);

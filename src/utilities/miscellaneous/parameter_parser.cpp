@@ -35,7 +35,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		param->command_line += argv[i];
 	}
 
-	const char *short_option = "hi:f:s:o:O:l:w:c:r:p:Q:B:M:bt:";
+	const char *short_option = "hi:f:s:o:O:l:w:c:r:p:Q:B:M:Pt:";
 
 	const struct option long_option[] = {
 		// long help
@@ -55,7 +55,7 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 		{"region", required_argument, NULL, 'r'},
 		{"is-input-sorted", no_argument, NULL, 6},
 		{"processors", required_argument, NULL, 'p'},
-		{"use-bad-mapped-mate", no_argument, NULL, 'b'},
+		{"use-poor-mapped-mate", no_argument, NULL, 'P'},
 		{"not-medium-sized-indel", no_argument, NULL, 5},
 		{"not-special-insertion-inversion", no_argument, NULL, 7},
 		{"technology", required_argument, NULL, 't'},
@@ -134,8 +134,8 @@ void ParseArgumentsOrDie(const int argc, char* const * argv,
 				if (!convert_from_string(optarg, param->processors))
 					cerr << "WARNING: Cannot parse -p --processors." << endl;
 				break;
-			case 'b': param->use_bad_mapped_mate = true;
-
+			case 'P': param->use_poor_mapped_mate = true;
+			        break;
 			case 5:
 				param->not_medium_sized_indel = true;
 				break;
@@ -229,7 +229,7 @@ bool CheckParameters(Parameters* param) {
     errorFound = true;
   }
 
-  if(param->use_bad_mapped_mate && param->output_complete_bam.empty()) {
+  if(param->use_poor_mapped_mate && param->output_complete_bam.empty()) {
     cerr << "ERROR: Please specify the complete bam, -o," << endl
          << "       since -b is enabled." << endl;
     errorFound = true;
@@ -344,7 +344,7 @@ void PrintLongHelp(const string& program) {
 		<< "                         Window size for discovering events. [10000]" << endl
 		<< "   --is-input-sorted" << endl
 		<< "   -p --processors <INT> Use # of processors." << endl
-		<< "   -b --use-bad-mapped-mate" << endl
+		<< "   -P --use-poor-mapped-mate" << endl
 		<< "                         Use pairs with one mare good and the other mate that" << endl
 		<< "                         are mapped but cannot pass -Q and -c filters." << endl
 		<< "   --not-medium-sized-indel" << endl
@@ -368,7 +368,7 @@ void PrintLongHelp(const string& program) {
 		<< endl
 		<< "   -B --aligned-base-rate <FLOAT>" << endl
 		<< "                         Minimum aligned-base rate (0.0 - 1.0) of split-read al-" << endl
-		<< "                         ignments. [0.3]" << endl
+		<< "                         ignments. [0.2]" << endl
 		<< "   -M --allowed-mismatch-rate <FLOAT>" << endl
 		<< "                         Maximum mismatch rate (0.0 - 1.0) in split-read alignm-" << endl
 		<< "                         ents. [0.1]" << endl

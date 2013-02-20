@@ -52,15 +52,17 @@ typedef struct SR_StreamMode
 
 typedef enum
 {
-    SR_UNIQUE_ORPHAN = 0, 
+    SR_UNIQUE_ORPHAN   = 0, 
 
-    SR_UNIQUE_SOFT = 1, 
+    SR_UNIQUE_SOFT     = 1, 
 
     SR_UNIQUE_MULTIPLE = 2,
 
-    SR_UNIQUE_NORMAL = 3,
+    SR_UNIQUE_NORMAL   = 3,
 
-    SR_OTHER_ALGN_TYPE = 4
+    SR_OTHER_ALGN_TYPE = 4,
+
+    SR_UNIQUE_POOR     = 5
 
 }SR_AlgnType;
 
