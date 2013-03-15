@@ -305,6 +305,10 @@ void PrintBriefHelp(const string& program) {
 		<< "   -l --fragment-length <INT>" << endl
 		<< "                         Fragment length." << endl
 		<< "   -t --technology <STR> ILLUMINA, 454, or SOLID." << endl
+		<< endl
+		<< endl
+		<< "author:  Wan-Ping Lee <wanping.lee@bc.edu>, Marth Lab, Boston College" << endl
+		<< "data:    2013-03-15" << endl
 		<< endl;
 		
 

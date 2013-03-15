@@ -3,13 +3,14 @@
 Compiling:
 ##########
 
-Just enter the src directory, and type "make".
+Enter the src directory, and type "make".
 
-###########
-API Example
-###########
+############
+API Example:
+############
 
-Just enter the src/api directory, and type "make".
+Enter the src directory, and type "make api".
+Enter the src/api directory, and type "make".
 
 ############################
 Building Google C++ Testing:
@@ -26,6 +27,8 @@ Wan-Ping Lee <wanping.lee@bc.edu> and
 Jiantao Wu <jiantao.wu@bc.edu>
 Marth Lab. [1], Boston College
 
+
+License: MIT
 
 References:
 [1] http://bioinformatics.bc.edu/marthlab/Main_Page

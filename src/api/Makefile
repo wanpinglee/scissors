@@ -2,7 +2,7 @@
 FLAGS = -Wall -g
 
 LIBS = -lbam -lscissors
-LIBS_DIR = -Loutsources/samtools -L./
+LIBS_DIR = -L../outsources/samtools -L./
 INCLUDE = -I../
 
 
