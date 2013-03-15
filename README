@@ -1,7 +1,17 @@
+== SCISSORS ==
 
-##########
-Compiling:
-##########
+Overview:
+
+SCISSORS is a split-read aligner that maps orphaned read mates (i.e. where one 
+end-mate is aligned with high mapping quality, but the other mate is unmapped), 
+as well as re-maps severely clipped reads (reads mapped with many unaligned or 
+“clipped-off” bases).
+
+############
+Compilation:
+############
+
+SCISSORS requires g++ and the standard C and C++ development libraries.
 
 Enter the src directory, and type "make".
 
@@ -29,6 +39,7 @@ Marth Lab. [1], Boston College
 
 
 License: MIT
+Date: 2013-03-15
 
 References:
 [1] http://bioinformatics.bc.edu/marthlab/Main_Page
