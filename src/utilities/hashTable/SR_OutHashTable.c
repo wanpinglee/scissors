@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 
 #include "utilities/common/SR_Utilities.h"
 #include "SR_OutHashTable.h"
@@ -44,7 +45,10 @@ static SR_Bool GetNextHashKey(uint32_t* hashKey, uint32_t* pos, const char* quer
         char tValue = 0;
         for (unsigned int i = startPos; i != endPos; ++i)
         {
-            tValue = translation[query[i] - 'A'];
+            char cur_base = 0;
+            if (islower(query[i])) cur_base = toupper(query[i]);
+            else cur_base = query[i];
+            tValue = translation[cur_base - 'A'];
             if (tValue < 0)
             {
                 *hashKey = 0;
@@ -112,7 +116,7 @@ void SR_HashPosArrayFree(SR_HashPosArray* hashPosArray)
 
 void SR_HashPosArrayPushBack(SR_HashPosArray* hashPosArray, uint32_t pos)
 {
-    if (hashPosArray->size == hashPosArray->capacity)
+    if (hashPosArray->size >= hashPosArray->capacity)
     {
         hashPosArray->capacity *= 2;
         hashPosArray->data = (uint32_t*) realloc(hashPosArray->data, sizeof(uint32_t) * hashPosArray->capacity);

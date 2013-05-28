@@ -7,8 +7,8 @@ export CC = gcc
 export MAKE = make
 #export CFLAGS = -Wall -Werror -std=gnu99 -O3
 #export CXXFLAGS = -Wall -O3
-export CFLAGS = -D VERBOSE_DEBUG -Wall -Werror -std=gnu99 -g # enables verbose debugging
-export CXXFLAGS = -D VERBOSE_DEBUG -Wall -Werror -g # enables verbose debugging
+export CFLAGS = -Wall -Werror -std=gnu99 -O2 -g # enables verbose debugging
+export CXXFLAGS = -Wall -Werror -O2 -g # enables verbose debugging
 
 # define our sources
 SOURCES = main.cpp
