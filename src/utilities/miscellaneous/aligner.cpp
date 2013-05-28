@@ -225,7 +225,7 @@ Aligner::Aligner()
   special_ref_view_ = SR_RefViewAlloc();
 
   stripe_sw_indel_.Clear();
-  stripe_sw_indel_.ReBuild(10,20,20,1);
+  stripe_sw_indel_.ReBuild(30,60,60,1);
   stripe_sw_normal_.Clear();
   stripe_sw_normal_.ReBuild(1,3,5,2);
 }
@@ -258,7 +258,7 @@ Aligner::Aligner(const SR_Reference* reference,
   special_ref_view_ = SR_RefViewAlloc();
 
   stripe_sw_indel_.Clear();
-  stripe_sw_indel_.ReBuild(10,20,20,1);
+  stripe_sw_indel_.ReBuild(30,60,60,1);
   stripe_sw_normal_.Clear();
   stripe_sw_normal_.ReBuild(1,3,5,2);
   //stripe_sw_aligner_.SetGapPenalty(4, 0);
@@ -785,7 +785,7 @@ bool Aligner::SearchMediumIndel(const TargetRegion& target_region,
   // If the difference between beginnng and ending is larger than distance_filter,
   // then we don't think that it's medium-sized indels and don't need to trace
   // the alignment.
-  filter.distance_filter = read_seq.size() * 5;
+  filter.distance_filter = read_seq.size() * 10;
   stripe_sw_indel_.Align(read_seq.c_str(), ref_seq, ref_length, filter, indel_al);
   indel_al->is_reverse = region_type.sequence_inverse;
   indel_al->is_complement = region_type.sequence_complement;
