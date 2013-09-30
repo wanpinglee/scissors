@@ -90,7 +90,7 @@ static int SR_CheckAlignment(const bam1_t* pAlignment, double scTolerance, doubl
 	if ((pAlignment->core.qual >= minMQ) && (mismatchRate <= maxMismatchRate))
             return GOOD_ANCHOR;
 	else
-	    return GOOD_POOR;
+	    return GOOD_POOR; // Low quality alignment
     }
     // the alignment has too many soft clips
     else {

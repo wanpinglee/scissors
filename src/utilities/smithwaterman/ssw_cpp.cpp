@@ -96,7 +96,7 @@ void ConvertAlignment(const s_align& s_al,
 
 int CalculateNumberMismatch(
     const StripedSmithWaterman::Alignment& al,
-    const int8_t* matrix,
+    //const int8_t* matrix,
     int8_t const *ref,
     int8_t const *query) {
   
@@ -108,7 +108,7 @@ int CalculateNumberMismatch(
     int32_t length = (al.cigar[i] >> 4) & 0x0fffffff;
     if (op == 0) { // M
       for (int j = 0; j < length; ++j) {
-        if (matrix[*ref] != matrix[*query]) ++mismatch_length;
+	if (*ref != *query) ++mismatch_length;
 	++ref;
 	++query;
       }
@@ -206,9 +206,10 @@ int Aligner::SetReferenceSequence(const char* seq, const int& length) {
   int len = 0;
   if (matrix_built_) {
     // calculate the valid length
-    int calculated_ref_length = static_cast<int>(strlen(seq));
-    int valid_length = (calculated_ref_length > length) 
-                       ? length : calculated_ref_length;
+    //int calculated_ref_length = static_cast<int>(strlen(seq));
+    //int valid_length = (calculated_ref_length > length) 
+    //                   ? length : calculated_ref_length;
+    int valid_length = length;
     // delete the current buffer
     CleanReferenceSequence();
     // allocate a new buffer
@@ -264,7 +265,7 @@ bool Aligner::Align(const char* query, const Filter& filter,
   
   alignment->Clear();
   ConvertAlignment(*s_al, query_len, alignment);
-  alignment->mismatches = CalculateNumberMismatch(*alignment, score_matrix_, translated_reference_, translated_query);
+  alignment->mismatches = CalculateNumberMismatch(*alignment, translated_reference_, translated_query);
 
 
   // Free memory
@@ -288,9 +289,10 @@ bool Aligner::Align(const char* query, const char* ref, const int& ref_len,
   TranslateBase(query, query_len, translated_query);
 
   // calculate the valid length
-  int calculated_ref_length = static_cast<int>(strlen(ref));
-  int valid_ref_len = (calculated_ref_length > ref_len) 
-                      ? ref_len : calculated_ref_length;
+  //int calculated_ref_length = static_cast<int>(strlen(ref));
+  //int valid_ref_len = (calculated_ref_length > ref_len) 
+  //                    ? ref_len : calculated_ref_length;
+  int valid_ref_len = ref_len;
   int8_t* translated_ref = new int8_t[valid_ref_len];
   TranslateBase(ref, valid_ref_len, translated_ref);
 
@@ -308,7 +310,7 @@ bool Aligner::Align(const char* query, const char* ref, const int& ref_len,
   
   alignment->Clear();
   ConvertAlignment(*s_al, query_len, alignment);
-  alignment->mismatches = CalculateNumberMismatch(*alignment, score_matrix_, translated_ref, translated_query);
+  alignment->mismatches = CalculateNumberMismatch(*alignment, translated_ref, translated_query);
 
   // Free memory
   if (query_len > 1) delete [] translated_query;
