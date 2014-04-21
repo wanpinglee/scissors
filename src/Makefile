@@ -36,7 +36,7 @@ clean:
 	@rm -rf $(OBJ_DIR) 
 	@rm -rf $(BIN_DIR)
 	@cd outsources/samtools && $(MAKE) clean --no-print-directory
-	@rm api/libscissors.a
+	@rm -f api/libscissors.a
 
 # define our source subdirectories
 SUB_DIRS = dataStructures \
