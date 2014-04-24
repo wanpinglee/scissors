@@ -365,12 +365,20 @@ SR_Status SR_BamInStreamLoadPair(SR_BamNode** ppUpAlgn,
         SR_Bool shouldBeFiltered = pBamInStream->filterFunc(pBamInStream->pNewNode, pBamInStream->filterData);
         if (shouldBeFiltered)
         {
+	    #ifdef VERBOSE_DEBUG
+	      fprintf(stderr,"%s: filtered.\n", bam1_qname(&(pBamInStream->pNewNode->alignment)));
+	    #endif
+
 	    if (bam_writer_complete_bam != NULL) bam_write1(*bam_writer_complete_bam, &(pBamInStream->pNewNode->alignment));
 	    
 	    SR_BamNodeFree(pBamInStream->pNewNode, pBamInStream->pMemPool);
             pBamInStream->pNewNode = NULL;
             continue;
-        }
+        } else {
+	    #ifdef VERBOSE_DEBUG
+	      fprintf(stderr,"%s: kept in buffer.\n", bam1_qname(&(pBamInStream->pNewNode->alignment)));
+	    #endif
+	}
 
         // update the current ref ID or position if the incoming alignment has a 
         // different value. The name hash and the bam array will be reset

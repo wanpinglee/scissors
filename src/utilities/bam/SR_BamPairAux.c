@@ -50,7 +50,8 @@ static double SR_GetMismatchRate(const bam1_t* pAlignment)
     for (unsigned i = 0; i != pAlignment->core.n_cigar; ++i)
     {
         int type = (cigar[i] & BAM_CIGAR_MASK);
-        if (type == BAM_CINS || type == BAM_CDEL || type == BAM_CSOFT_CLIP || type == BAM_CMISMATCH)
+        //if (type == BAM_CINS || type == BAM_CDEL || type == BAM_CSOFT_CLIP || type == BAM_CMISMATCH)
+	if (type == BAM_CINS || type == BAM_CDEL || type == BAM_CMISMATCH)
         {
             numMismatch += (cigar[i] >> BAM_CIGAR_SHIFT);
         }
@@ -87,6 +88,14 @@ static int SR_CheckAlignment(const bam1_t* pAlignment, double scTolerance, doubl
     if (!isHeadSC && !isTailSC) 
     {
         double mismatchRate = SR_GetMismatchRate(pAlignment);
+
+        #ifdef VERBOSE_DEBUG
+	  if (pAlignment->core.qual < minMQ) 
+	    fprintf(stderr, "\tQuality low: %d < %d\n", pAlignment->core.qual, minMQ);
+	  if (mismatchRate > maxMismatchRate) 
+	    fprintf(stderr, "\tToo many X: %1.2f > %1.2f\n", mismatchRate, maxMismatchRate);
+	#endif
+
 	if ((pAlignment->core.qual >= minMQ) && (mismatchRate <= maxMismatchRate))
             return GOOD_ANCHOR;
 	else
@@ -100,8 +109,21 @@ static int SR_CheckAlignment(const bam1_t* pAlignment, double scTolerance, doubl
 
 SR_AlgnType SR_GetAlignmentType(SR_BamNode** ppAlgnOne, SR_BamNode** ppAlgnTwo, double scTolerance, double maxMismatchRate, unsigned char minMQ)
 {
+    #ifdef VERBOSE_DEBUG
+      fprintf(stderr,"%s\n", bam1_qname(&((*ppAlgnOne)->alignment)));
+    #endif
+
     int firstType = SR_CheckAlignment(&((*ppAlgnOne)->alignment), scTolerance, maxMismatchRate, minMQ);
+    
+    #ifdef VERBOSE_DEBUG
+      fprintf(stderr,"mate1 type: %d\n", firstType);
+    #endif
+    
     int secondType = SR_CheckAlignment(&((*ppAlgnTwo)->alignment), scTolerance, maxMismatchRate, minMQ);
+    
+    #ifdef VERBOSE_DEBUG
+      fprintf(stderr,"mate2 type: %d\n", secondType);
+    #endif
 
     if (firstType != GOOD_ANCHOR && secondType == GOOD_ANCHOR)
     {

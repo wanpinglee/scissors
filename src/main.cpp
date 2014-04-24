@@ -87,6 +87,17 @@ int main (int argc, char** argv) {
   MainVars vars;
   InitVariablesOrDie(parameters, &files, &vars);
 
+  #ifdef VERBOSE_DEBUG
+    cerr << "*** Alignment types ***" << endl
+         << "\t -1: NONE_GOOD, neither a good anchor nor a good orphan candidate" << endl
+	 << "\t  0: GOOD_ANCHOR, a good anchor candidate" << endl
+	 << "\t  1: GOOD_ORPHAN, a good orphan candidate" << endl
+	 << "\t  2: GOOD_SOFT, a good soft clipping candidate" << endl
+	 << "\t  3: GOOD_MULTIPLE, a good multiple aligned candidate" << endl
+	 << "\t  4: GOOD_POOR, a good candidate that is poorly mapped" << endl << endl;
+  #endif
+
+
   // Write bam header
   ResetSoBamHeader(vars.bam_header->pOrigHeader);
   int original_ref_no = vars.bam_header->pOrigHeader->n_targets;
@@ -153,14 +164,8 @@ void InitFiles(const Parameters& parameters, MainFiles* files) {
   SR_BamFilter SR_filter;
   if (parameters.use_poor_mapped_mate) {
     SR_filter = SR_BadMateFilter;
-    #ifdef VERBOSE_DEBUG
-      cerr << "Using SR_BadMateFilter." << endl;
-    #endif
   } else {
     SR_filter = SR_OrphanFilter;
-    #ifdef VERBOSE_DEBUG
-      cerr << "Using SR_OrphanFilter." << endl;
-    #endif
   }
 
 
