@@ -31,11 +31,11 @@ typedef unsigned int uint32;
 typedef unsigned int uint32;
 #endif
 
-struct MD5Context {
+typedef struct MD5Context {
         uint32 buf[4];
         uint32 bits[2];
         unsigned char in[64];
-};
+} __attribute__((__may_alias__)) MD5Context;
 
 #ifdef __cplusplus      //added by Jim Howard so that these functions can be called from c++
 extern "C"

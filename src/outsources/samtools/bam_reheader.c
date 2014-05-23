@@ -8,12 +8,12 @@
 int bam_reheader(BGZF *in, const bam_header_t *h, int fd)
 {
 	BGZF *fp;
-	bam_header_t *old;
+	//bam_header_t *old;
 	int len;
 	uint8_t *buf;
 	if (in->open_mode != 'r') return -1;
 	buf = malloc(BUF_SIZE);
-	old = bam_header_read(in);
+	//old = bam_header_read(in);
 	fp = bgzf_fdopen(fd, "w");
 	bam_header_write(fp, h);
 	if (in->block_offset < in->block_length) {

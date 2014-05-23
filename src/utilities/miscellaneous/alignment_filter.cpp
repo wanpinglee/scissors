@@ -183,11 +183,11 @@ void TrimAlignment(
   && (static_cast<unsigned int>(best_length) < al->reference.size())) {
     int end = best_start + best_length - 1;
     //sanity check
-    if (end > (al->reference.size() - 1)) {
+    if (end > (static_cast<int> (al->reference.size()) - 1)) {
       //nothing
     } else {
       // trim from the tail
-      if (end < (al->reference.size() - 1)) {
+      if (end < (static_cast<int> (al->reference.size()) - 1)) {
         for (unsigned int i = end + 1; i < al->reference.size(); ++i) {
 	  if (al->reference[i] != AlignmentConstant::GAP) --(al->reference_end);
 	  if (al->query[i] != AlignmentConstant::GAP) --(al->query_end);
