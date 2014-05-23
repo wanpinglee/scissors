@@ -5,7 +5,7 @@ BIN_DIR = ../bin
 export CXX = g++
 export CC = gcc
 export MAKE = make
-export CFLAGS = -Wall -Werror -std=gnu99 -O3
+export CFLAGS = -Wall -std=gnu99 -O3
 export CXXFLAGS = -Wall -O3
 #export CFLAGS = -Wall -Werror -std=gnu99 -O2 -g -D VERBOSE_DEBUG # enables verbose debugging
 #export CXXFLAGS = -Wall -Werror -O2 -g -D VERBOSE_DEBUG # enables verbose debugging

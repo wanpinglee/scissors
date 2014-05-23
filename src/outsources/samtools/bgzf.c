@@ -585,11 +585,11 @@ int bgzf_close(BGZF* fp)
         if (bgzf_flush(fp) != 0) return -1;
 		{ // add an empty block
 			int block_length = deflate_block(fp, 0);
-//#ifdef _USE_KNETFILE
-//			count = fwrite(fp->compressed_block, 1, block_length, fp->x.fpw);
-//#else
-//			count = fwrite(fp->compressed_block, 1, block_length, fp->file);
-//#endif
+#ifdef _USE_KNETFILE
+			fwrite(fp->compressed_block, 1, block_length, fp->x.fpw);
+#else
+			fwrite(fp->compressed_block, 1, block_length, fp->file);
+#endif
 		}
 #ifdef _USE_KNETFILE
         if (fflush(fp->x.fpw) != 0) {

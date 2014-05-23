@@ -539,8 +539,10 @@ void Aligner::GetTargetRefRegion(const int& extend_length, const int& hash_begin
   else forward_shift = extend_length;
 
   int backward_shift;
-  if ((pos + extend_length + 1) > seq_length) backward_shift = seq_length - pos - 1;
-  else backward_shift = extend_length;
+  if ((pos + static_cast<uint32_t>(extend_length) + 1) > static_cast<uint32_t>(seq_length)) 
+    backward_shift = seq_length - pos - 1;
+  else 
+    backward_shift = extend_length;
   
   *begin = hash_begin - forward_shift;
   *end   = hash_begin + backward_shift;
